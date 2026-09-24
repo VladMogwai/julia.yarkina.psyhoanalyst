@@ -1,5 +1,5 @@
 export const siteUrl = (
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://julia-yarkina-psyhoanalyst.pages.dev"
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://julia-yarkina-psyhoanalyst.vlad-arefiev.workers.dev"
 ).replace(/\/$/, "");
 
 /**
