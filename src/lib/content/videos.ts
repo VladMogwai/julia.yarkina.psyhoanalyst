@@ -20,16 +20,51 @@ interface PlaylistItemsResponse {
   }[];
 }
 
+interface VideosResponse {
+  items: { id: string; contentDetails: { duration: string } }[];
+}
+
 const MAX_PAGES = 10;
+const PAGE_SIZE = 50;
+
+/** YouTube Shorts are at most 3 minutes long; anything that short is left off the site. */
+const MAX_SHORTS_SECONDS = 180;
+
+async function youtubeApi<T>(endpoint: string, params: Record<string, string>): Promise<T> {
+  const query = new URLSearchParams({ ...params, key: process.env.YOUTUBE_API_KEY! });
+  const response = await fetch(`https://www.googleapis.com/youtube/v3/${endpoint}?${query}`);
+  if (!response.ok) {
+    throw new Error(`YouTube API error ${response.status}: ${await response.text()}`);
+  }
+  return (await response.json()) as T;
+}
+
+/** ISO 8601 duration from the API, e.g. "PT1H2M3S" → 3723. */
+function durationToSeconds(duration: string): number {
+  const [, hours = "0", minutes = "0", seconds = "0"] =
+    /^P(?:\d+D)?T?(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/.exec(duration) ?? [];
+  return Number(hours) * 3600 + Number(minutes) * 60 + Number(seconds);
+}
+
+async function getDurations(ids: string[]): Promise<Map<string, number>> {
+  const durations = new Map<string, number>();
+  for (let start = 0; start < ids.length; start += PAGE_SIZE) {
+    const data = await youtubeApi<VideosResponse>("videos", {
+      part: "contentDetails",
+      id: ids.slice(start, start + PAGE_SIZE).join(","),
+    });
+    for (const item of data.items) durations.set(item.id, durationToSeconds(item.contentDetails.duration));
+  }
+  return durations;
+}
 
 /**
- * All public uploads of the YouTube channel, newest first.
+ * Public uploads of the YouTube channel without Shorts, newest first.
  * Runs at build time; returns [] until YOUTUBE_API_KEY and YOUTUBE_CHANNEL_ID are set.
  */
 export async function getVideos(): Promise<Video[]> {
-  const apiKey = process.env.YOUTUBE_API_KEY;
   const channelId = process.env.YOUTUBE_CHANNEL_ID;
-  if (!apiKey || !channelId) return [];
+  if (!process.env.YOUTUBE_API_KEY || !channelId) return [];
 
   // Every channel has an "uploads" playlist: its id is the channel id with UC → UU.
   const playlistId = `UU${channelId.slice(2)}`;
@@ -37,19 +72,12 @@ export async function getVideos(): Promise<Video[]> {
   let pageToken: string | undefined;
 
   for (let page = 0; page < MAX_PAGES; page++) {
-    const params = new URLSearchParams({
+    const data = await youtubeApi<PlaylistItemsResponse>("playlistItems", {
       part: "snippet,contentDetails",
       playlistId,
-      maxResults: "50",
-      key: apiKey,
+      maxResults: String(PAGE_SIZE),
+      ...(pageToken && { pageToken }),
     });
-    if (pageToken) params.set("pageToken", pageToken);
-
-    const response = await fetch(`https://www.googleapis.com/youtube/v3/playlistItems?${params}`);
-    if (!response.ok) {
-      throw new Error(`YouTube API error ${response.status}: ${await response.text()}`);
-    }
-    const data = (await response.json()) as PlaylistItemsResponse;
 
     for (const { snippet, contentDetails } of data.items) {
       // Private and deleted videos stay in the playlist but have no publish date.
@@ -68,5 +96,8 @@ export async function getVideos(): Promise<Video[]> {
     if (!pageToken) break;
   }
 
-  return videos.sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
+  const durations = await getDurations(videos.map((video) => video.id));
+  return videos
+    .filter((video) => (durations.get(video.id) ?? 0) > MAX_SHORTS_SECONDS)
+    .sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
 }
