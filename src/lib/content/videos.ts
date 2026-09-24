@@ -106,7 +106,10 @@ export async function getChannelVideos(): Promise<ChannelVideos> {
   const isShort = (video: Video) => (durations.get(video.id) ?? 0) <= MAX_SHORTS_SECONDS;
 
   return {
-    shorts: videos.filter(isShort),
+    // The API only gives 16:9 thumbnails; YouTube also serves the original vertical frame as oar2.jpg.
+    shorts: videos
+      .filter(isShort)
+      .map((video) => ({ ...video, thumbnailUrl: `https://i.ytimg.com/vi/${video.id}/oar2.jpg` })),
     videos: videos.filter((video) => !isShort(video)),
   };
 }
