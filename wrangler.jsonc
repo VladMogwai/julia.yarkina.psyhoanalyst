@@ -1,0 +1,11 @@
+// Cloudflare Workers config: the site is a static export, so the Worker only serves `out/`.
+// Having this file also stops `wrangler deploy` from auto-configuring an OpenNext server build.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "julia-yarkina-psyhoanalyst",
+  "compatibility_date": "2026-09-21",
+  "assets": {
+    "directory": "./out",
+    "not_found_handling": "404-page"
+  }
+}
