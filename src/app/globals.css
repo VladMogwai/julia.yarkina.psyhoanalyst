@@ -43,3 +43,8 @@
 @utility link-underline {
   @apply underline decoration-line decoration-1 underline-offset-4 transition-colors hover:decoration-accent;
 }
+
+/* YouTube players embedded in article bodies (see lib/markdown.ts) */
+.video-embed iframe {
+  @apply my-8 aspect-video w-full rounded-2xl;
+}
