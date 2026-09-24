@@ -35,7 +35,11 @@ export function ShortCard({ videoId, title, thumbnailUrl, playLabel }: ShortCard
 
   function handlePointerEnter(event: React.PointerEvent) {
     if (event.pointerType !== "mouse" || mode !== "idle") return;
-    hoverTimer.current = setTimeout(() => setMode("preview"), PREVIEW_DELAY_MS);
+    // Functional update: a click may have started playback before the timer fires.
+    hoverTimer.current = setTimeout(
+      () => setMode((current) => (current === "idle" ? "preview" : current)),
+      PREVIEW_DELAY_MS,
+    );
   }
 
   function handlePointerLeave() {
@@ -60,7 +64,10 @@ export function ShortCard({ videoId, title, thumbnailUrl, playLabel }: ShortCard
       ) : (
         <button
           type="button"
-          onClick={() => setMode("playing")}
+          onClick={() => {
+            clearTimeout(hoverTimer.current);
+            setMode("playing");
+          }}
           aria-label={`${playLabel}: ${title}`}
           className="group absolute inset-0 size-full"
         >
