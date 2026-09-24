@@ -1,26 +1,45 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --color-cream: #f6f1ea;
+  --color-sand: #ece3d7;
+  --color-line: #ddd2c3;
+  --color-ink: #2b2622;
+  --color-muted: #6f655c;
+  --color-accent: #3f5a4a;
+  --color-accent-dark: #2f4538;
+
+  --font-serif: var(--font-cormorant), Georgia, serif;
+  --font-sans: var(--font-manrope), system-ui, sans-serif;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+@layer base {
+  body {
+    @apply bg-cream font-sans text-ink antialiased;
+  }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  ::selection {
+    @apply bg-accent text-cream;
+  }
+
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-accent;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@utility container-page {
+  @apply mx-auto w-full max-w-6xl px-5 sm:px-8;
+}
+
+@utility eyebrow {
+  @apply text-xs font-semibold tracking-[0.2em] text-accent uppercase;
+}
+
+@utility button-primary {
+  @apply inline-flex items-center justify-center rounded-full bg-accent px-7 py-3.5 text-sm font-semibold tracking-wide text-cream transition-colors hover:bg-accent-dark;
+}
+
+@utility link-underline {
+  @apply underline decoration-line decoration-1 underline-offset-4 transition-colors hover:decoration-accent;
 }
