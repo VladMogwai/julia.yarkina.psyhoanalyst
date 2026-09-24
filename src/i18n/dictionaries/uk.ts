@@ -112,6 +112,10 @@ export const uk: Dictionary = {
     empty: "Відео незабаром з’являться.",
     channelLink: "Перейти на YouTube-канал",
     play: "Дивитися відео",
+    shortsTitle: "Shorts",
+    videosTitle: "Усі відео",
+    previous: "Назад",
+    next: "Вперед",
   },
   certificates: {
     metaTitle: "Освіта та сертифікати",
