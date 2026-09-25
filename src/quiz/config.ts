@@ -3,7 +3,7 @@
  * and imports nothing from the main site.
  *
  * To switch it off, set the build variable QUIZ_ENABLED=false: every /quiz page then renders a 404.
- * To remove it completely, delete both folders and `public/quiz/` (the /quiz → /quiz/ru redirect page).
+ * To remove it completely, delete both folders and `public/quiz/` (the /quiz → /quiz/uk redirect page).
  */
 export const quizEnabled = process.env.QUIZ_ENABLED !== "false";
 
@@ -12,7 +12,10 @@ export const quizSiteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://yarkina
 /** Hidden from search engines while the texts are placeholders. */
 export const quizIndexable = false;
 
-export const quizLocales = ["ru", "uk", "fr"] as const;
+/** Ukrainian is the main language: /quiz opens it. */
+export const quizLocales = ["uk", "en", "fr", "ru"] as const;
+
+export const defaultQuizLocale = "uk";
 
 export type QuizLocale = (typeof quizLocales)[number];
 

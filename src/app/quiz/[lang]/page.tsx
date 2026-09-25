@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Quiz } from "@/quiz/components/Quiz";
-import { isQuizLocale, quizEnabled, quizIndexable, quizLocales, quizSiteUrl } from "@/quiz/config";
+import { defaultQuizLocale, isQuizLocale, quizEnabled, quizIndexable, quizLocales, quizSiteUrl } from "@/quiz/config";
 import { getQuizContent } from "@/quiz/content";
 
 export async function generateMetadata({ params }: PageProps<"/quiz/[lang]">): Promise<Metadata> {
@@ -16,7 +16,10 @@ export async function generateMetadata({ params }: PageProps<"/quiz/[lang]">): P
     robots: quizIndexable ? undefined : { index: false, follow: false },
     alternates: {
       canonical: `/quiz/${lang}`,
-      languages: Object.fromEntries(quizLocales.map((locale) => [locale, `/quiz/${locale}`])),
+      languages: {
+        ...Object.fromEntries(quizLocales.map((locale) => [locale, `/quiz/${locale}`])),
+        "x-default": `/quiz/${defaultQuizLocale}`,
+      },
     },
   };
 }
