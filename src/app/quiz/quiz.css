@@ -1,0 +1,44 @@
+/* Styles of the standalone questionnaire. Independent of the main site's globals.css. */
+@import "tailwindcss";
+
+@theme {
+  --color-lavender: #b39ae8;
+  --color-forest: #0f1c17;
+  --color-mint: #dcede3;
+  --color-cream: #fbf6ee;
+  --color-green: #2e7a55;
+  --color-violet: #8b6cc9;
+  --color-muted: #5b6360;
+
+  --font-display: var(--font-quiz-display), Georgia, serif;
+  --font-sans: var(--font-quiz-sans), system-ui, sans-serif;
+}
+
+@layer base {
+  body {
+    @apply bg-cream font-sans text-forest antialiased;
+  }
+
+  :focus-visible {
+    @apply outline-2 outline-offset-4 outline-forest;
+  }
+}
+
+/* Display type: serif at display optical size, never bold. */
+@utility display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-variation-settings: "opsz" 60;
+  letter-spacing: -0.02em;
+  line-height: 1.02;
+}
+
+@utility quiz-label {
+  @apply text-[11px] font-medium tracking-[0.12em] uppercase;
+}
+
+/* Long question texts scroll inside their column; the mask softens the cut-off edge. */
+@utility scroll-fade {
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 48px), transparent);
+  scrollbar-width: thin;
+}
