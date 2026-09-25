@@ -27,7 +27,7 @@ interface VideosResponse {
 const MAX_PAGES = 10;
 const PAGE_SIZE = 50;
 
-/** YouTube Shorts are at most 3 minutes long; anything that short is shown as a Short. */
+/** YouTube Shorts are at most 3 minutes long; anything that short is left off the site. */
 const MAX_SHORTS_SECONDS = 180;
 
 async function youtubeApi<T>(endpoint: string, params: Record<string, string>): Promise<T> {
@@ -58,18 +58,13 @@ async function getDurations(ids: string[]): Promise<Map<string, number>> {
   return durations;
 }
 
-export interface ChannelVideos {
-  shorts: Video[];
-  videos: Video[];
-}
-
 /**
- * Public uploads of the YouTube channel split into Shorts and regular videos, newest first.
- * Runs at build time; returns empty lists until YOUTUBE_API_KEY and YOUTUBE_CHANNEL_ID are set.
+ * Public uploads of the YouTube channel without Shorts, newest first.
+ * Runs at build time; returns [] until YOUTUBE_API_KEY and YOUTUBE_CHANNEL_ID are set.
  */
-export async function getChannelVideos(): Promise<ChannelVideos> {
+export async function getVideos(): Promise<Video[]> {
   const channelId = process.env.YOUTUBE_CHANNEL_ID;
-  if (!process.env.YOUTUBE_API_KEY || !channelId) return { shorts: [], videos: [] };
+  if (!process.env.YOUTUBE_API_KEY || !channelId) return [];
 
   // Every channel has an "uploads" playlist: its id is the channel id with UC → UU.
   const playlistId = `UU${channelId.slice(2)}`;
@@ -101,15 +96,8 @@ export async function getChannelVideos(): Promise<ChannelVideos> {
     if (!pageToken) break;
   }
 
-  videos.sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
   const durations = await getDurations(videos.map((video) => video.id));
-  const isShort = (video: Video) => (durations.get(video.id) ?? 0) <= MAX_SHORTS_SECONDS;
-
-  return {
-    // The API only gives 16:9 thumbnails; YouTube also serves the original vertical frame as oar2.jpg.
-    shorts: videos
-      .filter(isShort)
-      .map((video) => ({ ...video, thumbnailUrl: `https://i.ytimg.com/vi/${video.id}/oar2.jpg` })),
-    videos: videos.filter((video) => !isShort(video)),
-  };
+  return videos
+    .filter((video) => (durations.get(video.id) ?? 0) > MAX_SHORTS_SECONDS)
+    .sort((a, b) => b.publishedAt.localeCompare(a.publishedAt));
 }

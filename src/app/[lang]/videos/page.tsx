@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
 import { JsonLd } from "@/components/JsonLd";
 import { EmptyState, PageIntro } from "@/components/PageIntro";
-import { ShortsShelf } from "@/components/ShortsShelf";
 import { YouTubePlayer } from "@/components/YouTubePlayer";
 import { contacts } from "@/config/site";
 import { isLocale, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
-import { getChannelVideos } from "@/lib/content/videos";
+import { getVideos } from "@/lib/content/videos";
 import { formatDate } from "@/lib/format";
 import { pageMetadata } from "@/lib/seo";
 
@@ -26,19 +25,18 @@ export default async function VideosPage({ params }: PageProps<"/[lang]/videos">
   const { lang } = await params;
   const locale = lang as Locale;
   const dict = getDictionary(locale).videos;
-  const { shorts, videos } = await getChannelVideos();
-  const allVideos = [...shorts, ...videos];
+  const videos = await getVideos();
 
   return (
     <>
       <PageIntro title={dict.title} intro={dict.intro} />
 
-      {allVideos.length > 0 && (
+      {videos.length > 0 && (
         <JsonLd
           data={{
             "@context": "https://schema.org",
             "@type": "ItemList",
-            itemListElement: allVideos.map((video, index) => ({
+            itemListElement: videos.map((video, index) => ({
               "@type": "ListItem",
               position: index + 1,
               item: {
@@ -55,43 +53,25 @@ export default async function VideosPage({ params }: PageProps<"/[lang]/videos">
         />
       )}
 
-      {allVideos.length === 0 && <EmptyState text={dict.empty} />}
-
-      {shorts.length > 0 && (
-        <section className="container-page">
-          <h2 className="mb-6 flex items-center gap-3 font-serif text-3xl font-medium">
-            <svg viewBox="0 0 24 24" className="size-7 text-accent" aria-hidden="true">
-              <path
-                fill="currentColor"
-                d="M17.8 10.1 15.6 9l2.2-1.2a3.4 3.4 0 0 0-3.2-6l-8.4 4.5a3.4 3.4 0 0 0 .1 6l2.2 1.1-2.2 1.2a3.4 3.4 0 0 0 3.2 6l8.4-4.5a3.4 3.4 0 0 0-.1-6ZM10 15V9l5 3-5 3Z"
-              />
-            </svg>
-            {dict.shortsTitle}
-          </h2>
-          <ShortsShelf shorts={shorts} labels={{ play: dict.play, previous: dict.previous, next: dict.next }} />
-        </section>
-      )}
+      {videos.length === 0 && <EmptyState text={dict.empty} />}
 
       {videos.length > 0 && (
-        <section className="container-page mt-16">
-          {shorts.length > 0 && <h2 className="mb-8 font-serif text-3xl font-medium">{dict.videosTitle}</h2>}
-          <ul className="grid gap-x-8 gap-y-12 md:grid-cols-2">
-            {videos.map((video) => (
-              <li key={video.id}>
-                <YouTubePlayer
-                  videoId={video.id}
-                  title={video.title}
-                  thumbnailUrl={video.thumbnailUrl}
-                  playLabel={dict.play}
-                />
-                <time dateTime={video.publishedAt} className="mt-4 block text-sm text-muted">
-                  {formatDate(video.publishedAt, locale)}
-                </time>
-                <h3 className="mt-1 font-serif text-2xl leading-snug font-medium">{video.title}</h3>
-              </li>
-            ))}
-          </ul>
-        </section>
+        <ul className="container-page grid gap-x-8 gap-y-12 md:grid-cols-2">
+          {videos.map((video) => (
+            <li key={video.id}>
+              <YouTubePlayer
+                videoId={video.id}
+                title={video.title}
+                thumbnailUrl={video.thumbnailUrl}
+                playLabel={dict.play}
+              />
+              <time dateTime={video.publishedAt} className="mt-4 block text-sm text-muted">
+                {formatDate(video.publishedAt, locale)}
+              </time>
+              <h2 className="mt-1 font-serif text-2xl leading-snug font-medium">{video.title}</h2>
+            </li>
+          ))}
+        </ul>
       )}
 
       {contacts.youtube && (

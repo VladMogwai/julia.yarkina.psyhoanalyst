@@ -110,10 +110,6 @@ export const ru = {
     empty: "Видео скоро появятся.",
     channelLink: "Перейти на YouTube-канал",
     play: "Смотреть видео",
-    shortsTitle: "Shorts",
-    videosTitle: "Все видео",
-    previous: "Назад",
-    next: "Вперёд",
   },
   certificates: {
     metaTitle: "Образование и сертификаты",
