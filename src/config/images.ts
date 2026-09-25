@@ -13,7 +13,7 @@ export const images = {
 
 /**
  * Hero background: kaleidoscope loop by KTkaRAJFreeStock (Pixabay, free for commercial use),
- * https://pixabay.com/videos/kaleidoscope-mandala-pattern-loop-172413/ — slowed to 0.7×, re-encoded to 1280px, no audio.
+ * https://pixabay.com/videos/kaleidoscope-mandala-pattern-loop-172413/ — slowed to 0.7× with motion-interpolated frames (30 fps), 1280px, no audio.
  */
 export const heroVideo = {
   webm: "/videos/hero-kaleidoscope.webm",
