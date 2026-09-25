@@ -4,7 +4,7 @@ import Link from "next/link";
 import { BookingButton } from "@/components/BookingButton";
 import { JsonLd } from "@/components/JsonLd";
 import { SectionTile } from "@/components/SectionTile";
-import { images, pexelsSrcSet, pexelsUrl } from "@/config/images";
+import { heroVideo, images, pexelsSrcSet, pexelsUrl } from "@/config/images";
 import { bookingUrl, portrait } from "@/config/site";
 import { isLocale, type Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
@@ -71,17 +71,28 @@ export default async function HomePage({ params }: PageProps<"/[lang]">) {
     <>
       <JsonLd data={personJsonLd(locale)} />
 
-      {/* Hero: full-width artwork with the key message */}
+      {/* Hero: looping kaleidoscope video with the key message */}
       <section className="relative isolate flex min-h-[80vh] items-center justify-center overflow-hidden px-5 py-24 text-center">
-        {/* eslint-disable-next-line @next/next/no-img-element -- remote CDN image, static export */}
+        {/* The poster paints instantly and stays as the background for visitors who prefer reduced motion. */}
+        {/* eslint-disable-next-line @next/next/no-img-element -- static export */}
         <img
-          src={pexelsUrl(images.hero, 1920)}
-          srcSet={pexelsSrcSet(images.hero)}
-          sizes="100vw"
+          src={heroVideo.poster}
           alt=""
           fetchPriority="high"
           className="absolute inset-0 -z-10 size-full object-cover"
         />
+        <video
+          autoPlay
+          muted
+          loop
+          playsInline
+          poster={heroVideo.poster}
+          aria-hidden="true"
+          className="absolute inset-0 -z-10 size-full object-cover motion-reduce:hidden"
+        >
+          <source src={heroVideo.webm} type="video/webm" />
+          <source src={heroVideo.mp4} type="video/mp4" />
+        </video>
         <div className="absolute inset-0 -z-10 bg-ink/55" aria-hidden="true" />
         <div className="max-w-3xl text-cream">
           <p className="eyebrow !text-cream/80">{person.role}</p>

@@ -4,13 +4,22 @@
  * Photo pages: https://www.pexels.com/photo/<id>/
  */
 export const images = {
-  hero: 4787231, // spiral staircase from below — concentric circles
   approach: 3965534, // armchair with a throw in a white room
   articles: 1333742, // stack of old books
   videos: 15128321, // studio light and window shadow
   certificates: 37423357, // historic library hall
   booking: 16550173, // old wooden door with steps
 } as const;
+
+/**
+ * Hero background: kaleidoscope loop by KTkaRAJFreeStock (Pixabay, free for commercial use),
+ * https://pixabay.com/videos/kaleidoscope-mandala-pattern-loop-172413/ — re-encoded to 1280px, no audio.
+ */
+export const heroVideo = {
+  webm: "/videos/hero-kaleidoscope.webm",
+  mp4: "/videos/hero-kaleidoscope.mp4",
+  poster: "/images/hero-kaleidoscope.jpg",
+};
 
 const widths = [640, 960, 1280, 1920];
 
