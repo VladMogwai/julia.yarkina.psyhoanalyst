@@ -3,7 +3,7 @@
  * and imports nothing from the main site.
  *
  * To switch it off, set the build variable QUIZ_ENABLED=false: every /quiz page then renders a 404.
- * To remove it completely, delete both folders and the `/quiz` line in `public/_redirects`.
+ * To remove it completely, delete both folders and `public/quiz/` (the /quiz → /quiz/ru redirect page).
  */
 export const quizEnabled = process.env.QUIZ_ENABLED !== "false";
 

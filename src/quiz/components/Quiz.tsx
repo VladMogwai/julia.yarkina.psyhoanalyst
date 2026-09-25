@@ -6,6 +6,7 @@ import { SplitText } from "gsap/SplitText";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { quizLocales, type QuizLocale } from "../config";
 import type { IllustrationName, QuizContent } from "../content/types";
+import { cardMedia, resultMedia, type CardMedia } from "../media";
 import { Illustration } from "./Illustration";
 
 gsap.registerPlugin(useGSAP, SplitText);
@@ -33,6 +34,8 @@ export function Quiz({ locale, content }: QuizProps) {
 
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Answer[]>([]);
+  /** Step whose video preloads in the transition circle; only moves on once a transition has finished. */
+  const [overlayStep, setOverlayStep] = useState(1);
 
   const rootRef = useRef<HTMLDivElement>(null);
   const textRef = useRef<HTMLElement>(null);
@@ -43,6 +46,7 @@ export function Quiz({ locale, content }: QuizProps) {
   const yesRef = useRef<HTMLButtonElement>(null);
   const noRef = useRef<HTMLButtonElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
+  const overlayVideoRef = useRef<HTMLVideoElement>(null);
   const titleSplitRef = useRef<SplitText | null>(null);
   const lockedRef = useRef(false);
   /** Set by the exit animation: the overlay covers the window and must shrink into the new card. */
@@ -59,6 +63,15 @@ export function Quiz({ locale, content }: QuizProps) {
   const body = question ? question.body : result?.text;
   const eyebrow = question ? labels.questionEyebrow.replace("{n}", pad(step + 1)) : labels.resultEyebrow;
   const backCards = isResult ? [] : questions.slice(step + 1, step + 1 + BACK_CARD_COUNT);
+
+  const mediaForStep = (index: number): CardMedia | null => {
+    if (index >= total) return resultMedia;
+    const name = questions[index].media;
+    return name ? cardMedia(name) : null;
+  };
+  const media = mediaForStep(step);
+  // The transition circle plays the next card's video, so the circle "becomes" that card.
+  const nextMedia = mediaForStep(overlayStep);
 
   const accentForStep = useCallback(
     (index: number) => (index >= total ? RESULT_ACCENT : questions[index].accent),
@@ -153,6 +166,7 @@ export function Quiz({ locale, content }: QuizProps) {
     if (!revealPendingRef.current) return;
     revealPendingRef.current = false;
     const overlay = overlayRef.current!;
+    const followingStep = step >= total ? 0 : step + 1;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
       gsap.set(overlay, { display: "none" });
       lockedRef.current = false;
@@ -178,9 +192,10 @@ export function Quiz({ locale, content }: QuizProps) {
       .set(overlay, { display: "none" })
       // Input unlocks as soon as the new card is visible; the text keeps animating in.
       .call(() => {
+        setOverlayStep(followingStep);
         lockedRef.current = false;
       });
-  }, [step]);
+  }, [step, total]);
 
   const answer = useCallback(
     (choice: Answer | "restart") => {
@@ -194,7 +209,14 @@ export function Quiz({ locale, content }: QuizProps) {
       };
 
       if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-        gsap.to(rootRef.current!.querySelector("[data-stage]"), { opacity: 0, duration: 0.2, onComplete: commit });
+        gsap.to(rootRef.current!.querySelector("[data-stage]"), {
+          opacity: 0,
+          duration: 0.2,
+          onComplete: () => {
+            commit();
+            setOverlayStep(nextStep >= total ? 0 : nextStep + 1);
+          },
+        });
         revealPendingRef.current = true;
         return;
       }
@@ -222,6 +244,7 @@ export function Quiz({ locale, content }: QuizProps) {
         backgroundColor: accentForStep(nextStep),
       });
       gsap.set(frames, { xPercent: -50, yPercent: -50, scale: 0.05, opacity: 1 });
+      overlayVideoRef.current?.play().catch(() => {});
 
       const exit = gsap.timeline({
         onComplete: () => {
@@ -250,7 +273,7 @@ export function Quiz({ locale, content }: QuizProps) {
         .to(frames, { scale: 2.4, duration: 0.7, ease: "power1.in", stagger: 0.08 }, 0.3)
         .to(overlay, { width: coverSize, height: coverSize, duration: 0.42, ease: "power3.inOut" }, 0.78);
     },
-    [accentForStep, step],
+    [accentForStep, step, total],
   );
 
   // Arrow keys answer: left is "yes", right is "no".
@@ -415,9 +438,29 @@ export function Quiz({ locale, content }: QuizProps) {
                   </>
                 )}
               </span>
-              <span data-card-part className="mx-auto block aspect-square w-3/4">
-                <Illustration name={question?.illustration ?? RESULT_ILLUSTRATION} accent={accent} />
-              </span>
+              {media ? (
+                <span data-card-part className="relative my-2 block min-h-0 w-full flex-1 overflow-hidden rounded-md">
+                  {/* The poster stays as a still image for visitors who prefer reduced motion. */}
+                  {/* eslint-disable-next-line @next/next/no-img-element -- static export */}
+                  <img src={media.poster} alt="" className="absolute inset-0 size-full object-cover" />
+                  <video
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    poster={media.poster}
+                    aria-hidden="true"
+                    className="absolute inset-0 size-full object-cover motion-reduce:hidden"
+                  >
+                    <source src={media.webm} type="video/webm" />
+                    <source src={media.mp4} type="video/mp4" />
+                  </video>
+                </span>
+              ) : (
+                <span data-card-part className="mx-auto block aspect-square w-3/4">
+                  <Illustration name={question?.illustration ?? RESULT_ILLUSTRATION} accent={accent} />
+                </span>
+              )}
               <span data-card-part className="display block text-[18px] leading-tight">
                 {isResult ? labels.resultCardTitle : question!.caption}
               </span>
@@ -465,6 +508,21 @@ export function Quiz({ locale, content }: QuizProps) {
         aria-hidden="true"
         className="pointer-events-none fixed z-50 hidden overflow-hidden"
       >
+        {nextMedia && (
+          <video
+            ref={overlayVideoRef}
+            key={nextMedia.webm}
+            muted
+            loop
+            playsInline
+            preload="auto"
+            poster={nextMedia.poster}
+            className="absolute inset-0 size-full object-cover opacity-75"
+          >
+            <source src={nextMedia.webm} type="video/webm" />
+            <source src={nextMedia.mp4} type="video/mp4" />
+          </video>
+        )}
         {Array.from({ length: FRAME_COUNT }, (_, index) => (
           <div
             key={index}

@@ -33,6 +33,7 @@ export const fr: QuizContent = {
       caption: "Pensées du soir",
       accent: "#B39AE8",
       illustration: "moon",
+      media: "state",
     },
     {
       id: "patterns",
@@ -40,6 +41,7 @@ export const fr: QuizContent = {
       caption: "Répétition",
       accent: "#2E7A55",
       illustration: "leaf",
+      media: "patterns",
     },
     {
       id: "feelings",
@@ -47,6 +49,7 @@ export const fr: QuizContent = {
       caption: "Des mots pour les sentiments",
       accent: "#8B6CC9",
       illustration: "flower",
+      media: "feelings",
     },
     {
       id: "change",
@@ -54,6 +57,7 @@ export const fr: QuizContent = {
       caption: "Changements",
       accent: "#0F1C17",
       illustration: "sprout",
+      media: "change",
     },
     {
       id: "desire",
@@ -61,6 +65,7 @@ export const fr: QuizContent = {
       caption: "Désir",
       accent: "#B39AE8",
       illustration: "seed",
+      media: "desire",
     },
   ],
   results: [

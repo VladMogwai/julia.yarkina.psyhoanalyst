@@ -33,6 +33,7 @@ export const ru: QuizContent = {
       caption: "Мысли перед сном",
       accent: "#B39AE8",
       illustration: "moon",
+      media: "state",
     },
     {
       id: "patterns",
@@ -40,6 +41,7 @@ export const ru: QuizContent = {
       caption: "Повторение",
       accent: "#2E7A55",
       illustration: "leaf",
+      media: "patterns",
     },
     {
       id: "feelings",
@@ -47,6 +49,7 @@ export const ru: QuizContent = {
       caption: "Слова для чувств",
       accent: "#8B6CC9",
       illustration: "flower",
+      media: "feelings",
     },
     {
       id: "change",
@@ -54,6 +57,7 @@ export const ru: QuizContent = {
       caption: "Перемены",
       accent: "#0F1C17",
       illustration: "sprout",
+      media: "change",
     },
     {
       id: "desire",
@@ -61,6 +65,7 @@ export const ru: QuizContent = {
       caption: "Желание",
       accent: "#B39AE8",
       illustration: "seed",
+      media: "desire",
     },
   ],
   results: [

@@ -11,6 +11,8 @@ export interface QuizQuestion {
   /** Card border and transition color. */
   accent: string;
   illustration: IllustrationName;
+  /** Looping video from public/quiz/media, by file name without extension; replaces the illustration. */
+  media?: string;
 }
 
 export interface QuizResult {
