@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { BookingButton } from "@/components/BookingButton";
-import { ContactLinks } from "@/components/ContactLinks";
 import { JsonLd } from "@/components/JsonLd";
 import { SectionTile } from "@/components/SectionTile";
 import { images, pexelsSrcSet, pexelsUrl } from "@/config/images";
@@ -142,7 +141,6 @@ export default async function HomePage({ params }: PageProps<"/[lang]">) {
           <h2 className="font-serif text-4xl font-medium sm:text-5xl">{home.contactTitle}</h2>
           <p className="mx-auto mt-5 max-w-xl text-lg leading-relaxed text-cream/80">{home.contactText}</p>
           <BookingButton locale={locale} className="mt-9 !bg-cream !text-accent hover:!bg-sand" />
-          <ContactLinks locale={locale} className="mt-8 justify-center text-sm text-cream/90" />
         </div>
       </section>
     </>
