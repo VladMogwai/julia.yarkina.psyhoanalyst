@@ -32,7 +32,8 @@ export default async function CertificatesPage({ params }: PageProps<"/[lang]/ce
       ) : (
         <ul className="container-page grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
           {certificates.map((certificate) => {
-            const title = locale === "uk" ? certificate.title_uk : certificate.title_ru;
+            // Certificates added before French existed may have no French title yet.
+            const title = certificate[`title_${locale}`] || certificate.title_ru;
             return (
               <li key={certificate.id}>
                 <figure>

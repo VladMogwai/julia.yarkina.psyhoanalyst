@@ -11,6 +11,7 @@ type CertificateDraft = Omit<Certificate, "id" | "created_at"> & { id?: string }
 const emptyDraft = (): CertificateDraft => ({
   title_ru: "",
   title_uk: "",
+  title_fr: "",
   issuer: "",
   year: new Date().getFullYear(),
   image_url: "",
@@ -154,6 +155,9 @@ function CertificateForm({ supabase, initial, onDone }: CertificateFormProps) {
       </Field>
       <Field label="Назва (українська)">
         <input required value={draft.title_uk} onChange={(e) => update({ title_uk: e.target.value })} className={inputClass} />
+      </Field>
+      <Field label="Название (французский)">
+        <input required value={draft.title_fr} onChange={(e) => update({ title_fr: e.target.value })} className={inputClass} />
       </Field>
 
       <div className="grid gap-5 sm:grid-cols-[1fr_8rem_8rem]">

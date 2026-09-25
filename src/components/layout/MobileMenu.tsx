@@ -13,7 +13,7 @@ export function MobileMenu({ label, children }: { label: string; children: React
   }, [pathname]);
 
   return (
-    <details ref={detailsRef} className="relative md:hidden">
+    <details ref={detailsRef} className="relative lg:hidden">
       <summary className="flex size-10 cursor-pointer list-none items-center justify-center rounded-full border border-line [&::-webkit-details-marker]:hidden">
         <span className="sr-only">{label}</span>
         <svg viewBox="0 0 20 20" className="size-4" aria-hidden="true">

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { locales, type Locale } from "@/i18n/config";
 
-const labels: Record<Locale, string> = { ru: "RU", uk: "UA" };
+const labels: Record<Locale, string> = { ru: "RU", uk: "UA", fr: "FR" };
 
 /**
  * Swaps the locale prefix of the current path. Articles exist in one language only,

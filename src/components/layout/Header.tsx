@@ -24,7 +24,7 @@ export function Header({ locale }: { locale: Locale }) {
           </span>
         </Link>
 
-        <nav className="hidden items-center gap-8 text-sm md:flex">
+        <nav className="hidden items-center gap-8 text-sm whitespace-nowrap lg:flex">
           {links.map((link) => (
             <Link key={link.href} href={link.href} className="text-muted transition-colors hover:text-ink">
               {link.label}

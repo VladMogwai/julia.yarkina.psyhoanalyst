@@ -22,7 +22,7 @@ const emptyDraft = (): ArticleDraft => ({
   published_at: new Date().toISOString().slice(0, 10),
 });
 
-const localeLabels: Record<Locale, string> = { ru: "Русский", uk: "Українська" };
+const localeLabels: Record<Locale, string> = { ru: "Русский", uk: "Українська", fr: "Français" };
 
 export function ArticlesAdmin({ supabase }: { supabase: SupabaseClient }) {
   const [articles, setArticles] = useState<Article[]>([]);

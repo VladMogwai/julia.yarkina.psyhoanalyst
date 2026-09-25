@@ -17,6 +17,7 @@ export interface Certificate {
   id: string;
   title_ru: string;
   title_uk: string;
+  title_fr: string;
   issuer: string;
   year: number | null;
   image_url: string;

@@ -37,7 +37,7 @@
 }
 
 @utility button-primary {
-  @apply inline-flex items-center justify-center rounded-full bg-accent px-7 py-3.5 text-sm font-semibold tracking-wide text-cream transition-colors hover:bg-accent-dark;
+  @apply inline-flex items-center justify-center rounded-full whitespace-nowrap bg-accent px-7 py-3.5 text-sm font-semibold tracking-wide text-cream transition-colors hover:bg-accent-dark;
 }
 
 @utility link-underline {
