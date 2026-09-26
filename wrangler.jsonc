@@ -1,11 +1,25 @@
-// Cloudflare Workers config: the site is a static export, so the Worker only serves `out/`.
+// Cloudflare Workers config. The Worker serves the static export in `out/` and handles /api/* itself
+// (payments for "Self-knowledge", see worker/index.ts). Secrets are set in the Cloudflare dashboard,
+// never here: SUPABASE_SECRET_KEY, WAYFORPAY_MERCHANT_ACCOUNT, WAYFORPAY_SECRET_KEY.
 // Having this file also stops `wrangler deploy` from auto-configuring an OpenNext server build.
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "julia-yarkina-psyhoanalyst",
   "compatibility_date": "2026-09-21",
+  // node:crypto for the HMAC-MD5 signatures WayForPay requires.
+  "compatibility_flags": ["nodejs_compat"],
+  "main": "worker/index.ts",
   "assets": {
     "directory": "./out",
-    "not_found_handling": "404-page"
+    "binding": "ASSETS",
+    "not_found_handling": "404-page",
+    "run_worker_first": ["/api/*"]
+  },
+  // Public values only; the publishable key is in the site bundle anyway.
+  "vars": {
+    "SITE_URL": "https://yarkina-psy.online",
+    "SUPABASE_URL": "https://dcxeptkhofznuvvifrfl.supabase.co",
+    "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_SrmirOKZ6ccMX6zC_wckJQ_YycZWq_U",
+    "WAYFORPAY_DOMAIN": "yarkina-psy.online"
   }
 }

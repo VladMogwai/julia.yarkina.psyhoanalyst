@@ -1,10 +1,11 @@
-import type { QuizContent } from "./types";
+import type { QuizTexts } from "./types";
 
-// TODO: placeholder texts — replace with the real questions when they are ready.
-export const en: QuizContent = {
+// `questions` and `results` are placeholders of the mobile cards; the desktop flow loads the paid questions from Supabase.
+export const en: QuizTexts = {
   meta: {
-    title: "Questionnaire — Yuliia Yarkina",
-    description: "A short questionnaire: five questions about what is happening to you right now.",
+    title: "Questions to ask yourself — Yuliia Yarkina",
+    description:
+      "52 questions to ask yourself in eight topics: anxiety, guilt, shame, resentment, loneliness, relationships, self-realisation, boundaries.",
   },
   wordmark: "Yuliia Yarkina",
   labels: {
@@ -101,4 +102,29 @@ export const en: QuizContent = {
       ],
     },
   ],
+  reflection: {
+    introTitle: "Questions worth asking yourself",
+    introText:
+      "Choose a topic. Each question opens step by step: first the question itself, then what you may not be noticing, and three deeper questions.",
+    topicsLabel: "Topics",
+    questionsCount: "{n} questions",
+    notSeeingLabel: "What you may not be noticing",
+    deeperLabel: "Deeper",
+    nextStep: "Next",
+    swipeHint: "or swipe up",
+    nextQuestion: "Next question",
+    finish: "Finish",
+    endEyebrow: "End of topic",
+    endTitle: "You have finished “{category}”",
+    endText: [
+      "There is no need to hurry with the answers: you can come back to these questions.",
+      "If a question touched something, you can talk about it in a session.",
+    ],
+    book: "Book a session",
+    otherTopic: "Choose another topic",
+    lockedTitle: "Questions to ask yourself",
+    lockedText:
+      "The questionnaire opens after purchase in the “Self-knowledge” section. If you have already bought it, sign in with the same email.",
+    lockedCta: "Go to the section",
+  },
 };

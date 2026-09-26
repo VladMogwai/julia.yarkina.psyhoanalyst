@@ -17,7 +17,7 @@ interface EffectSpec {
 /** Markup recipe of each effect; the layouts themselves live in scroll-gallery.css. */
 const EFFECTS: Record<GalleryEffectName, EffectSpec> = {
   row: { className: "gallery--row", count: 7, captionClass: "caption--bottom", flip: { absoluteOnLeave: true, scale: false }, hero: 3 },
-  grid: { className: "gallery--grid9", count: 9, captionClass: "caption--bottom", inner: true },
+  grid: { className: "gallery--grid9", count: 9, captionClass: "caption--bottom", inner: true, hero: 4 },
   scatter: {
     className: "gallery--scatter",
     count: 16,
@@ -32,6 +32,17 @@ const EFFECTS: Record<GalleryEffectName, EffectSpec> = {
   zoom: { className: "gallery--zoom", count: 1, captionClass: "caption--title", hero: 0 },
 };
 
+/** Requested photo width per item: the full-screen item gets the sharpest image, tiny tiles the lightest. */
+function photoWidth(spec: EffectSpec, index: number) {
+  return index === spec.hero ? 1920 : spec.count > 20 ? 400 : spec.inner ? 1000 : 800;
+}
+
+/** Every photo URL an effect will show, so they can be fetched before the gallery is on the page. */
+export function galleryPhotoUrls(effect: GalleryEffectName, photo: (index: number, width: number) => string): string[] {
+  const spec = EFFECTS[effect];
+  return Array.from({ length: spec.count }, (_, index) => photo(index, photoWidth(spec, index)));
+}
+
 interface GalleryEffectProps {
   effect: GalleryEffectName;
   /** Image URLs by requested width; items cycle through the list. */
@@ -43,8 +54,9 @@ interface GalleryEffectProps {
 
 export function GalleryEffect({ effect, photo, caption, flip }: GalleryEffectProps) {
   const spec = EFFECTS[effect];
-  const width = (index: number) => (index === spec.hero ? 1920 : spec.count > 20 ? 400 : spec.inner ? 1600 : 800);
-  const background = (index: number): CSSProperties => ({ backgroundImage: `url(${photo(index, width(index))})` });
+  const background = (index: number): CSSProperties => ({
+    backgroundImage: `url(${photo(index, photoWidth(spec, index))})`,
+  });
 
   return (
     <div className="gallery-wrap">

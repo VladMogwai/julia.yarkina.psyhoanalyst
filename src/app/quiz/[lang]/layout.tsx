@@ -4,14 +4,15 @@ import { isQuizLocale, quizLocales } from "@/quiz/config";
 import "../quiz.css";
 
 // Newsreader and DM Sans from the design have no Cyrillic; these are the closest Cyrillic-capable matches.
+// latin-ext carries the Romanian ș, ț, ă, î, â.
 const display = Source_Serif_4({
-  subsets: ["latin", "cyrillic"],
+  subsets: ["latin", "latin-ext", "cyrillic"],
   axes: ["opsz"],
   variable: "--font-quiz-display",
 });
 
 const sans = Onest({
-  subsets: ["latin", "cyrillic"],
+  subsets: ["latin", "latin-ext", "cyrillic"],
   variable: "--font-quiz-sans",
 });
 

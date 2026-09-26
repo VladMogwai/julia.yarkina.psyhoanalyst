@@ -3,11 +3,12 @@
 import type { Session, SupabaseClient } from "@supabase/supabase-js";
 import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import { getSupabase } from "@/lib/supabase/client";
+import { AccessAdmin } from "./AccessAdmin";
 import { ArticlesAdmin } from "./ArticlesAdmin";
 import { CertificatesAdmin } from "./CertificatesAdmin";
 import { Button, ErrorMessage, Field, inputClass } from "./ui";
 
-type Tab = "articles" | "certificates";
+type Tab = "articles" | "certificates" | "access";
 
 export function AdminApp() {
   const supabase = getSupabase();
@@ -35,6 +36,7 @@ export function AdminApp() {
             [
               ["articles", "Статьи"],
               ["certificates", "Сертификаты"],
+              ["access", "Доступы"],
             ] as const
           ).map(([value, label]) => (
             <Button key={value} variant={tab === value ? "primary" : "secondary"} onClick={() => setTab(value)}>
@@ -55,7 +57,9 @@ export function AdminApp() {
       </p>
 
       <main className="mt-8">
-        {tab === "articles" ? <ArticlesAdmin supabase={supabase} /> : <CertificatesAdmin supabase={supabase} />}
+        {tab === "articles" && <ArticlesAdmin supabase={supabase} />}
+        {tab === "certificates" && <CertificatesAdmin supabase={supabase} />}
+        {tab === "access" && <AccessAdmin supabase={supabase} />}
       </main>
     </div>
   );

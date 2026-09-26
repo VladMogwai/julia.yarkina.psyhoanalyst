@@ -112,6 +112,7 @@ body:has(.codrops) {
  */
 .project {
   --fit: 1;
+  position: relative;
   display: grid;
   grid-template-columns: auto 1fr;
   align-items: baseline;
@@ -170,4 +171,538 @@ body:has(.codrops) {
 
 .project__choice {
   font-size: calc(clamp(2.5rem, 6vw, 5rem) * var(--fit));
+}
+
+/* Questions are sentences, not headlines: a smaller title so the whole question fits the screen. */
+.project__title--question {
+  margin: calc(3vh * var(--fit)) 0;
+  font-size: calc(clamp(1.75rem, 4vw, 3.5rem) * var(--fit));
+  line-height: 1.05;
+}
+
+.project__lead {
+  margin: 0;
+  max-width: 40em;
+  color: #adadad;
+}
+
+.project__step-row {
+  margin-top: 1.4em;
+}
+
+/* Steps of a question: already in the layout, they come into focus out of a blur when opened. */
+.step {
+  opacity: 0;
+  filter: blur(12px);
+  transition:
+    opacity 0.9s ease,
+    filter 0.9s ease;
+}
+
+.step[data-visible="true"] {
+  opacity: 1;
+  filter: blur(0);
+}
+
+.deeper {
+  display: grid;
+  gap: 0.35em;
+  margin: 0;
+  padding-left: 1.4em;
+  font-size: 1.15em;
+  list-style: decimal;
+}
+
+.deeper li::marker {
+  color: #575757;
+}
+
+/* "Next" and "Next question" share one cell; only the one that applies is in focus. */
+.step-controls {
+  display: grid;
+  justify-self: start;
+  margin-top: 1.6em;
+}
+
+.step-controls > .scroll-hint {
+  grid-area: 1 / 1;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  color: #adadad;
+}
+
+.step-controls > .scroll-hint:hover {
+  color: #fff;
+}
+
+/* Topic list on the first screen. */
+.topics {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 2rem;
+  margin: 1.6em 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.topic {
+  display: flex;
+  width: 100%;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.45em 0;
+  border-bottom: 1px solid #2a2a2e;
+  color: #adadad;
+  font-size: calc(clamp(1.1rem, 2vw, 1.6rem) * var(--fit));
+  text-align: left;
+  transition: color 0.3s ease;
+}
+
+.topic:hover,
+.topic[aria-pressed="true"] {
+  color: #fff;
+}
+
+.topic__count {
+  color: #575757;
+  font-size: 0.55em;
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .step {
+    filter: none;
+    transition: none;
+  }
+}
+
+/*
+ * Aurora: slowly drifting, blurred patches in the colours of the current topic, behind everything.
+ * Painted first and fixed, so every positioned screen and gallery that follows sits above it.
+ */
+@property --aurora-1 {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #6a4ab4;
+}
+
+@property --aurora-2 {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #2d7a8a;
+}
+
+@property --aurora-3 {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #9a4a6a;
+}
+
+.aurora {
+  --aurora-duration: 3s;
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  transition:
+    --aurora-1 var(--aurora-duration) ease-in-out,
+    --aurora-2 var(--aurora-duration) ease-in-out,
+    --aurora-3 var(--aurora-duration) ease-in-out;
+}
+
+/*
+ * Placed, stretched and turned every frame by startAuroraLight; here only the look of one patch.
+ * The softness is in the gradient, not a blur filter, so reshaping a patch never repaints it.
+ */
+.aurora__blob {
+  --colour: var(--aurora-1);
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 60vmax;
+  aspect-ratio: 1;
+  opacity: 0.4;
+  background: radial-gradient(
+    closest-side,
+    var(--colour),
+    color-mix(in srgb, var(--colour) 45%, transparent) 45%,
+    transparent
+  );
+  will-change: transform, opacity;
+}
+
+.aurora__blob:nth-child(2) {
+  --colour: var(--aurora-2);
+}
+
+.aurora__blob:nth-child(3) {
+  --colour: var(--aurora-3);
+}
+
+.aurora__grain {
+  position: absolute;
+  inset: 0;
+  opacity: 0.12;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Without motion the light stands still: the patches keep a fixed, calm layout. */
+@media (prefers-reduced-motion: reduce) {
+  .aurora {
+    transition: none;
+  }
+
+  .aurora__blob:nth-child(1) {
+    transform: translate(-20vmax, -25vmax);
+  }
+
+  .aurora__blob:nth-child(2) {
+    transform: translate(60vw, 0);
+  }
+
+  .aurora__blob:nth-child(3) {
+    transform: translate(10vw, 55vh);
+  }
+}
+
+/*
+ * Phones and tablets: one main card over endless streams of secondary cards.
+ * Layers, bottom to top: streams, blur veil, aurora, the card.
+ */
+.mobile-quiz {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  background: var(--color-forest);
+  color: var(--color-forest);
+}
+
+.streams {
+  position: absolute;
+  inset: -10% -25%;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  transform: rotate(-5deg);
+}
+
+/* Tiles space themselves with a bottom margin (not a gap), so half the track is exactly one copy. */
+.streams__track {
+  animation: stream-up 70s linear infinite;
+}
+
+.streams__column--1 .streams__track {
+  animation-name: stream-down;
+  animation-duration: 85s;
+}
+
+.streams__column--2 .streams__track {
+  animation-duration: 60s;
+}
+
+@keyframes stream-up {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(-50%);
+  }
+}
+
+@keyframes stream-down {
+  from {
+    transform: translateY(-50%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.m-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-height: 170px;
+  margin-bottom: 14px;
+  padding: 16px;
+  overflow: hidden;
+  border-radius: 18px;
+}
+
+.m-tile--lavender {
+  background: var(--color-lavender);
+}
+
+.m-tile--cream {
+  background: var(--color-cream);
+}
+
+.m-tile--mint {
+  background: var(--color-mint);
+}
+
+.m-tile__numeral {
+  font-family: var(--font-display);
+  font-size: 64px;
+  line-height: 1;
+}
+
+.m-tile__small {
+  font-family: var(--font-display);
+  font-size: 28px;
+  line-height: 1;
+}
+
+.m-tile__caption {
+  font-size: 13px;
+}
+
+.m-tile__photo {
+  height: 130px;
+  border-radius: 10px;
+  background-position: center;
+  background-size: cover;
+}
+
+.m-tile__text {
+  display: -webkit-box;
+  overflow: hidden;
+  color: #3b4a43;
+  font-size: 12px;
+  line-height: 1.4;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 5;
+}
+
+/* A giant word cropped by the tile, like the reference's "nuc". */
+.m-tile--word {
+  justify-content: flex-end;
+  min-height: 140px;
+  padding: 0 0 4px;
+}
+
+.m-tile--word span {
+  margin-left: -6px;
+  font-family: var(--font-display);
+  font-size: 88px;
+  line-height: 0.8;
+  white-space: nowrap;
+}
+
+.mobile-quiz__veil {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: rgb(15 28 23 / 0.4);
+  -webkit-backdrop-filter: blur(5px);
+  backdrop-filter: blur(5px);
+}
+
+.mobile-quiz .mobile-quiz__aurora {
+  position: absolute;
+  z-index: 2;
+  opacity: 0.35;
+}
+
+.mobile-quiz__stage {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  padding: 0 16px;
+}
+
+/* The current and the leaving card share one cell; the current one follows a vertical swipe. */
+.m-slot {
+  grid-area: 1 / 1;
+  display: flex;
+  width: 100%;
+  justify-content: center;
+}
+
+.m-slot--current {
+  touch-action: none;
+}
+
+/* The tile that lifts out of the stream and unfolds into the next card. */
+.m-ghost {
+  position: fixed;
+  z-index: 5;
+  border-radius: 18px;
+  box-shadow: 0 30px 80px rgb(0 0 0 / 0.35);
+  pointer-events: none;
+}
+
+.m-card {
+  --fit: 1;
+  display: flex;
+  width: min(100%, 460px);
+  height: 80svh;
+  flex-direction: column;
+  padding: 20px 22px 22px;
+  border-radius: 28px;
+  box-shadow: 0 30px 80px rgb(0 0 0 / 0.35);
+  font-size: calc(15px * var(--fit));
+}
+
+.m-card--cream {
+  background: var(--color-cream);
+}
+
+.m-card--mint {
+  background: var(--color-mint);
+}
+
+.m-card--lavender {
+  background: var(--color-lavender);
+}
+
+.m-card__top {
+  display: flex;
+  flex: none;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  opacity: 0.7;
+  text-transform: uppercase;
+}
+
+.m-card__body {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 1.1em;
+  padding-top: 1.4em;
+  overflow: hidden;
+}
+
+.m-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: calc(clamp(28px, 8vw, 40px) * var(--fit));
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.04;
+}
+
+.m-text {
+  margin: 0;
+  color: #3b4a43;
+  line-height: 1.45;
+}
+
+.m-text p {
+  margin: 0 0 0.6em;
+}
+
+.m-label {
+  margin: 0 0 0.4em;
+  font-size: 0.75em;
+  letter-spacing: 0.08em;
+  opacity: 0.6;
+  text-transform: uppercase;
+}
+
+.m-deeper {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.m-deeper li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.8em;
+  padding: 0.55em 0;
+  border-top: 1px solid rgb(15 28 23 / 0.12);
+}
+
+.m-deeper__number,
+.m-topics__number {
+  min-width: 1.6em;
+  font-family: var(--font-display);
+  font-size: 1.3em;
+  opacity: 0.45;
+}
+
+.m-button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1em 1.2em;
+  border-radius: 999px;
+  background: var(--color-forest);
+  color: var(--color-cream);
+}
+
+.m-next,
+.m-actions {
+  margin-top: auto;
+}
+
+.m-hint {
+  margin: -0.4em 0 0;
+  font-size: 0.75em;
+  opacity: 0.5;
+  text-align: center;
+}
+
+.m-actions {
+  display: grid;
+  gap: 1em;
+}
+
+.m-link {
+  text-align: left;
+  text-decoration: underline;
+}
+
+.m-langs {
+  display: flex;
+  gap: 10px;
+}
+
+.m-langs a[aria-current] {
+  text-decoration: underline;
+}
+
+.m-topics {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.m-topics button {
+  display: grid;
+  width: 100%;
+  grid-template-columns: auto 1fr auto;
+  align-items: baseline;
+  gap: 0.6em;
+  padding: 0.5em 0;
+  border-top: 1px solid rgb(15 28 23 / 0.12);
+  text-align: left;
+}
+
+.m-topics__name {
+  font-family: var(--font-display);
+  font-size: 1.3em;
+}
+
+.m-topics__count {
+  font-size: 0.75em;
+  opacity: 0.6;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .streams__track {
+    animation: none;
+  }
 }

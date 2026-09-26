@@ -1,10 +1,11 @@
-import type { QuizContent } from "./types";
+import type { QuizTexts } from "./types";
 
-// TODO: placeholder texts — replace with the real questions when they are ready.
-export const ru: QuizContent = {
+// `questions` and `results` are placeholders of the mobile cards; the desktop flow loads the paid questions from Supabase.
+export const ru: QuizTexts = {
   meta: {
-    title: "Опросник — Юлия Яркина",
-    description: "Короткий опросник: пять вопросов о том, что с вами происходит сейчас.",
+    title: "Вопросы к себе — Юлия Яркина",
+    description:
+      "52 вопроса к себе в восьми темах: тревога, вина, стыд, обида, одиночество, отношения, самореализация, границы.",
   },
   wordmark: "Юлия Яркина",
   labels: {
@@ -101,4 +102,29 @@ export const ru: QuizContent = {
       ],
     },
   ],
+  reflection: {
+    introTitle: "Вопросы, которые стоит задать себе",
+    introText:
+      "Выбери тему. Каждый вопрос открывается постепенно: сначала сам вопрос, потом то, чего ты можешь не замечать, и три более глубоких вопроса.",
+    topicsLabel: "Темы",
+    questionsCount: "{n} вопросов",
+    notSeeingLabel: "Чего ты можешь не замечать",
+    deeperLabel: "Глубже",
+    nextStep: "Далее",
+    swipeHint: "или проведи вверх",
+    nextQuestion: "Следующий вопрос",
+    finish: "Завершить",
+    endEyebrow: "Конец темы",
+    endTitle: "Тема «{category}» пройдена",
+    endText: [
+      "Не спеши с ответами: к этим вопросам можно возвращаться.",
+      "Если какой-то вопрос задел, о нём можно поговорить на сессии.",
+    ],
+    book: "Записаться на сессию",
+    otherTopic: "Выбрать другую тему",
+    lockedTitle: "Вопросы к себе",
+    lockedText:
+      "Опросник доступен после покупки в рубрике «Самопознание». Если вы уже покупали — войдите тем же email.",
+    lockedCta: "Перейти в рубрику",
+  },
 };

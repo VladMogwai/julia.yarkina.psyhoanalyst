@@ -43,3 +43,9 @@ next-env.d.ts
 
 # wrangler
 .wrangler/
+
+# Local secrets of the Cloudflare Worker (wrangler dev)
+.dev.vars*
+
+# Paid content: uploaded to Supabase with scripts/upload-premium-content.mjs, never public (the repo is public)
+supabase/seed/

@@ -12,6 +12,7 @@ export const fr: Dictionary = {
     articles: "Articles",
     videos: "Vidéos",
     certificates: "Certificats",
+    selfKnowledge: "Connaissance de soi",
     book: "Prendre rendez-vous",
     menu: "Menu",
     languageLabel: "Langue du site",
@@ -136,5 +137,48 @@ export const fr: Dictionary = {
   notFound: {
     title: "Page introuvable",
     back: "Retour à l’accueil",
+  },
+  selfKnowledge: {
+    metaTitle: "Connaissance de soi — questions et pratiques",
+    metaDescription:
+      "Contenus payants de la psychanalyste Yuliia Yarkina pour un travail personnel : questions à se poser, pratiques et exercices.",
+    title: "Connaissance de soi",
+    intro:
+      "Des contenus pour travailler seule entre les séances, ou avant de faire le premier pas. Achat unique : l’accès s’ouvre immédiatement et reste pour toujours.",
+    empty: "Les premiers contenus arrivent bientôt.",
+    buy: "Acheter",
+    open: "Ouvrir",
+    owned: "Acheté",
+    loading: "Chargement…",
+    signInTitle: "Connexion",
+    signInToBuy:
+      "Pour acheter, connectez-vous : le paiement s’ouvrira juste après.",
+    signInText:
+      "Saisissez votre e-mail : nous vous enverrons un code de connexion. Sans mot de passe : l’e-mail sert uniquement à accéder à vos achats.",
+    emailLabel: "E-mail",
+    sendCode: "Recevoir le code",
+    codeSent:
+      "Un e-mail a été envoyé à {email}. Cliquez sur le lien qu’il contient ou saisissez le code s’il y figure.",
+    codeLabel: "Code reçu",
+    verify: "Se connecter",
+    wrongCode: "Code incorrect ou expiré. Réessayez.",
+    sendError: "Impossible d’envoyer le code. Vérifiez l’e-mail et réessayez.",
+    otherEmail: "Autre e-mail",
+    signedInAs: "Connectée en tant que {email}",
+    signOut: "Se déconnecter",
+    checkoutError: "Impossible d’accéder au paiement. Réessayez.",
+    terms:
+      "En cliquant sur « Acheter », vous acceptez les conditions de l’offre publique.",
+    thanksTitle: "Merci !",
+    thanksPending:
+      "Nous attendons la confirmation du paiement — cela prend généralement quelques secondes.",
+    thanksApproved: "Paiement accepté, l’accès est ouvert.",
+    thanksDeclined:
+      "Le paiement n’a pas abouti. Rien n’a été débité — vous pouvez réessayer.",
+    thanksUnknown:
+      "Commande introuvable. Si vous avez été débitée, écrivez-nous.",
+    thanksSignIn:
+      "Connectez-vous avec l’e-mail utilisé pour le paiement pour voir votre achat.",
+    backToSection: "Tous les contenus",
   },
 };

@@ -24,6 +24,47 @@ export interface QuizResult {
   text: string[];
 }
 
+/** One question of the desktop flow, exactly as delivered in questions.<locale>.json. */
+export interface ReflectionQuestion {
+  number: number;
+  category: string;
+  question: string;
+  /** "What you may not be noticing": opens after the question. */
+  notSeeing: string;
+  /** Three follow-up questions, opened one by one. */
+  deeper: string[];
+  /** Closing prompt; not shown for now. */
+  final: string;
+  /** Media for the question, chosen later by the site owner. */
+  file: string;
+}
+
+/** Interface texts of the desktop flow. */
+export interface ReflectionLabels {
+  introTitle: string;
+  introText: string;
+  topicsLabel: string;
+  /** "{n}" is replaced with the number of questions in the topic. */
+  questionsCount: string;
+  notSeeingLabel: string;
+  deeperLabel: string;
+  nextStep: string;
+  /** Phones: under the "Next" button, a swipe up does the same. */
+  swipeHint: string;
+  nextQuestion: string;
+  finish: string;
+  endEyebrow: string;
+  /** "{category}" is replaced with the topic name. */
+  endTitle: string;
+  endText: string[];
+  book: string;
+  otherTopic: string;
+  /** Shown instead of the questionnaire to people who have not bought it. */
+  lockedTitle: string;
+  lockedText: string;
+  lockedCta: string;
+}
+
 export interface QuizContent {
   meta: { title: string; description: string };
   wordmark: string;
@@ -49,6 +90,13 @@ export interface QuizContent {
     rowAnswer: string;
     restart: string;
   };
+  /** Placeholder questions of the mobile swipe cards, until the mobile app gets its own design. */
   questions: QuizQuestion[];
   results: QuizResult[];
+  reflection: ReflectionLabels;
+  /** The desktop flow: topics in order, the last entry is the closing question of every topic. */
+  reflectionQuestions: ReflectionQuestion[];
 }
+
+/** Everything that ships with the site; the questions are added in the browser for buyers. */
+export type QuizTexts = Omit<QuizContent, "reflectionQuestions">;

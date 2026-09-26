@@ -1,10 +1,11 @@
-import type { QuizContent } from "./types";
+import type { QuizTexts } from "./types";
 
-// TODO: placeholder texts — replace with the real questions when they are ready.
-export const uk: QuizContent = {
+// `questions` and `results` are placeholders of the mobile cards; the desktop flow loads the paid questions from Supabase.
+export const uk: QuizTexts = {
   meta: {
-    title: "Опитувальник — Юлія Яркіна",
-    description: "Короткий опитувальник: п’ять запитань про те, що з вами відбувається зараз.",
+    title: "Питання до себе — Юлія Яркіна",
+    description:
+      "52 питання до себе у восьми темах: тривога, провина, сором, образа, самотність, стосунки, самореалізація, межі.",
   },
   wordmark: "Юлія Яркіна",
   labels: {
@@ -101,4 +102,29 @@ export const uk: QuizContent = {
       ],
     },
   ],
+  reflection: {
+    introTitle: "Питання, які варто поставити собі",
+    introText:
+      "Обери тему. Кожне питання відкривається поступово: спершу саме питання, потім те, чого ти можеш не помічати, і три глибші питання.",
+    topicsLabel: "Теми",
+    questionsCount: "{n} питань",
+    notSeeingLabel: "Чого ти можеш не помічати",
+    deeperLabel: "Глибше",
+    nextStep: "Далі",
+    swipeHint: "або проведи вгору",
+    nextQuestion: "Наступне питання",
+    finish: "Завершити",
+    endEyebrow: "Кінець теми",
+    endTitle: "Тему «{category}» завершено",
+    endText: [
+      "Не поспішай з відповідями: до цих питань можна повертатися.",
+      "Якщо якесь питання зачепило, про нього можна поговорити на сесії.",
+    ],
+    book: "Записатися на сесію",
+    otherTopic: "Обрати іншу тему",
+    lockedTitle: "Питання до себе",
+    lockedText:
+      "Опитувальник доступний після покупки в рубриці «Самопізнання». Якщо ви вже купували — увійдіть тим самим email.",
+    lockedCta: "Перейти до рубрики",
+  },
 };

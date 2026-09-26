@@ -1,10 +1,11 @@
-import type { QuizContent } from "./types";
+import type { QuizTexts } from "./types";
 
-// TODO: placeholder texts — replace with the real questions when they are ready.
-export const fr: QuizContent = {
+// `questions` and `results` are placeholders of the mobile cards; the desktop flow loads the paid questions from Supabase.
+export const fr: QuizTexts = {
   meta: {
-    title: "Questionnaire — Yuliia Yarkina",
-    description: "Un court questionnaire : cinq questions sur ce que vous vivez en ce moment.",
+    title: "Questions à se poser — Yuliia Yarkina",
+    description:
+      "52 questions à se poser, en huit thèmes : anxiété, culpabilité, honte, rancune, solitude, relations, accomplissement de soi, limites.",
   },
   wordmark: "Yuliia Yarkina",
   labels: {
@@ -101,4 +102,29 @@ export const fr: QuizContent = {
       ],
     },
   ],
+  reflection: {
+    introTitle: "Des questions à se poser",
+    introText:
+      "Choisis un thème. Chaque question s’ouvre pas à pas : d’abord la question elle-même, puis ce que tu ne remarques peut-être pas, et trois questions plus profondes.",
+    topicsLabel: "Thèmes",
+    questionsCount: "{n} questions",
+    notSeeingLabel: "Ce que tu ne remarques peut-être pas",
+    deeperLabel: "Plus loin",
+    nextStep: "Suite",
+    swipeHint: "ou glisse vers le haut",
+    nextQuestion: "Question suivante",
+    finish: "Terminer",
+    endEyebrow: "Fin du thème",
+    endTitle: "Thème « {category} » terminé",
+    endText: [
+      "Rien ne presse pour répondre : tu peux revenir à ces questions.",
+      "Si une question t’a touchée, on peut en parler lors d’une séance.",
+    ],
+    book: "Prendre rendez-vous",
+    otherTopic: "Choisir un autre thème",
+    lockedTitle: "Questions à se poser",
+    lockedText:
+      "Le questionnaire est accessible après achat dans la rubrique « Connaissance de soi ». Si vous l’avez déjà acheté, connectez-vous avec le même e-mail.",
+    lockedCta: "Aller à la rubrique",
+  },
 };
