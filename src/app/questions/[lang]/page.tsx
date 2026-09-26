@@ -4,7 +4,7 @@ import { QuizExperience } from "@/quiz/components/QuizExperience";
 import { defaultQuizLocale, isQuizLocale, quizEnabled, quizIndexable, quizLocales, quizSiteUrl } from "@/quiz/config";
 import { getQuizContent } from "@/quiz/content";
 
-export async function generateMetadata({ params }: PageProps<"/quiz/[lang]">): Promise<Metadata> {
+export async function generateMetadata({ params }: PageProps<"/questions/[lang]">): Promise<Metadata> {
   const { lang } = await params;
   if (!isQuizLocale(lang) || !quizEnabled) return {};
   const { meta } = getQuizContent(lang);
@@ -15,16 +15,16 @@ export async function generateMetadata({ params }: PageProps<"/quiz/[lang]">): P
     description: meta.description,
     robots: quizIndexable ? undefined : { index: false, follow: false },
     alternates: {
-      canonical: `/quiz/${lang}`,
+      canonical: `/questions/${lang}`,
       languages: {
-        ...Object.fromEntries(quizLocales.map((locale) => [locale, `/quiz/${locale}`])),
-        "x-default": `/quiz/${defaultQuizLocale}`,
+        ...Object.fromEntries(quizLocales.map((locale) => [locale, `/questions/${locale}`])),
+        "x-default": `/questions/${defaultQuizLocale}`,
       },
     },
   };
 }
 
-export default async function QuizPage({ params }: PageProps<"/quiz/[lang]">) {
+export default async function QuizPage({ params }: PageProps<"/questions/[lang]">) {
   const { lang } = await params;
   if (!isQuizLocale(lang) || !quizEnabled) notFound();
 

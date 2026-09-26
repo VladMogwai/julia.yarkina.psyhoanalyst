@@ -333,7 +333,7 @@ export function ScrollQuiz({ locale, content }: ScrollQuizProps) {
           {quizLocales.map((code) => (
             <a
               key={code}
-              href={`/quiz/${code}`}
+              href={`/questions/${code}`}
               hrefLang={code}
               aria-current={code === locale ? "true" : undefined}
               className={code === locale ? "text-white" : "text-[#aaa] underline hover:no-underline"}

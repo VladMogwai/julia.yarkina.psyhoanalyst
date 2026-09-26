@@ -334,7 +334,7 @@ export function Quiz({ locale, content }: QuizProps) {
           {quizLocales.map((code) => (
             <a
               key={code}
-              href={`/quiz/${code}`}
+              href={`/questions/${code}`}
               hrefLang={code}
               aria-current={code === locale ? "true" : undefined}
               className={code === locale ? "text-forest" : "text-muted hover:text-forest"}

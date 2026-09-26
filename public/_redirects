@@ -1,1 +1,4 @@
 /  /uk  301
+/questions  /questions/uk  301
+/quiz  /questions/uk  301
+/quiz/*  /questions/:splat  301

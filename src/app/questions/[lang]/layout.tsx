@@ -22,7 +22,7 @@ export function generateStaticParams() {
   return quizLocales.map((lang) => ({ lang }));
 }
 
-export default async function QuizLayout({ children, params }: LayoutProps<"/quiz/[lang]">) {
+export default async function QuizLayout({ children, params }: LayoutProps<"/questions/[lang]">) {
   const { lang } = await params;
   if (!isQuizLocale(lang)) notFound();
 

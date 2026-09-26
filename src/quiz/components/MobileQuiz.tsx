@@ -396,7 +396,7 @@ function IntroCard({ content, locale, topics, onChoose }: IntroCardProps) {
           <span>{content.wordmark}</span>
           <nav aria-label={labels.languageLabel} className="m-langs">
             {quizLocales.map((code) => (
-              <a key={code} href={`/quiz/${code}`} hrefLang={code} aria-current={code === locale ? "true" : undefined}>
+              <a key={code} href={`/questions/${code}`} hrefLang={code} aria-current={code === locale ? "true" : undefined}>
                 {code === "uk" ? "UA" : code.toUpperCase()}
               </a>
             ))}

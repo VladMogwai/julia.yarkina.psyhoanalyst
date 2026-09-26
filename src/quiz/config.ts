@@ -1,10 +1,10 @@
 /**
- * The questionnaire is a self-contained mini app: it only lives in `src/quiz/` and `src/app/quiz/`.
+ * The questionnaire is a self-contained mini app: it only lives in `src/quiz/` and `src/app/questions/`.
  * From outside it uses only `src/premium/` (the paid-access module): its questions are paid content
  * from the "Self-knowledge" section, loaded from Supabase for buyers.
  *
- * To switch it off, set the build variable QUIZ_ENABLED=false: every /quiz page then renders a 404.
- * To remove it completely, delete both folders and `public/quiz/` (the /quiz → /quiz/uk redirect page).
+ * To switch it off, set the build variable QUIZ_ENABLED=false: every /questions page then renders a 404.
+ * To remove it completely, delete both folders, `public/questions/` and the /questions and /quiz redirects in `public/_redirects`.
  */
 export const quizEnabled = process.env.QUIZ_ENABLED !== "false";
 
@@ -16,7 +16,7 @@ export const quizBookingUrl = "https://t.me/yarkinayuliya";
 /** Hidden from search engines while the texts are placeholders. */
 export const quizIndexable = false;
 
-/** Ukrainian is the main language: /quiz opens it. */
+/** Ukrainian is the main language: /questions opens it. */
 export const quizLocales = ["uk", "en", "fr", "ru", "ro"] as const;
 
 export const defaultQuizLocale = "uk";
