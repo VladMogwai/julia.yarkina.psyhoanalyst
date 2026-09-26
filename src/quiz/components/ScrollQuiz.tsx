@@ -26,6 +26,33 @@ type Answer = "yes" | "no";
 
 const pad = (value: number) => String(value).padStart(2, "0");
 
+const easeInOutCubic = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
+
+/** Trackpads keep firing wheel events after a gesture; ignore them for a moment after each arrival. */
+const WHEEL_COOLDOWN_MS = 600;
+const WHEEL_THRESHOLD = 12;
+
+/**
+ * Where the page settles next. Screens are the stops; galleries between them are only passed through.
+ * Forward goes to the next screen, or to the bottom of the current one when it is taller than the
+ * viewport and nothing follows yet (the answer buttons are down there). Back steps through both.
+ */
+function nextStop(root: HTMLElement, direction: 1 | -1): number | undefined {
+  const current = window.scrollY;
+  const screens = [...root.querySelectorAll<HTMLElement>("[data-screen]")].map((screen) => {
+    const top = Math.round(screen.getBoundingClientRect().top + current);
+    return { top, bottom: top + Math.max(0, screen.offsetHeight - window.innerHeight) };
+  });
+
+  if (direction > 0) {
+    const nextScreen = screens.find((screen) => screen.top > current + 4);
+    const ownBottom = screens.find((screen) => screen.top <= current + 4 && screen.bottom > current + 4);
+    return nextScreen?.top ?? ownBottom?.bottom;
+  }
+  const stops = screens.flatMap((screen) => (screen.bottom > screen.top ? [screen.top, screen.bottom] : [screen.top]));
+  return stops.reverse().find((stop) => stop < current - 4);
+}
+
 interface ScrollQuizProps {
   locale: QuizLocale;
   content: QuizContent;
@@ -43,6 +70,8 @@ export function ScrollQuiz({ locale, content }: ScrollQuizProps) {
   const rootRef = useRef<HTMLDivElement>(null);
   const lenisRef = useRef<Lenis | null>(null);
   const galleryCleanups = useRef(new Map<number, () => void>());
+  const movingRef = useRef(false);
+  const arrivedAtRef = useRef(0);
 
   const yesCount = answers.filter((answer) => answer === "yes").length;
   const result = [...content.results].sort((a, b) => b.minYes - a.minYes).find((item) => yesCount >= item.minYes);
@@ -51,6 +80,8 @@ export function ScrollQuiz({ locale, content }: ScrollQuizProps) {
   useEffect(() => {
     if (prefersReducedMotion()) return;
     const smooth = createSmoothScroll();
+    // Stopped Lenis swallows wheel scrolling; the page only moves screen to screen via goToScreen.
+    smooth.lenis.stop();
     lenisRef.current = smooth.lenis;
     const stopRefreshing = refreshOnResize();
     const cleanups = galleryCleanups.current;
@@ -89,22 +120,62 @@ export function ScrollQuiz({ locale, content }: ScrollQuizProps) {
     [],
   );
 
-  // Arrow keys answer the current question: left is "yes", right is "no".
+  /** Glides to the next or previous screen; the gallery transitions in between play on the way. */
+  const goToScreen = useCallback((direction: 1 | -1) => {
+    const lenis = lenisRef.current;
+    if (!lenis || movingRef.current) return;
+    const target = nextStop(rootRef.current!, direction);
+    if (target === undefined) return;
+
+    movingRef.current = true;
+    const screens = Math.abs(target - window.scrollY) / window.innerHeight;
+    lenis.scrollTo(target, {
+      duration: Math.min(2.4, Math.max(0.7, screens * 0.55)),
+      easing: easeInOutCubic,
+      force: true,
+      lock: true,
+      onComplete: () => {
+        movingRef.current = false;
+        arrivedAtRef.current = performance.now();
+      },
+    });
+  }, []);
+
+  useEffect(() => {
+    if (prefersReducedMotion()) return;
+    function onWheel(event: WheelEvent) {
+      if (movingRef.current || performance.now() - arrivedAtRef.current < WHEEL_COOLDOWN_MS) return;
+      if (Math.abs(event.deltaY) < WHEEL_THRESHOLD) return;
+      goToScreen(event.deltaY > 0 ? 1 : -1);
+    }
+    window.addEventListener("wheel", onWheel, { passive: true });
+    return () => window.removeEventListener("wheel", onWheel);
+  }, [goToScreen]);
+
+  // Left/right answer the current question ("yes"/"no"); up/down, Page keys and Space move between screens.
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
-      if (finished) return;
-      if (event.key === "ArrowLeft") answer(answers.length, "yes");
-      if (event.key === "ArrowRight") answer(answers.length, "no");
+      if (event.key === "ArrowLeft" && !finished) answer(answers.length, "yes");
+      if (event.key === "ArrowRight" && !finished) answer(answers.length, "no");
+      if (prefersReducedMotion()) return;
+      if (["ArrowDown", "PageDown", " "].includes(event.key)) {
+        event.preventDefault();
+        goToScreen(1);
+      }
+      if (["ArrowUp", "PageUp"].includes(event.key)) {
+        event.preventDefault();
+        goToScreen(-1);
+      }
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [answer, answers.length, finished]);
+  }, [answer, answers.length, finished, goToScreen]);
 
   function restart() {
     // Galleries must be reverted before React removes their pinned wrappers.
     galleryCleanups.current.forEach((cleanup) => cleanup());
     galleryCleanups.current.clear();
-    if (lenisRef.current) lenisRef.current.scrollTo(0, { immediate: true });
+    if (lenisRef.current) lenisRef.current.scrollTo(0, { immediate: true, force: true });
     else window.scrollTo(0, 0);
     setAnswers([]);
   }
@@ -113,7 +184,7 @@ export function ScrollQuiz({ locale, content }: ScrollQuizProps) {
 
   return (
     <div ref={rootRef} className="codrops relative min-h-dvh text-white">
-      <header className="flex items-center gap-8 p-4 text-[0.85em] opacity-70">
+      <header className="absolute inset-x-0 top-0 z-10 flex items-center gap-8 p-4 text-[0.85em] opacity-70">
         <span>{content.wordmark}</span>
         <nav aria-label={labels.languageLabel} className="flex gap-4">
           {quizLocales.map((code) => (
@@ -142,6 +213,7 @@ export function ScrollQuiz({ locale, content }: ScrollQuizProps) {
               showScrollHint={index === answers.length - 1}
               labels={labels}
               onAnswer={(choice) => answer(index, choice)}
+              onNext={() => goToScreen(1)}
             />
             {answers[index] && (
               <div data-transition={index}>
@@ -158,7 +230,7 @@ export function ScrollQuiz({ locale, content }: ScrollQuizProps) {
       })}
 
       {finished && result && (
-        <section className="project">
+        <section data-screen className="project">
           <span className="project__label">{labels.resultEyebrow}</span>
           <h2 className="project__title">{result.title}</h2>
           <div className="project__columns col-start-2">
@@ -183,10 +255,11 @@ interface QuestionScreenProps {
   showScrollHint: boolean;
   labels: QuizContent["labels"];
   onAnswer: (choice: Answer) => void;
+  onNext: () => void;
 }
 
 /** One question laid out like a Codrops project block: labels on the left, values on the right. */
-function QuestionScreen({ question, index, total, answer, showScrollHint, labels, onAnswer }: QuestionScreenProps) {
+function QuestionScreen({ question, index, total, answer, showScrollHint, labels, onAnswer, onNext }: QuestionScreenProps) {
   const sectionRef = useRef<HTMLElement>(null);
 
   // Headline lines rise out of masks as the block scrolls into view.
@@ -221,7 +294,7 @@ function QuestionScreen({ question, index, total, answer, showScrollHint, labels
   ];
 
   return (
-    <section ref={sectionRef} className="project">
+    <section ref={sectionRef} data-screen className="project">
       <span data-reveal className="project__label">{labels.rowQuestion}</span>
       <span data-reveal>
         {pad(index + 1)} / {pad(total)}
@@ -269,10 +342,14 @@ function QuestionScreen({ question, index, total, answer, showScrollHint, labels
       </div>
 
       {showScrollHint && (
-        <div className="scroll-hint col-start-2 mt-10 flex items-center gap-4 text-[#adadad]">
+        <button
+          type="button"
+          onClick={onNext}
+          className="scroll-hint col-start-2 mt-10 flex items-center gap-4 justify-self-start text-[#adadad] hover:text-white"
+        >
           <span className="scroll-hint__line" aria-hidden="true" />
           <span>{labels.scrollHint}</span>
-        </div>
+        </button>
       )}
     </section>
   );

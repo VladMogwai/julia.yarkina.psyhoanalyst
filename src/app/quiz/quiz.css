@@ -98,14 +98,21 @@ body:has(.codrops) {
   line-height: 1.4;
 }
 
+/* Every question is one screen tall, so the page can settle on it; no empty gaps in between. */
 .project {
   display: grid;
   grid-template-columns: auto 1fr;
   align-items: baseline;
+  align-content: center;
   gap: 0.5rem 7vw;
   max-width: 1000px;
-  margin: 20vh auto;
-  padding: 1rem;
+  min-height: 100vh;
+  margin: 0 auto;
+  padding: 12vh 1rem;
+}
+
+.codrops .gallery-wrap {
+  margin: 0;
 }
 
 .project__label {
@@ -115,7 +122,7 @@ body:has(.codrops) {
 
 .project__title {
   grid-column: 1 / -1;
-  margin: 10vh 0;
+  margin: 6vh 0;
   font-size: clamp(2rem, 6.5vw, 5.5rem);
   font-weight: 400;
   line-height: 1;
