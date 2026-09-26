@@ -6,7 +6,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { SplitText } from "gsap/SplitText";
 import type Lenis from "lenis";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { GalleryEffect } from "@/scroll-gallery/GalleryEffect";
+import { GalleryEffect, type GalleryEffectName } from "@/scroll-gallery/GalleryEffect";
 import { pexelsPhoto } from "@/scroll-gallery/placeholder-photos";
 import {
   animateGallery,
@@ -18,7 +18,7 @@ import {
 import "@/scroll-gallery/scroll-gallery.css";
 import { quizLocales, type QuizLocale } from "../config";
 import type { QuizContent, QuizQuestion } from "../content/types";
-import { QUIZ_TRANSITION_FLIP, QUIZ_TRANSITIONS } from "../transitions";
+import { QUIZ_TRANSITION_FLIP, QUIZ_TRANSITION_SPEED, QUIZ_TRANSITIONS } from "../transitions";
 
 gsap.registerPlugin(useGSAP, ScrollTrigger, SplitText);
 
@@ -131,9 +131,17 @@ export function ScrollQuiz({ locale, content }: ScrollQuizProps) {
     if (target === undefined) return;
 
     movingRef.current = true;
-    const screens = Math.abs(target - window.scrollY) / window.innerHeight;
+    const [from, to] = [window.scrollY, target].sort((a, b) => a - b);
+    const crossedSpeeds = [...rootRef.current!.querySelectorAll<HTMLElement>("[data-transition]")]
+      .filter((wrap) => {
+        const top = wrap.getBoundingClientRect().top + window.scrollY;
+        return top >= from && top < to;
+      })
+      .map((wrap) => QUIZ_TRANSITION_SPEED[wrap.dataset.effect as GalleryEffectName] ?? 1);
+    const speed = TRANSITION_SPEED * Math.min(1, ...crossedSpeeds);
+    const screens = (to - from) / window.innerHeight;
     lenis.scrollTo(target, {
-      duration: Math.min(2.4, Math.max(0.7, screens * 0.55)) / TRANSITION_SPEED,
+      duration: Math.min(2.4, Math.max(0.7, screens * 0.55)) / speed,
       easing: easeInOutCubic,
       force: true,
       lock: true,
@@ -219,7 +227,7 @@ export function ScrollQuiz({ locale, content }: ScrollQuizProps) {
               onNext={() => goToScreen(1)}
             />
             {answers[index] && (
-              <div data-transition={index}>
+              <div data-transition={index} data-effect={QUIZ_TRANSITIONS[index % QUIZ_TRANSITIONS.length]}>
                 <GalleryEffect
                   effect={QUIZ_TRANSITIONS[index % QUIZ_TRANSITIONS.length]}
                   caption={next ? next.caption : result?.title}

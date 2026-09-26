@@ -9,3 +9,6 @@ export const QUIZ_TRANSITIONS: GalleryEffectName[] = ["row", "grid", "scatter", 
 
 /** Shorter than the demo: a transition, not a showcase. */
 export const QUIZ_TRANSITION_FLIP: GalleryFlipOptions = { end: "+=200%" };
+
+/** Extra slow-down for effects that feel rushed at the common speed (multiplies TRANSITION_SPEED). */
+export const QUIZ_TRANSITION_SPEED: Partial<Record<GalleryEffectName, number>> = { scatter: 0.7 };
