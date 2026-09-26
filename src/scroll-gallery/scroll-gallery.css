@@ -15,6 +15,12 @@
   justify-content: center;
 }
 
+.gallery,
+.gallery *,
+.caption {
+  box-sizing: border-box;
+}
+
 .gallery {
   position: relative;
   flex: none;
@@ -55,9 +61,11 @@
   top: calc(50% + 100vh);
   width: 100vw;
   transform: translate(-50%, -100%);
-  padding: 0 5vw 6vh;
+  /* A paragraph at the bottom left, at most 730px wide, as in the original. */
+  padding: 0 max(4.5vw, calc(100vw - 730px - 4.5vw)) 4.5vw 4.5vw;
   opacity: 0;
-  font-size: clamp(1.5rem, 4vw, 3.5rem);
+  font-size: clamp(1rem, 3vw, 1.75rem);
+  line-height: 1.3;
 }
 
 .gallery--switch .caption--bottom {
@@ -65,9 +73,10 @@
   opacity: 1;
 }
 
+/* Title captions travel up from a screen and a half below, arriving as the layout settles. */
 .caption--title {
   left: 50%;
-  top: calc(50% + 70vh);
+  top: calc(50% + 150vh);
   width: 90vw;
   transform: translate(-50%, -50%);
   text-align: center;
@@ -78,6 +87,17 @@
 .gallery--switch .caption--title {
   top: 50%;
   opacity: 1;
+}
+
+/* Title sizes of the original, per effect. */
+.gallery--scatter .caption--title { font-size: clamp(2rem, 8vw, 6rem); }
+.gallery--bento .caption--title { font-size: clamp(2rem, 10vw, 5rem); }
+.gallery--zoom .caption--title { font-size: clamp(2rem, 5vw, 3rem); }
+
+/* The wall's caption does not travel, it only fades in over the grid. */
+.gallery--wall .caption--title {
+  top: 50%;
+  font-size: clamp(2rem, 8vw, 4rem);
 }
 
 /* 1. Row → one photo full screen */
@@ -190,23 +210,31 @@
 .gallery--deck {
   display: grid;
   grid-template-columns: repeat(6, 25vw);
+  align-items: center;
+  justify-content: start;
   gap: 2vw;
-  padding: 0 5vw;
+  width: 100vw;
+  padding: 0 2rem;
 }
 
 .gallery--deck .gallery__item {
   width: 25vw;
   height: 35vw;
   border-radius: 1.5vw;
+  z-index: 1;
 }
 
+/* As in the original: a grey paragraph that slides in from the right and settles beside the deck. */
 .gallery--deck .caption {
   top: 50%;
-  left: calc(50% + 50vw);
-  width: 50vw;
+  left: 100vw;
+  width: 40vw;
   transform: translateY(-50%);
-  font-size: clamp(1.5rem, 4vw, 4rem);
+  font-size: clamp(1rem, 3vw, 1.75rem);
+  line-height: 1.3;
+  color: #575757;
   opacity: 0;
+  z-index: 0;
 }
 
 .gallery--deck.gallery--switch {
@@ -225,18 +253,25 @@
 .gallery--deck.gallery--switch .gallery__item:nth-child(6) { margin-left: 5rem; }
 
 .gallery--deck.gallery--switch .caption {
-  left: calc(50% - 10vw);
+  left: 45vw;
   opacity: 1;
-  color: #a39b92;
 }
 
+/* 4 and 6 stack in reverse, in both states, so the first card stays on top while the others slide under it. */
+.gallery--deck-dark .gallery__item:nth-child(1), .gallery--deck-depth .gallery__item:nth-child(1) { z-index: 6; }
+.gallery--deck-dark .gallery__item:nth-child(2), .gallery--deck-depth .gallery__item:nth-child(2) { z-index: 5; }
+.gallery--deck-dark .gallery__item:nth-child(3), .gallery--deck-depth .gallery__item:nth-child(3) { z-index: 4; }
+.gallery--deck-dark .gallery__item:nth-child(4), .gallery--deck-depth .gallery__item:nth-child(4) { z-index: 3; }
+.gallery--deck-dark .gallery__item:nth-child(5), .gallery--deck-depth .gallery__item:nth-child(5) { z-index: 2; }
+.gallery--deck-dark .gallery__item:nth-child(6), .gallery--deck-depth .gallery__item:nth-child(6) { z-index: 1; }
+
 /* 4. Deck: first card on top, each next one darker */
-.gallery--deck-dark.gallery--switch .gallery__item:nth-child(1) { z-index: 6; filter: brightness(0.8); }
-.gallery--deck-dark.gallery--switch .gallery__item:nth-child(2) { z-index: 5; filter: brightness(0.72); }
-.gallery--deck-dark.gallery--switch .gallery__item:nth-child(3) { z-index: 4; filter: brightness(0.64); }
-.gallery--deck-dark.gallery--switch .gallery__item:nth-child(4) { z-index: 3; filter: brightness(0.56); }
-.gallery--deck-dark.gallery--switch .gallery__item:nth-child(5) { z-index: 2; filter: brightness(0.48); }
-.gallery--deck-dark.gallery--switch .gallery__item:nth-child(6) { z-index: 1; filter: brightness(0.4); }
+.gallery--deck-dark.gallery--switch .gallery__item:nth-child(1) { filter: brightness(1); }
+.gallery--deck-dark.gallery--switch .gallery__item:nth-child(2) { filter: brightness(0.8); }
+.gallery--deck-dark.gallery--switch .gallery__item:nth-child(3) { filter: brightness(0.7); }
+.gallery--deck-dark.gallery--switch .gallery__item:nth-child(4) { filter: brightness(0.6); }
+.gallery--deck-dark.gallery--switch .gallery__item:nth-child(5) { filter: brightness(0.5); }
+.gallery--deck-dark.gallery--switch .gallery__item:nth-child(6) { filter: brightness(0.4); }
 
 /* 5. Deck of glass: normal stacking order, every card translucent */
 .gallery--deck-glass.gallery--switch .gallery__item {
@@ -248,12 +283,12 @@
   align-self: center;
 }
 
-.gallery--deck-depth.gallery--switch .gallery__item:nth-child(1) { z-index: 6; filter: brightness(0.8); width: calc(25vw * 0.98); height: calc(35vw * 0.98); }
-.gallery--deck-depth.gallery--switch .gallery__item:nth-child(2) { z-index: 5; filter: brightness(0.72); width: calc(25vw * 0.964); height: calc(35vw * 0.964); }
-.gallery--deck-depth.gallery--switch .gallery__item:nth-child(3) { z-index: 4; filter: brightness(0.64); width: calc(25vw * 0.948); height: calc(35vw * 0.948); }
-.gallery--deck-depth.gallery--switch .gallery__item:nth-child(4) { z-index: 3; filter: brightness(0.56); width: calc(25vw * 0.932); height: calc(35vw * 0.932); }
-.gallery--deck-depth.gallery--switch .gallery__item:nth-child(5) { z-index: 2; filter: brightness(0.48); width: calc(25vw * 0.916); height: calc(35vw * 0.916); }
-.gallery--deck-depth.gallery--switch .gallery__item:nth-child(6) { z-index: 1; filter: brightness(0.4); width: calc(25vw * 0.9); height: calc(35vw * 0.9); }
+.gallery--deck-depth.gallery--switch .gallery__item:nth-child(1) { filter: brightness(1); }
+.gallery--deck-depth.gallery--switch .gallery__item:nth-child(2) { filter: brightness(0.8); width: calc(25vw * 0.98); height: calc(35vw * 0.98); }
+.gallery--deck-depth.gallery--switch .gallery__item:nth-child(3) { filter: brightness(0.7); width: calc(25vw * 0.96); height: calc(35vw * 0.96); }
+.gallery--deck-depth.gallery--switch .gallery__item:nth-child(4) { filter: brightness(0.6); width: calc(25vw * 0.94); height: calc(35vw * 0.94); }
+.gallery--deck-depth.gallery--switch .gallery__item:nth-child(5) { filter: brightness(0.5); width: calc(25vw * 0.92); height: calc(35vw * 0.92); }
+.gallery--deck-depth.gallery--switch .gallery__item:nth-child(6) { filter: brightness(0.4); width: calc(25vw * 0.9); height: calc(35vw * 0.9); }
 
 /* 7. Huge desaturated grid → pull back to see it all */
 .gallery--wall {
