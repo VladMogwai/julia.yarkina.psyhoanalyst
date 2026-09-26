@@ -66,16 +66,15 @@ export function ProductList({ locale, texts }: { locale: Locale; texts: Texts })
     startCheckout(slug, locale, session).catch(() => setError(texts.checkoutError));
   }, [session, locale, texts.checkoutError]);
 
-  if (!products) return <p className="container-page text-muted">{texts.loading}</p>;
-
-  // Sign-in stays available with nothing on sale, for people who were given access by email.
+  // Sign-in shows at once and stays with nothing on sale, for people who were given access by email.
   return (
     <div className="container-page grid gap-10">
-      {products.length === 0 && (
+      {!products && <p className="text-muted">{texts.loading}</p>}
+      {products?.length === 0 && (
         <p className="rounded-2xl border border-dashed border-line py-16 text-center text-muted">{texts.empty}</p>
       )}
       <ul className="grid gap-6 md:grid-cols-2">
-        {products.map((product) => {
+        {products?.map((product) => {
           const isOwned = owned?.has(product.slug);
           return (
             <li key={product.slug} className="flex flex-col rounded-2xl border border-line bg-white p-6 sm:p-8">
