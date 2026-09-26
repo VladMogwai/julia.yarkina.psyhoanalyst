@@ -129,6 +129,12 @@ body:has(.codrops) {
   text-wrap: balance;
 }
 
+/* Line masks of the rising headline: room for descenders (g, y) without changing the layout. */
+.project__title .title-line-mask {
+  padding-bottom: 0.2em;
+  margin-bottom: -0.2em;
+}
+
 /* Paragraphs step across two columns, like the demo's "Mission" block. */
 .project__columns {
   display: grid;

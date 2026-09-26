@@ -282,6 +282,7 @@ function QuestionScreen({ question, index, total, answer, showScrollHint, labels
       SplitText.create(section.querySelector("h2")!, {
         type: "lines",
         mask: "lines",
+        linesClass: "title-line",
         autoSplit: true,
         onSplit: (self) =>
           gsap.from(self.lines, { yPercent: 110, duration: 1, ease: "expo.out", stagger: 0.08, scrollTrigger: trigger }),
