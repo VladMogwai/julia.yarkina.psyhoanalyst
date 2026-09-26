@@ -353,16 +353,17 @@ function QuestionScreen({ question, index, total, answer, showScrollHint, labels
         })}
       </div>
 
-      {showScrollHint && (
-        <button
-          type="button"
-          onClick={onNext}
-          className="scroll-hint col-start-2 mt-10 flex items-center gap-4 justify-self-start text-[#adadad] hover:text-white"
-        >
-          <span className="scroll-hint__line" aria-hidden="true" />
-          <span>{labels.scrollHint}</span>
-        </button>
-      )}
+      {/* Always in the layout so answering never shifts the block; it only comes into focus. */}
+      <button
+        type="button"
+        onClick={onNext}
+        inert={!showScrollHint}
+        data-visible={showScrollHint}
+        className="scroll-hint col-start-2 mt-10 flex items-center gap-4 justify-self-start text-[#adadad] hover:text-white"
+      >
+        <span className="scroll-hint__line" aria-hidden="true" />
+        <span>{labels.scrollHint}</span>
+      </button>
     </section>
   );
 }
