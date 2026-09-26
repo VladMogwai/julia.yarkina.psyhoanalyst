@@ -34,6 +34,8 @@ export const en: QuizContent = {
         "Before you answer, pause for a minute. This questionnaire is not a diagnosis or a test with right answers. It is here to help you look a little more closely at what is happening to you right now.",
         "Sometimes thoughts at bedtime are just a day that hasn’t ended inside yet. And sometimes they are something that has long been looking for words: anxiety without a clear cause, a conversation that never happened, a decision put off for months.",
         "Answer the way you feel, not the way it “should” be. There are no good or bad answers here — only yours.",
+      ],
+      mobileBody: [
         "Drag the card to the left for “yes” and to the right for “no”. You can also tap the word next to the card or use the arrow keys.",
       ],
       caption: "Bedtime thoughts",

@@ -6,6 +6,8 @@ export interface QuizQuestion {
   title: string;
   /** Optional long text under the title; each item is a paragraph. The column scrolls if it is long. */
   body?: string[];
+  /** Extra paragraphs for the mobile swipe cards only (how to drag the card). */
+  mobileBody?: string[];
   /** Short serif line at the bottom of the card. */
   caption: string;
   /** Card border and transition color. */

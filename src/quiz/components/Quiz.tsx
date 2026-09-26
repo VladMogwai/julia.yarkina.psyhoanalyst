@@ -60,7 +60,7 @@ export function Quiz({ locale, content }: QuizProps) {
   const result = [...content.results].sort((a, b) => b.minYes - a.minYes).find((item) => yesCount >= item.minYes);
 
   const title = question ? question.title : (result?.title ?? "");
-  const body = question ? question.body : result?.text;
+  const body = question ? [...(question.body ?? []), ...(question.mobileBody ?? [])] : result?.text;
   const eyebrow = question ? labels.questionEyebrow.replace("{n}", pad(step + 1)) : labels.resultEyebrow;
   const backCards = isResult ? [] : questions.slice(step + 1, step + 1 + BACK_CARD_COUNT);
 

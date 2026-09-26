@@ -106,17 +106,22 @@ body:has(.codrops) {
   line-height: 1.4;
 }
 
-/* Every question is one screen tall, so the page can settle on it; no empty gaps in between. */
+/*
+ * Every question fits one screen, so the page can settle on it and nothing needs scrolling.
+ * All sizes follow --fit, which ScrollQuiz narrows when a long question would not fit.
+ */
 .project {
+  --fit: 1;
   display: grid;
   grid-template-columns: auto 1fr;
   align-items: baseline;
-  align-content: center;
-  gap: 0.5rem 7vw;
+  align-content: safe center;
+  gap: 0.5em 7vw;
   max-width: 1000px;
   min-height: 100vh;
   margin: 0 auto;
-  padding: 12vh 1rem;
+  padding: max(4.5rem, 9vh) 1rem max(2rem, 5vh);
+  font-size: calc(18px * var(--fit));
 }
 
 .codrops .gallery-wrap {
@@ -130,8 +135,8 @@ body:has(.codrops) {
 
 .project__title {
   grid-column: 1 / -1;
-  margin: 6vh 0;
-  font-size: clamp(2rem, 6.5vw, 5.5rem);
+  margin: calc(4vh * var(--fit)) 0;
+  font-size: calc(clamp(2rem, 6.5vw, 5.5rem) * var(--fit));
   font-weight: 400;
   line-height: 1;
   text-wrap: balance;
@@ -143,53 +148,26 @@ body:has(.codrops) {
   margin-bottom: -0.2em;
 }
 
-/* Paragraphs step across two columns, like the demo's "Mission" block. */
+/* Paragraphs step across two columns, like the demo's "Mission" block: the right one starts lower. */
 .project__columns {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1.4em 2rem;
+  gap: 2rem;
   color: #575757;
 }
 
+.project__columns > div:nth-child(2) {
+  padding-top: 3em;
+}
+
 .project__columns p {
-  margin: 0;
-  grid-column: 1;
+  margin: 0 0 1.2em;
 }
 
-.project__columns p:nth-child(even) {
-  grid-column: 2;
+.project__answer-row {
+  margin-top: 2.5em;
 }
 
-/* One paragraph per row so they step down like a staircase. */
-.project__columns p:nth-child(1) {
-  grid-row: 1;
+.project__choice {
+  font-size: calc(clamp(2.5rem, 6vw, 5rem) * var(--fit));
 }
-
-.project__columns p:nth-child(2) {
-  grid-row: 2;
-}
-
-.project__columns p:nth-child(3) {
-  grid-row: 3;
-}
-
-.project__columns p:nth-child(4) {
-  grid-row: 4;
-}
-
-.project__columns p:nth-child(5) {
-  grid-row: 5;
-}
-
-.project__columns p:nth-child(6) {
-  grid-row: 6;
-}
-
-.project__columns p:nth-child(7) {
-  grid-row: 7;
-}
-
-.project__columns p:nth-child(8) {
-  grid-row: 8;
-}
-

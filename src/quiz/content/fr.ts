@@ -34,6 +34,8 @@ export const fr: QuizContent = {
         "Avant de répondre, arrêtez-vous une minute. Ce questionnaire n’est ni un diagnostic ni un test avec de bonnes réponses. Il sert à regarder un peu plus attentivement ce qui se passe pour vous en ce moment.",
         "Parfois, les pensées du soir ne sont que la journée qui ne s’est pas encore terminée en nous. Et parfois, c’est quelque chose qui cherche ses mots depuis longtemps : une angoisse sans cause claire, une conversation qui n’a jamais eu lieu, une décision repoussée depuis des mois.",
         "Répondez comme vous le ressentez, pas comme il « faudrait ». Il n’y a ni bonnes ni mauvaises réponses : seulement les vôtres.",
+      ],
+      mobileBody: [
         "Faites glisser la carte vers la gauche pour « oui » et vers la droite pour « non ». Vous pouvez aussi toucher le mot à côté de la carte ou utiliser les flèches du clavier.",
       ],
       caption: "Pensées du soir",

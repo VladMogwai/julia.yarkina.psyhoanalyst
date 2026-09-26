@@ -5,7 +5,7 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { SplitText } from "gsap/SplitText";
 import type Lenis from "lenis";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { GalleryEffect, type GalleryEffectName } from "@/scroll-gallery/GalleryEffect";
 import { pexelsPhoto } from "@/scroll-gallery/placeholder-photos";
 import {
@@ -258,6 +258,37 @@ export function ScrollQuiz({ locale, content }: ScrollQuizProps) {
   );
 }
 
+/** Smallest type scale a question may shrink to; below that the screen grows and scrolls instead. */
+const MIN_FIT = 0.6;
+
+/**
+ * Keeps a whole question (text and answer buttons) within one viewport: when it does not fit,
+ * the block's type scale (--fit) is narrowed down by bisection until it does.
+ * Declared before the headline split so lines are measured at the final size.
+ */
+function useFitToViewport(ref: React.RefObject<HTMLElement | null>) {
+  useLayoutEffect(() => {
+    const section = ref.current!;
+    const fits = () => section.offsetHeight <= window.innerHeight;
+    function fit() {
+      section.style.setProperty("--fit", "1");
+      if (fits()) return;
+      let [low, high] = [MIN_FIT, 1];
+      for (let step = 0; step < 7; step++) {
+        const middle = (low + high) / 2;
+        section.style.setProperty("--fit", String(middle));
+        if (fits()) low = middle;
+        else high = middle;
+      }
+      section.style.setProperty("--fit", String(low));
+    }
+    fit();
+    document.fonts.ready.then(fit);
+    window.addEventListener("resize", fit);
+    return () => window.removeEventListener("resize", fit);
+  }, [ref]);
+}
+
 interface QuestionScreenProps {
   question: QuizQuestion;
   index: number;
@@ -272,6 +303,7 @@ interface QuestionScreenProps {
 /** One question laid out like a Codrops project block: labels on the left, values on the right. */
 function QuestionScreen({ question, index, total, answer, showScrollHint, labels, onAnswer, onNext }: QuestionScreenProps) {
   const sectionRef = useRef<HTMLElement>(null);
+  useFitToViewport(sectionRef);
 
   // Headline lines rise out of masks as the block scrolls into view.
   useGSAP(
@@ -320,15 +352,21 @@ function QuestionScreen({ question, index, total, answer, showScrollHint, labels
         <>
           <span data-reveal className="project__label">{labels.rowContext}</span>
           <div data-reveal className="project__columns">
-            {question.body.map((paragraph) => (
-              <p key={paragraph}>{paragraph}</p>
+            {[0, 1].map((column) => (
+              <div key={column}>
+                {question.body!
+                  .filter((_, paragraph) => paragraph % 2 === column)
+                  .map((paragraph) => (
+                    <p key={paragraph}>{paragraph}</p>
+                  ))}
+              </div>
             ))}
           </div>
         </>
       )}
 
-      <span data-reveal className="project__label mt-16 self-end">{labels.rowAnswer}</span>
-      <div data-reveal className="mt-16 flex items-end gap-12">
+      <span data-reveal className="project__label project__answer-row self-end">{labels.rowAnswer}</span>
+      <div data-reveal className="project__answer-row flex items-end gap-[2.5em]">
         {choices.map((choice) => {
           const chosen = answer === choice.value;
           return (
@@ -339,7 +377,7 @@ function QuestionScreen({ question, index, total, answer, showScrollHint, labels
               aria-pressed={chosen}
               aria-label={`${choice.label}: ${question.title}`}
               onClick={() => onAnswer(choice.value)}
-              className={`text-[clamp(2.5rem,6vw,5rem)] leading-none transition-colors duration-500 ${
+              className={`project__choice leading-none transition-colors duration-500 ${
                 answer
                   ? chosen
                     ? "text-white underline decoration-1 underline-offset-[0.2em]"
@@ -359,7 +397,7 @@ function QuestionScreen({ question, index, total, answer, showScrollHint, labels
         onClick={onNext}
         inert={!showScrollHint}
         data-visible={showScrollHint}
-        className="scroll-hint col-start-2 mt-10 flex items-center gap-4 justify-self-start text-[#adadad] hover:text-white"
+        className="scroll-hint col-start-2 mt-[1.5em] flex items-center gap-4 justify-self-start text-[#adadad] hover:text-white"
       >
         <span className="scroll-hint__line" aria-hidden="true" />
         <span>{labels.scrollHint}</span>
