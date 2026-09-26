@@ -147,6 +147,9 @@ export const ru = {
     buy: "Купить",
     open: "Открыть",
     owned: "Куплено",
+    more: "Подробнее",
+    alreadyBought:
+      "Уже покупали или получили доступ? Войдите с тем же email — и вопросы откроются.",
     loading: "Загрузка…",
     signInTitle: "Вход",
     signInToBuy:

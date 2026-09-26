@@ -149,6 +149,9 @@ export const uk: Dictionary = {
     buy: "Купити",
     open: "Відкрити",
     owned: "Придбано",
+    more: "Докладніше",
+    alreadyBought:
+      "Вже купували або отримали доступ? Увійдіть тим самим email — і запитання відкриються.",
     loading: "Завантаження…",
     signInTitle: "Вхід",
     signInToBuy:

@@ -45,8 +45,6 @@ type Locale = (typeof LOCALES)[number];
 const currencyFor = (locale: Locale) => (locale === "uk" || locale === "ru" ? "UAH" : "EUR");
 /** Languages of the WayForPay payment page. */
 const paymentLanguage = (locale: Locale) => (locale === "uk" ? "UA" : locale === "ru" ? "RU" : "EN");
-/** Pages of the main site (it has no English or Romanian); the questionnaire keeps all five. */
-const siteLocale = (locale: Locale) => (locale === "uk" || locale === "ru" ? locale : "fr");
 
 const worker = {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -225,7 +223,7 @@ function parseCallback(text: string): CallbackBody | null {
 function paymentReturn(request: Request, env: Env): Response {
   const url = new URL(request.url);
   const locale = LOCALES.find((code) => code === url.searchParams.get("locale")) ?? "uk";
-  const thanks = new URL(`/${siteLocale(locale)}/self-knowledge/thanks/`, env.SITE_URL);
+  const thanks = new URL(`/${locale}/self-knowledge/thanks/`, env.SITE_URL);
   thanks.searchParams.set("order", url.searchParams.get("order") ?? "");
   return Response.redirect(thanks.toString(), 303);
 }

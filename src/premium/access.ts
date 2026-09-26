@@ -113,3 +113,24 @@ export async function loadPremiumContent<T>(product: string, locale: string): Pr
     .maybeSingle();
   return (data?.payload as T | undefined) ?? null;
 }
+
+/** A purchase started while signed out, kept across the page reload of a sign-in link. */
+const PENDING_KEY = "self-knowledge-pending";
+
+export function rememberPending(slug: string) {
+  try {
+    sessionStorage.setItem(PENDING_KEY, slug);
+  } catch {
+    // Storage can be unavailable (private mode): the buyer then presses "Buy" again after signing in.
+  }
+}
+
+export function takePending(): string | null {
+  try {
+    const slug = sessionStorage.getItem(PENDING_KEY);
+    sessionStorage.removeItem(PENDING_KEY);
+    return slug;
+  } catch {
+    return null;
+  }
+}

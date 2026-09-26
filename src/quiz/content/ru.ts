@@ -3,7 +3,7 @@ import type { QuizTexts } from "./types";
 // `questions` and `results` are placeholders of the mobile cards; the desktop flow loads the paid questions from Supabase.
 export const ru: QuizTexts = {
   meta: {
-    title: "Вопросы к себе — Юлия Яркина",
+    title: "Что ты не видишь? — Юлия Яркина",
     description:
       "52 вопроса к себе в восьми темах: тревога, вина, стыд, обида, одиночество, отношения, самореализация, границы.",
   },
@@ -122,7 +122,7 @@ export const ru: QuizTexts = {
     ],
     book: "Записаться на сессию",
     otherTopic: "Выбрать другую тему",
-    lockedTitle: "Вопросы к себе",
+    lockedTitle: "Что ты не видишь?",
     lockedText:
       "Опросник доступен после покупки в рубрике «Самопознание». Если вы уже покупали — войдите тем же email.",
     lockedCta: "Перейти в рубрику",

@@ -3,7 +3,7 @@ import type { QuizTexts } from "./types";
 // `questions` and `results` are placeholders of the mobile cards; the desktop flow loads the paid questions from Supabase.
 export const en: QuizTexts = {
   meta: {
-    title: "Questions to ask yourself — Yuliia Yarkina",
+    title: "What don’t you see? — Yuliia Yarkina",
     description:
       "52 questions to ask yourself in eight topics: anxiety, guilt, shame, resentment, loneliness, relationships, self-realisation, boundaries.",
   },
@@ -122,7 +122,7 @@ export const en: QuizTexts = {
     ],
     book: "Book a session",
     otherTopic: "Choose another topic",
-    lockedTitle: "Questions to ask yourself",
+    lockedTitle: "What don’t you see?",
     lockedText:
       "The questionnaire opens after purchase in the “Self-knowledge” section. If you have already bought it, sign in with the same email.",
     lockedCta: "Go to the section",

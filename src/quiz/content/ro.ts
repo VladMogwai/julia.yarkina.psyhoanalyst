@@ -3,7 +3,7 @@ import type { QuizTexts } from "./types";
 // `questions` and `results` are placeholders of the mobile cards; the desktop flow loads the paid questions from Supabase.
 export const ro: QuizTexts = {
   meta: {
-    title: "Întrebări pentru tine — Iulia Iarkina",
+    title: "Ce nu vezi? — Iulia Iarkina",
     description:
       "52 de întrebări pentru tine, în opt teme: anxietate, vinovăție, rușine, supărare, singurătate, relații, împlinire de sine, limite.",
   },
@@ -122,7 +122,7 @@ export const ro: QuizTexts = {
     ],
     book: "Programează o ședință",
     otherTopic: "Alege altă temă",
-    lockedTitle: "Întrebări pentru tine",
+    lockedTitle: "Ce nu vezi?",
     lockedText:
       "Chestionarul se deschide după cumpărare, în rubrica „Cunoaștere de sine”. Dacă l-ai cumpărat deja, conectează-te cu același e-mail.",
     lockedCta: "Mergi la rubrică",

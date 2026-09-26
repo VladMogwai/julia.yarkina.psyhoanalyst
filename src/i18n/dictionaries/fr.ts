@@ -149,6 +149,9 @@ export const fr: Dictionary = {
     buy: "Acheter",
     open: "Ouvrir",
     owned: "Acheté",
+    more: "En savoir plus",
+    alreadyBought:
+      "Déjà acheté ou accès offert ? Connectez-vous avec le même e-mail et les questions s’ouvriront.",
     loading: "Chargement…",
     signInTitle: "Connexion",
     signInToBuy:

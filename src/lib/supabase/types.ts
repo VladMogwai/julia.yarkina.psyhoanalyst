@@ -18,6 +18,9 @@ export interface Certificate {
   title_ru: string;
   title_uk: string;
   title_fr: string;
+  /** English and Romanian came later: older certificates may have them empty. */
+  title_en?: string;
+  title_ro?: string;
   issuer: string;
   year: number | null;
   image_url: string;

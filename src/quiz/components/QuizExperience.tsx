@@ -13,8 +13,8 @@ const DESKTOP_QUERY = "(min-width: 1024px) and (pointer: fine)";
 /** The product in the "Self-knowledge" section that unlocks the questions. */
 const PRODUCT = "questions-to-self";
 
-/** The section lives on the main site, which has Ukrainian, Russian and French. */
-const sectionUrl = (locale: QuizLocale) => `/${locale === "uk" || locale === "ru" ? locale : "fr"}/self-knowledge/`;
+/** The section lives on the main site, in the same five languages. */
+const sectionUrl = (locale: QuizLocale) => `/${locale}/self-knowledge/`;
 
 function subscribe(onChange: () => void) {
   const query = window.matchMedia(DESKTOP_QUERY);

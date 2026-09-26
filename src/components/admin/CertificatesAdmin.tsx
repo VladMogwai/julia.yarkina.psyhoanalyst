@@ -12,6 +12,8 @@ const emptyDraft = (): CertificateDraft => ({
   title_ru: "",
   title_uk: "",
   title_fr: "",
+  title_en: "",
+  title_ro: "",
   issuer: "",
   year: new Date().getFullYear(),
   image_url: "",
@@ -158,6 +160,12 @@ function CertificateForm({ supabase, initial, onDone }: CertificateFormProps) {
       </Field>
       <Field label="Название (французский)">
         <input required value={draft.title_fr} onChange={(e) => update({ title_fr: e.target.value })} className={inputClass} />
+      </Field>
+      <Field label="Название (английский)" hint="Если пусто, на английской версии будет украинское название">
+        <input value={draft.title_en ?? ""} onChange={(e) => update({ title_en: e.target.value })} className={inputClass} />
+      </Field>
+      <Field label="Название (румынский)" hint="Если пусто, на румынской версии будет украинское название">
+        <input value={draft.title_ro ?? ""} onChange={(e) => update({ title_ro: e.target.value })} className={inputClass} />
       </Field>
 
       <div className="grid gap-5 sm:grid-cols-[1fr_8rem_8rem]">

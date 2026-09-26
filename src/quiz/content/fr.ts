@@ -3,7 +3,7 @@ import type { QuizTexts } from "./types";
 // `questions` and `results` are placeholders of the mobile cards; the desktop flow loads the paid questions from Supabase.
 export const fr: QuizTexts = {
   meta: {
-    title: "Questions à se poser — Yuliia Yarkina",
+    title: "Que ne vois-tu pas ? — Yuliia Yarkina",
     description:
       "52 questions à se poser, en huit thèmes : anxiété, culpabilité, honte, rancune, solitude, relations, accomplissement de soi, limites.",
   },
@@ -122,7 +122,7 @@ export const fr: QuizTexts = {
     ],
     book: "Prendre rendez-vous",
     otherTopic: "Choisir un autre thème",
-    lockedTitle: "Questions à se poser",
+    lockedTitle: "Que ne vois-tu pas ?",
     lockedText:
       "Le questionnaire est accessible après achat dans la rubrique « Connaissance de soi ». Si vous l’avez déjà acheté, connectez-vous avec le même e-mail.",
     lockedCta: "Aller à la rubrique",

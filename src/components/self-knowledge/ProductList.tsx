@@ -5,8 +5,8 @@ import { useEffect, useRef, useState } from "react";
 import type { Locale } from "@/i18n/config";
 import type { Dictionary } from "@/i18n/dictionaries/ru";
 import { getSupabase } from "@/lib/supabase/client";
-import { signOut, startCheckout, useOwnedProducts, useSession } from "@/premium/access";
-import { productLink } from "@/premium/products";
+import { rememberPending, signOut, startCheckout, takePending, useOwnedProducts, useSession } from "@/premium/access";
+import { productLink, productPage } from "@/premium/products";
 import { SignInForm } from "./SignInForm";
 
 type Texts = Dictionary["selfKnowledge"];
@@ -19,33 +19,12 @@ interface Product {
   price_eur: string;
 }
 
-/** Ukrainian and Russian pages sell in hryvnias, the French one in euros (the Worker charges the same way). */
+/** Ukrainian and Russian pages sell in hryvnias, the others in euros (the Worker charges the same way). */
 function price(product: Product, locale: Locale) {
-  const currency = locale === "fr" ? "EUR" : "UAH";
+  const currency = locale === "uk" || locale === "ru" ? "UAH" : "EUR";
   return new Intl.NumberFormat(locale, { style: "currency", currency, minimumFractionDigits: 0 }).format(
     Number(currency === "EUR" ? product.price_eur : product.price_uah),
   );
-}
-
-/** A purchase started while signed out, kept across the page reload of a sign-in link. */
-const PENDING_KEY = "self-knowledge-pending";
-
-function rememberPending(slug: string) {
-  try {
-    sessionStorage.setItem(PENDING_KEY, slug);
-  } catch {
-    // Storage can be unavailable (private mode): the buyer then presses "Buy" again after signing in.
-  }
-}
-
-function takePending(): string | null {
-  try {
-    const slug = sessionStorage.getItem(PENDING_KEY);
-    sessionStorage.removeItem(PENDING_KEY);
-    return slug;
-  } catch {
-    return null;
-  }
 }
 
 /**
@@ -103,6 +82,11 @@ export function ProductList({ locale, texts }: { locale: Locale; texts: Texts })
               <p className="mt-4 flex-1 leading-relaxed text-muted">
                 {product.description[locale] ?? product.description.uk}
               </p>
+              {productPage(product.slug, locale) && (
+                <a href={productPage(product.slug, locale)!} className="link-underline mt-4 self-start text-sm font-semibold">
+                  {texts.more}
+                </a>
+              )}
               <div className="mt-8 flex items-center justify-between gap-4">
                 {isOwned ? (
                   <>

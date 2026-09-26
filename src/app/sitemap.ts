@@ -5,7 +5,15 @@ import { languageAlternates, localizedUrl } from "@/lib/seo";
 
 export const dynamic = "force-static";
 
-const translatedPaths = ["", "/about", "/articles", "/videos", "/certificates"];
+const translatedPaths = [
+  "",
+  "/about",
+  "/articles",
+  "/videos",
+  "/certificates",
+  "/self-knowledge",
+  "/self-knowledge/what-you-dont-see",
+];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const pages = locales.flatMap((locale) =>
