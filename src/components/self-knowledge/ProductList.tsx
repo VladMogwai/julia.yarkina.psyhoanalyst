@@ -46,7 +46,8 @@ export function ProductList({ locale, texts }: { locale: Locale; texts: Texts })
       .select("slug,title,description,price_uah,price_eur")
       .order("sort_order")
       .then(({ data }) => setProducts((data as Product[] | null) ?? []));
-  }, []);
+    // Signing in can reveal products that are not on sale yet but were granted to this email.
+  }, [session]);
 
   async function buy(slug: string, current: Session) {
     try {
