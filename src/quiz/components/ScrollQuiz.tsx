@@ -32,6 +32,9 @@ const easeInOutCubic = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2
 const WHEEL_COOLDOWN_MS = 600;
 const WHEEL_THRESHOLD = 12;
 
+/** Playback speed of the move between screens (and the gallery played along the way); 1 = original. */
+const TRANSITION_SPEED = 0.7;
+
 /**
  * Where the page settles next. Screens are the stops; galleries between them are only passed through.
  * Forward goes to the next screen, or to the bottom of the current one when it is taller than the
@@ -130,7 +133,7 @@ export function ScrollQuiz({ locale, content }: ScrollQuizProps) {
     movingRef.current = true;
     const screens = Math.abs(target - window.scrollY) / window.innerHeight;
     lenis.scrollTo(target, {
-      duration: Math.min(2.4, Math.max(0.7, screens * 0.55)),
+      duration: Math.min(2.4, Math.max(0.7, screens * 0.55)) / TRANSITION_SPEED,
       easing: easeInOutCubic,
       force: true,
       lock: true,
