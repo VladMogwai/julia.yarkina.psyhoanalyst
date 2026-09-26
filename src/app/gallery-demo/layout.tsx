@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 export default function GalleryDemoLayout({ children }: LayoutProps<"/gallery-demo">) {
   return (
     <html lang="ru">
-      <body style={{ margin: 0, background: "#0f1c17", color: "#fbf6ee", fontFamily: "system-ui, sans-serif" }}>
+      <body style={{ margin: 0, background: "#131417", color: "#fff", fontFamily: "system-ui, sans-serif" }}>
         {children}
       </body>
     </html>

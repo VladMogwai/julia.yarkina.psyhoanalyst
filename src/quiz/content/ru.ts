@@ -19,6 +19,12 @@ export const ru: QuizContent = {
     restartHint: "Нажмите на карточку, чтобы начать заново",
     languageLabel: "Язык",
     progressLabel: "Прогресс",
+    scrollHint: "Прокрутите дальше",
+    rowQuestion: "Вопрос",
+    rowTopic: "Тема",
+    rowContext: "Контекст",
+    rowAnswer: "Ответ",
+    restart: "Пройти ещё раз",
   },
   questions: [
     {

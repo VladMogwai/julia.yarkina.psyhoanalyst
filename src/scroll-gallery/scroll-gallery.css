@@ -40,8 +40,8 @@
 .caption {
   position: absolute;
   z-index: 10;
-  color: #fbf6ee;
-  font-family: Georgia, serif;
+  color: #fff;
+  font-weight: 400;
   line-height: 1.1;
 }
 

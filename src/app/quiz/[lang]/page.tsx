@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { Quiz } from "@/quiz/components/Quiz";
+import { QuizExperience } from "@/quiz/components/QuizExperience";
 import { defaultQuizLocale, isQuizLocale, quizEnabled, quizIndexable, quizLocales, quizSiteUrl } from "@/quiz/config";
 import { getQuizContent } from "@/quiz/content";
 
@@ -28,5 +28,5 @@ export default async function QuizPage({ params }: PageProps<"/quiz/[lang]">) {
   const { lang } = await params;
   if (!isQuizLocale(lang) || !quizEnabled) notFound();
 
-  return <Quiz locale={lang} content={getQuizContent(lang)} />;
+  return <QuizExperience locale={lang} content={getQuizContent(lang)} />;
 }

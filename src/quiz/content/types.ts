@@ -38,6 +38,14 @@ export interface QuizContent {
     restartHint: string;
     languageLabel: string;
     progressLabel: string;
+    /** Desktop: shown after an answer, inviting to scroll on to the next question. */
+    scrollHint: string;
+    /** Desktop: row labels of a question screen. */
+    rowQuestion: string;
+    rowTopic: string;
+    rowContext: string;
+    rowAnswer: string;
+    restart: string;
   };
   questions: QuizQuestion[];
   results: QuizResult[];

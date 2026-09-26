@@ -19,6 +19,12 @@ export const uk: QuizContent = {
     restartHint: "Натисніть на картку, щоб почати знову",
     languageLabel: "Мова",
     progressLabel: "Прогрес",
+    scrollHint: "Прокрутіть далі",
+    rowQuestion: "Питання",
+    rowTopic: "Тема",
+    rowContext: "Контекст",
+    rowAnswer: "Відповідь",
+    restart: "Пройти ще раз",
   },
   questions: [
     {

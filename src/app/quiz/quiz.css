@@ -42,3 +42,133 @@
   mask-image: linear-gradient(to bottom, #000 calc(100% - 48px), transparent);
   scrollbar-width: thin;
 }
+
+/* Desktop: quiet invitation to scroll on once a question is answered. */
+.scroll-hint {
+  animation: scroll-hint-in 0.8s ease 0.6s both;
+}
+
+.scroll-hint__line {
+  width: 1px;
+  height: 48px;
+  background: currentColor;
+  animation: scroll-hint-line 2.2s ease-in-out infinite;
+}
+
+@keyframes scroll-hint-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes scroll-hint-line {
+  0% {
+    transform: scaleY(0);
+    transform-origin: top;
+  }
+  50% {
+    transform: scaleY(1);
+    transform-origin: top;
+  }
+  50.1% {
+    transform-origin: bottom;
+  }
+  100% {
+    transform: scaleY(0);
+    transform-origin: bottom;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-hint__line {
+    animation: none;
+  }
+}
+
+/*
+ * Desktop questionnaire, styled after Codrops "On-Scroll Image Layout Animations":
+ * near-black page, one grotesque at regular weight, grey labels on the left of each block.
+ */
+body:has(.codrops) {
+  background: #131417;
+}
+
+.codrops {
+  font-size: 18px;
+  line-height: 1.4;
+}
+
+.project {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: baseline;
+  gap: 0.5rem 7vw;
+  max-width: 1000px;
+  margin: 20vh auto;
+  padding: 1rem;
+}
+
+.project__label {
+  color: #adadad;
+  text-align: right;
+}
+
+.project__title {
+  grid-column: 1 / -1;
+  margin: 10vh 0;
+  font-size: clamp(2rem, 6.5vw, 5.5rem);
+  font-weight: 400;
+  line-height: 1;
+  text-wrap: balance;
+}
+
+/* Paragraphs step across two columns, like the demo's "Mission" block. */
+.project__columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.4em 2rem;
+  color: #575757;
+}
+
+.project__columns p {
+  margin: 0;
+  grid-column: 1;
+}
+
+.project__columns p:nth-child(even) {
+  grid-column: 2;
+}
+
+/* One paragraph per row so they step down like a staircase. */
+.project__columns p:nth-child(1) {
+  grid-row: 1;
+}
+
+.project__columns p:nth-child(2) {
+  grid-row: 2;
+}
+
+.project__columns p:nth-child(3) {
+  grid-row: 3;
+}
+
+.project__columns p:nth-child(4) {
+  grid-row: 4;
+}
+
+.project__columns p:nth-child(5) {
+  grid-row: 5;
+}
+
+.project__columns p:nth-child(6) {
+  grid-row: 6;
+}
+
+.project__columns p:nth-child(7) {
+  grid-row: 7;
+}
+
+.project__columns p:nth-child(8) {
+  grid-row: 8;
+}
+

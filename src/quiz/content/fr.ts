@@ -19,6 +19,12 @@ export const fr: QuizContent = {
     restartHint: "Touchez la carte pour recommencer",
     languageLabel: "Langue",
     progressLabel: "Progression",
+    scrollHint: "Faites défiler",
+    rowQuestion: "Question",
+    rowTopic: "Thème",
+    rowContext: "Contexte",
+    rowAnswer: "Réponse",
+    restart: "Recommencer",
   },
   questions: [
     {
