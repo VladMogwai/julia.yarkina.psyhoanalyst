@@ -144,7 +144,7 @@ export const fr: Dictionary = {
       "Contenus payants de la psychanalyste Yuliia Yarkina pour un travail personnel : questions à se poser, pratiques et exercices.",
     title: "Connaissance de soi",
     intro:
-      "Des contenus pour travailler seule entre les séances, ou avant de faire le premier pas. Achat unique : l’accès s’ouvre immédiatement et reste pour toujours.",
+      "Des contenus pour travailler en autonomie entre les séances, ou avant de faire le premier pas. Achat unique : l’accès s’ouvre immédiatement et reste pour toujours.",
     empty: "Les premiers contenus arrivent bientôt.",
     buy: "Acheter",
     open: "Ouvrir",

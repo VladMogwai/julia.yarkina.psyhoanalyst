@@ -49,8 +49,10 @@ export interface ReflectionLabels {
   notSeeingLabel: string;
   deeperLabel: string;
   nextStep: string;
-  /** Phones: under the "Next" button, a swipe up does the same. */
-  swipeHint: string;
+  /** Phones: taught on the first question, a tap on the card opens the next step… */
+  tapHint: string;
+  /** …and once all steps are open, only a swipe up moves to the next question. */
+  swipeUpHint: string;
   nextQuestion: string;
   finish: string;
   endEyebrow: string;
@@ -59,6 +61,13 @@ export interface ReflectionLabels {
   endText: string[];
   book: string;
   otherTopic: string;
+  /** Desktop: "{n}" is replaced with the number of questions gone through, above their list on the end screen. */
+  endPassed: string;
+  /** Desktop: the button that hides the text for half a minute of quiet with the question. */
+  pause: string;
+  pauseHint: string;
+  /** Desktop: shown while a gallery plays between chapters. */
+  skipHint: string;
   /** Shown instead of the questionnaire to people who have not bought it. */
   lockedTitle: string;
   lockedText: string;

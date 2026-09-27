@@ -1,17 +1,16 @@
-import { Onest, Source_Serif_4 } from "next/font/google";
+import { Golos_Text, Unbounded } from "next/font/google";
 import { notFound } from "next/navigation";
 import { isQuizLocale, quizLocales } from "@/quiz/config";
 import "../quiz.css";
 
-// Newsreader and DM Sans from the design have no Cyrillic; these are the closest Cyrillic-capable matches.
-// latin-ext carries the Romanian ș, ț, ă, î, â.
-const display = Source_Serif_4({
+// Both carry Cyrillic and latin-ext (the Romanian ș, ț, ă, î, â and French accents).
+// Unbounded, a wide modern grotesque, for questions and headings; Golos Text for everything else.
+const display = Unbounded({
   subsets: ["latin", "latin-ext", "cyrillic"],
-  axes: ["opsz"],
   variable: "--font-quiz-display",
 });
 
-const sans = Onest({
+const sans = Golos_Text({
   subsets: ["latin", "latin-ext", "cyrillic"],
   variable: "--font-quiz-sans",
 });

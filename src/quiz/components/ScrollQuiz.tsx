@@ -6,29 +6,27 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { SplitText } from "gsap/SplitText";
 import type Lenis from "lenis";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { GalleryEffect, galleryPhotoUrls, type GalleryEffectName } from "@/scroll-gallery/GalleryEffect";
+import { createSmoothScroll, prefersReducedMotion, refreshOnResize } from "@/scroll-gallery/scroll-galleries";
 import {
-  animateGallery,
-  createSmoothScroll,
-  prefersReducedMotion,
-  refreshOnResize,
-  waitForGalleryImages,
-} from "@/scroll-gallery/scroll-galleries";
-import "@/scroll-gallery/scroll-gallery.css";
-import { auroraPalette, paintAurora, startAuroraLight, type AuroraLight } from "../aurora";
+  auroraPalette,
+  daylight,
+  LIGHT_TONE_FROM,
+  paintAurora,
+  setDaylight,
+  showBackdrop,
+  startAuroraDrift,
+  startKaleidoscope,
+  type AuroraDrift,
+  type Kaleidoscope,
+} from "../aurora";
 import { quizBookingUrl, quizLocales, type QuizLocale } from "../config";
 import type { QuizContent, ReflectionLabels, ReflectionQuestion } from "../content/types";
 import { quizPhoto } from "../photos";
-import { QUIZ_TRANSITION_FLIP, QUIZ_TRANSITION_SPEED, QUIZ_TRANSITIONS } from "../transitions";
 
 gsap.registerPlugin(useGSAP, ScrollTrigger, SplitText);
 
 /** Steps a question opens in: "what you may not be noticing", then three deeper questions. */
 const STEPS = 4;
-
-const pad = (value: number) => String(value).padStart(2, "0");
-
-const easeInOutCubic = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
 
 /** Trackpads keep firing wheel events after a gesture; ignore them for a moment after each arrival. */
 const WHEEL_COOLDOWN_MS = 600;
@@ -36,14 +34,29 @@ const WHEEL_THRESHOLD = 12;
 /** Wheel events closer than this belong to one gesture, which counts as one step. */
 const WHEEL_GESTURE_GAP_MS = 250;
 
-/** Playback speed of the move between screens (and the gallery played along the way); 1 = original. */
-const TRANSITION_SPEED = 0.7;
+/** The one transition between screens: the text dissolves into a blur, the next screen comes into focus. */
+const DISSOLVE_SECONDS = 0.5;
+const APPEAR_SECONDS = 0.7;
+/** The aurora takes a little longer than the text to flow into the next screen's colours. */
+const AURORA_SECONDS = 2.4;
 
-/**
- * Where the page settles next. Screens are the stops; galleries between them are only passed through.
- * Forward goes to the next screen, or to the bottom of the current one when it is taller than the
- * viewport and nothing follows yet. Back steps through both.
- */
+/** How long the pointer rests on a topic before the first screen takes on its colours. */
+const PREVIEW_DELAY_MS = 200;
+
+/** The quiet pause with a question. */
+const PAUSE_SECONDS = 30;
+
+/** Opacity of the blurred abstraction behind the aurora; it fades as the page grows lighter, so it never muddies the ground. */
+const BACKDROP_OPACITY = 0.3;
+const backdropOpacity = (light: number) => BACKDROP_OPACITY * (1 - 0.7 * light);
+
+/** The abstract photo behind a screen (kaleidoscopes, prisms, soap films, bokeh), a different one for every screen. */
+const abstraction = (item: number) => quizPhoto("abstract", item, 400);
+
+/** The abstraction a topic opens with; hovering the topic on the first screen already shows it. */
+const topicAbstraction = (topicIndex: number, screen: number) => abstraction(topicIndex * 3 + screen + 1);
+
+/** Next or previous screen from the current scroll position; a screen taller than the viewport also stops at its bottom. */
 function nextStop(root: HTMLElement, direction: 1 | -1): number | undefined {
   const current = window.scrollY;
   const screens = [...root.querySelectorAll<HTMLElement>("[data-screen]")].map((screen) => {
@@ -60,6 +73,13 @@ function nextStop(root: HTMLElement, direction: 1 | -1): number | undefined {
   return stops.reverse().find((stop) => stop < current - 4);
 }
 
+/** The screen whose top is at this scroll position. */
+function screenAt(root: HTMLElement, scrollTop: number) {
+  return [...root.querySelectorAll<HTMLElement>("[data-screen]")].find(
+    (screen) => Math.abs(screen.getBoundingClientRect().top + window.scrollY - scrollTop) < 4,
+  );
+}
+
 /** Space on a focused control presses the control instead of moving the page. */
 function isKeyForTarget(event: KeyboardEvent) {
   return event.key === " " && event.target instanceof HTMLElement && Boolean(event.target.closest("button, a"));
@@ -72,9 +92,9 @@ interface ScrollQuizProps {
 
 /**
  * Desktop questionnaire as one long page. The first screen lists the topics; choosing one appends its
- * questions one at a time, followed by the closing question of the whole set. A question opens
- * step by step in place; once its last deeper question is open, a scroll-scrubbed gallery and the next question
- * are appended below.
+ * questions one at a time, followed by the closing question of the whole set and the end of the topic.
+ * A question opens step by step in place; the page never scrolls freely, it dissolves from one screen
+ * into the next.
  */
 export function ScrollQuiz({ locale, content }: ScrollQuizProps) {
   const { labels, reflection } = content;
@@ -85,25 +105,28 @@ export function ScrollQuiz({ locale, content }: ScrollQuizProps) {
   const [topic, setTopic] = useState<string | null>(null);
   /** Steps opened per appended question; the last entry is the question in progress. */
   const [revealed, setRevealed] = useState<number[]>([]);
+  const [pausing, setPausing] = useState(false);
+  /** Counts topic choices: every choice starts a fresh run, even of the same topic. */
+  const [runId, setRunId] = useState(0);
   const run = topic ? [...all.filter((question) => question.category === topic && question !== closing), closing] : [];
+  const topicIndex = topic ? topics.indexOf(topic) : -1;
   const done = run.length > 0 && revealed.length === run.length && revealed[revealed.length - 1] === STEPS;
 
   const rootRef = useRef<HTMLDivElement>(null);
   const auroraRef = useRef<HTMLDivElement>(null);
-  const lightRef = useRef<AuroraLight | null>(null);
+  const lightRef = useRef<AuroraDrift | null>(null);
+  const kaleidoscopeRef = useRef<Kaleidoscope | null>(null);
   const activeRef = useRef<HTMLElement | null>(null);
   const lenisRef = useRef<Lenis | null>(null);
-  const galleryCleanups = useRef(new Map<string, () => void>());
   const movingRef = useRef(false);
   const arrivedAtRef = useRef(0);
   const lastWheelRef = useRef(0);
-  /** Galleries whose photos are decoded and whose animation is set up. */
-  const readyRef = useRef(new Set<string>());
-  /** A move asked for while a gallery on the way was still loading; it starts once the gallery is ready. */
-  const moveWhenReadyRef = useRef<1 | -1 | null>(null);
-  const stateRef = useRef({ revealed, runLength: run.length });
+  const pausingRef = useRef(false);
+  const pauseTimerRef = useRef(0);
+  const previewTimerRef = useRef(0);
+  const stateRef = useRef({ revealed });
   useEffect(() => {
-    stateRef.current = { revealed, runLength: run.length };
+    stateRef.current = { revealed };
   });
 
   useEffect(() => {
@@ -112,88 +135,75 @@ export function ScrollQuiz({ locale, content }: ScrollQuizProps) {
     // Stopped Lenis swallows wheel scrolling; the page only moves screen to screen via goToScreen.
     smooth.lenis.stop();
     lenisRef.current = smooth.lenis;
-    const light = startAuroraLight(auroraRef.current!);
+    const light = startAuroraDrift(auroraRef.current!);
     lightRef.current = light;
+    const kaleidoscope = startKaleidoscope(auroraRef.current!.querySelector("canvas.aurora__kaleidoscope")!);
+    kaleidoscopeRef.current = kaleidoscope;
     const stopRefreshing = refreshOnResize();
-    const cleanups = galleryCleanups.current;
     return () => {
-      cleanups.forEach((cleanup) => cleanup());
-      cleanups.clear();
       stopRefreshing();
       light.stop();
+      kaleidoscope.stop();
       smooth.destroy();
       lenisRef.current = null;
+      window.clearTimeout(pauseTimerRef.current);
+      window.clearTimeout(previewTimerRef.current);
     };
   }, []);
 
-  /** Glides to the next or previous screen; the gallery transitions in between play on the way. */
+  // The first screen's abstraction is shown at once; the ones its topics open with are fetched ahead,
+  // so hovering a topic shows its abstraction without waiting.
+  const topicCount = topics.length;
+  useEffect(() => {
+    showBackdrop(auroraRef.current!, abstraction(0), BACKDROP_OPACITY);
+    for (let index = 0; index < topicCount; index++) new Image().src = topicAbstraction(index, 0);
+  }, [topicCount]);
+
+  /** Dissolves the current screen and brings the next or previous one into focus. */
   const goToScreen = useCallback((direction: 1 | -1) => {
     const lenis = lenisRef.current;
+    const root = rootRef.current!;
     if (!lenis || movingRef.current) return;
-    const target = nextStop(rootRef.current!, direction);
-    if (target === undefined) return;
     // Lenis measures the page lazily; right after screens are appended its scroll limit is stale.
     lenis.resize();
-
-    const [from, to] = [window.scrollY, target].sort((a, b) => a - b);
-    const crossed = [...rootRef.current!.querySelectorAll<HTMLElement>("[data-transition]")].filter((wrap) => {
-      const top = wrap.getBoundingClientRect().top + window.scrollY;
-      return top >= from && top < to;
-    });
-    // Never glide through a gallery that is still loading: it would get pinned in the middle of the move.
-    if (crossed.some((wrap) => !readyRef.current.has(wrap.dataset.transition!))) {
-      moveWhenReadyRef.current = direction;
-      return;
-    }
+    const target = nextStop(root, direction);
+    if (target === undefined) return;
 
     movingRef.current = true;
-    const crossedSpeeds = crossed.map((wrap) => QUIZ_TRANSITION_SPEED[wrap.dataset.effect as GalleryEffectName] ?? 1);
-    const speed = TRANSITION_SPEED * Math.min(1, ...crossedSpeeds);
-    const screens = (to - from) / window.innerHeight;
-    const duration = Math.min(2.4, Math.max(0.7, screens * 0.55)) / speed;
+    const leaving = screenAt(root, window.scrollY);
+    const arriving = screenAt(root, target);
+    const aurora = auroraRef.current!;
+    const light = Number(arriving?.dataset.light ?? 0);
+    paintAurora(aurora, arriving?.dataset.palette, AURORA_SECONDS);
+    setDaylight(aurora, light);
+    showBackdrop(aurora, arriving?.dataset.backdrop, backdropOpacity(light));
+    lightRef.current?.setDepth(Number(arriving?.dataset.depth ?? 0));
 
-    // The aurora flows into the colours of the screen being approached, for as long as the move lasts.
-    const arriving = [...rootRef.current!.querySelectorAll<HTMLElement>("[data-screen]")].find(
-      (screen) => Math.abs(screen.getBoundingClientRect().top + window.scrollY - target) < 4,
-    );
-    if (arriving && auroraRef.current) {
-      paintAurora(auroraRef.current, arriving.dataset.palette, duration);
-      lightRef.current?.surge(duration);
-    }
-
-    lenis.scrollTo(target, {
-      duration,
-      easing: easeInOutCubic,
-      force: true,
-      lock: true,
-      onComplete: () => {
-        movingRef.current = false;
-        arrivedAtRef.current = performance.now();
-      },
-    });
+    const arrive = () => {
+      lenis.scrollTo(target, { immediate: true, force: true });
+      // The text changes colour only while no screen is visible.
+      root.dataset.tone = light >= LIGHT_TONE_FROM ? "light" : "dark";
+      if (leaving) gsap.set(leaving, { clearProps: "opacity,filter" });
+      if (arriving) gsap.fromTo(arriving, { opacity: 0 }, { opacity: 1, duration: APPEAR_SECONDS, ease: "power2.out", clearProps: "opacity" });
+      movingRef.current = false;
+      arrivedAtRef.current = performance.now();
+    };
+    if (!leaving) return arrive();
+    gsap.to(leaving, { opacity: 0, filter: "blur(12px)", duration: DISSOLVE_SECONDS, ease: "power2.in", onComplete: arrive });
   }, []);
 
-  // Every appended gallery is animated once its photos are decoded. Loading keeps going when more
-  // screens are appended meanwhile; only a gallery removed by a reset is left alone.
+  // After choosing a topic, its first question is appended on the next render; move there once it is.
   useEffect(() => {
-    const root = rootRef.current!;
-    root.querySelectorAll<HTMLElement>("[data-transition]").forEach((wrap) => {
-      const key = wrap.dataset.transition!;
-      if (galleryCleanups.current.has(key)) return;
-      galleryCleanups.current.set(key, () => {});
-      waitForGalleryImages(wrap).then(() => {
-        if (!wrap.isConnected || !galleryCleanups.current.has(key)) return;
-        galleryCleanups.current.set(key, animateGallery(wrap.querySelector<HTMLElement>(".gallery")!));
-        readyRef.current.add(key);
-        ScrollTrigger.refresh();
-        const pending = moveWhenReadyRef.current;
-        if (pending) {
-          moveWhenReadyRef.current = null;
-          goToScreen(pending);
-        }
-      });
-    });
-  }, [revealed.length, done, topic, goToScreen]);
+    if (runId > 0 && !prefersReducedMotion()) goToScreen(1);
+  }, [runId, goToScreen]);
+
+  // The deeper a question is opened, the more the light gathers and dims.
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root || movingRef.current) return;
+    const resting = screenAt(root, window.scrollY);
+    if (resting) lightRef.current?.setDepth(Number(resting.dataset.depth ?? 0));
+  }, [revealed]);
 
   /** Opens the next step of the question in progress; the last step appends the next question. */
   const revealStep = useCallback(() => {
@@ -202,10 +212,10 @@ export function ScrollQuiz({ locale, content }: ScrollQuizProps) {
       const last = next.length - 1;
       if (last < 0 || next[last] === STEPS) return current;
       next[last] += 1;
-      if (next[last] === STEPS && next.length < stateRef.current.runLength) next.push(0);
+      if (next[last] === STEPS && next.length < run.length) next.push(0);
       return next;
     });
-  }, []);
+  }, [run.length]);
 
   /** Forward: open the next step while the page rests on an unfinished question, otherwise move on. */
   const forward = useCallback(() => {
@@ -220,12 +230,32 @@ export function ScrollQuiz({ locale, content }: ScrollQuizProps) {
     goToScreen(1);
   }, [goToScreen, revealStep]);
 
+  const endPause = useCallback(() => {
+    if (!pausingRef.current) return;
+    pausingRef.current = false;
+    setPausing(false);
+    lightRef.current?.breathe(false);
+    kaleidoscopeRef.current?.show(false);
+    window.clearTimeout(pauseTimerRef.current);
+    arrivedAtRef.current = performance.now();
+  }, []);
+
+  /** Half a minute with the question: the text fades away and the light breathes slowly. */
+  function startPause() {
+    pausingRef.current = true;
+    setPausing(true);
+    lightRef.current?.breathe(true);
+    kaleidoscopeRef.current?.show(true);
+    pauseTimerRef.current = window.setTimeout(endPause, PAUSE_SECONDS * 1000);
+  }
+
   useEffect(() => {
     if (prefersReducedMotion()) return;
     function onWheel(event: WheelEvent) {
       const now = performance.now();
       const sameGesture = now - lastWheelRef.current < WHEEL_GESTURE_GAP_MS;
       lastWheelRef.current = now;
+      if (pausingRef.current) return endPause();
       if (sameGesture || movingRef.current || now - arrivedAtRef.current < WHEEL_COOLDOWN_MS) return;
       if (Math.abs(event.deltaY) < WHEEL_THRESHOLD) return;
       if (event.deltaY > 0) forward();
@@ -233,13 +263,16 @@ export function ScrollQuiz({ locale, content }: ScrollQuizProps) {
     }
     window.addEventListener("wheel", onWheel, { passive: true });
     return () => window.removeEventListener("wheel", onWheel);
-  }, [forward, goToScreen]);
+  }, [forward, goToScreen, endPause]);
 
-  // Down, Page Down and Space go forward; up and Page Up go back.
+  // Down, Page Down and Space go forward; up and Page Up go back. Any key ends the pause.
   useEffect(() => {
-    if (prefersReducedMotion()) return;
     function onKeyDown(event: KeyboardEvent) {
-      if (isKeyForTarget(event)) return;
+      if (pausingRef.current) {
+        event.preventDefault();
+        return endPause();
+      }
+      if (prefersReducedMotion() || isKeyForTarget(event)) return;
       if (["ArrowDown", "PageDown", " "].includes(event.key)) {
         event.preventDefault();
         if (!movingRef.current) forward();
@@ -251,15 +284,17 @@ export function ScrollQuiz({ locale, content }: ScrollQuizProps) {
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [forward, goToScreen]);
+  }, [forward, goToScreen, endPause]);
 
   function reset() {
-    if (auroraRef.current) paintAurora(auroraRef.current, "intro", 1.5);
-    // Galleries must be reverted before React removes their pinned wrappers.
-    galleryCleanups.current.forEach((cleanup) => cleanup());
-    galleryCleanups.current.clear();
-    readyRef.current.clear();
-    moveWhenReadyRef.current = null;
+    const aurora = auroraRef.current;
+    if (aurora) {
+      paintAurora(aurora, "intro", 1.5);
+      setDaylight(aurora, 0);
+      showBackdrop(aurora, abstraction(0), BACKDROP_OPACITY);
+    }
+    if (rootRef.current) rootRef.current.dataset.tone = "dark";
+    lightRef.current?.setDepth(0);
     if (lenisRef.current) lenisRef.current.scrollTo(0, { immediate: true, force: true });
     else window.scrollTo(0, 0);
   }
@@ -268,7 +303,7 @@ export function ScrollQuiz({ locale, content }: ScrollQuizProps) {
     if (topic) reset();
     setTopic(next);
     setRevealed([0]);
-    if (!prefersReducedMotion()) moveWhenReadyRef.current = 1;
+    setRunId((id) => id + 1);
   }
 
   function otherTopic() {
@@ -277,51 +312,31 @@ export function ScrollQuiz({ locale, content }: ScrollQuizProps) {
     setRevealed([]);
   }
 
-  /** The gallery leading to a screen shows photos of that screen's topic. */
-  const transitionPhoto = (index: number, palette: string) => (item: number, width: number) =>
-    quizPhoto(palette, item + index * 5, width);
-  const paletteOf = (question: ReflectionQuestion) =>
-    question === closing ? "closing" : `topic-${topics.indexOf(question.category)}`;
-
-  // While a question is being read, the photos of the gallery after it are already fetched,
-  // so moving on never has to wait for them.
-  const upcoming = revealed.length;
-  const upcomingPalette =
-    !topic || upcoming > run.length
-      ? null
-      : upcoming < run.length
-        ? paletteOf(run[upcoming])
-        : `topic-${topics.indexOf(topic)}`;
-  useEffect(() => {
-    if (!upcomingPalette) return;
-    const effect = QUIZ_TRANSITIONS[upcoming % QUIZ_TRANSITIONS.length];
-    galleryPhotoUrls(effect, transitionPhoto(upcoming, upcomingPalette)).forEach((src) => {
-      new Image().src = src;
-    });
-  }, [upcoming, upcomingPalette]);
-
-  const transition = (index: number, caption: string, palette: string) => {
-    const effect = QUIZ_TRANSITIONS[index % QUIZ_TRANSITIONS.length];
-    return (
-      <div data-transition={`${topic}-${index}`} data-effect={effect}>
-        <GalleryEffect
-          effect={effect}
-          caption={caption}
-          flip={QUIZ_TRANSITION_FLIP}
-          photo={transitionPhoto(index, palette)}
-        />
-      </div>
-    );
-  };
+  /** Hovering a topic on the first screen tints the aurora in its colours and shows the abstraction it opens with. */
+  // Only a topic the pointer rests on changes the colours; sweeping across the list changes nothing.
+  function previewTopic(name: string | null) {
+    window.clearTimeout(previewTimerRef.current);
+    previewTimerRef.current = window.setTimeout(() => {
+      const aurora = auroraRef.current;
+      if (!aurora || movingRef.current || window.scrollY > 4) return;
+      const index = name ? topics.indexOf(name) : -1;
+      paintAurora(aurora, index >= 0 ? `topic-${index}` : "intro", AURORA_SECONDS);
+      showBackdrop(aurora, index >= 0 ? topicAbstraction(index, 0) : abstraction(0), BACKDROP_OPACITY);
+    }, PREVIEW_DELAY_MS);
+  }
 
   return (
-    <div ref={rootRef} className="codrops relative min-h-dvh text-white">
+    <div ref={rootRef} data-pausing={pausing} data-tone="dark" className="codrops relative min-h-dvh">
       <div
         ref={auroraRef}
         aria-hidden="true"
         className="aurora"
         style={Object.fromEntries(auroraPalette("intro").map((colour, index) => [`--aurora-${index + 1}`, colour]))}
       >
+        <canvas className="aurora__backdrop" />
+        <canvas className="aurora__backdrop" />
+        <canvas className="aurora__backdrop" />
+        <canvas className="aurora__kaleidoscope" />
         <span className="aurora__blob" />
         <span className="aurora__blob" />
         <span className="aurora__blob" />
@@ -336,7 +351,7 @@ export function ScrollQuiz({ locale, content }: ScrollQuizProps) {
               href={`/questions/${code}`}
               hrefLang={code}
               aria-current={code === locale ? "true" : undefined}
-              className={code === locale ? "text-white" : "text-[#aaa] underline hover:no-underline"}
+              className={code === locale ? "text-[var(--ink)]" : "text-[var(--ink-2)] underline hover:no-underline"}
             >
               {code === "uk" ? "UA" : code.toUpperCase()}
             </a>
@@ -344,69 +359,60 @@ export function ScrollQuiz({ locale, content }: ScrollQuizProps) {
         </nav>
       </header>
 
-      <IntroScreen
-        labels={reflection}
-        topics={topics.map((name) => ({ name, count: all.filter((question) => question.category === name).length }))}
-        current={topic}
-        onChoose={chooseTopic}
-      />
+      {/* Stories-like progress: a segment per question, filling step by step. */}
+      {topic && (
+        <div className="progress" aria-hidden="true">
+          {run.map((question, index) => (
+            <span key={question.number} className="progress__segment">
+              <span className="progress__fill" style={{ transform: `scaleX(${(revealed[index] ?? 0) / STEPS})` }} />
+            </span>
+          ))}
+        </div>
+      )}
 
-      {revealed.map((steps, index) => {
-        const question = run[index];
-        const isLast = index === run.length - 1;
-        const palette = paletteOf(question);
-        return (
-          <div key={`${topic}-${question.number}`}>
-            {transition(index, question.category, palette)}
+      <div className="screens">
+        <IntroScreen
+          labels={reflection}
+          topics={topics.map((name) => ({ name, count: all.filter((question) => question.category === name).length }))}
+          current={topic}
+          onChoose={chooseTopic}
+          onPreview={previewTopic}
+        />
+
+        {revealed.map((steps, index) => {
+          const question = run[index];
+          return (
             <QuestionScreen
+              key={`${runId}-${question.number}`}
               ref={index === revealed.length - 1 ? activeRef : undefined}
               question={question}
-              palette={palette}
-              position={index + 1}
-              total={run.length}
+              palette={`topic-${topicIndex}-${index}`}
+              backdrop={topicAbstraction(topicIndex, index)}
+              light={daylight(index / run.length)}
               steps={steps}
               labels={labels}
               texts={reflection}
-              nextLabel={isLast ? reflection.finish : reflection.nextQuestion}
+              nextLabel={index === run.length - 1 ? reflection.finish : reflection.nextQuestion}
               onStep={revealStep}
               onNext={() => goToScreen(1)}
+              onPause={startPause}
             />
-          </div>
-        );
-      })}
+          );
+        })}
 
-      {done && (
-        <>
-          {transition(run.length, reflection.endEyebrow, `topic-${topics.indexOf(topic!)}`)}
-          <section data-screen data-palette={`topic-${topics.indexOf(topic!)}`} className="project">
-            <span className="project__label">{reflection.endEyebrow}</span>
-            <span>{topic}</span>
-            <h2 className="project__title">{reflection.endTitle.replace("{category}", topic!)}</h2>
-            <div className="project__columns col-start-2">
-              {reflection.endText.map((paragraph) => (
-                <p key={paragraph}>{paragraph}</p>
-              ))}
-            </div>
-            <div className="project__answer-row col-start-2 flex flex-wrap items-baseline gap-x-10 gap-y-4">
-              <a
-                href={quizBookingUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="project__choice text-white underline decoration-1 underline-offset-[0.2em] hover:no-underline"
-              >
-                {reflection.book}
-              </a>
-              <button
-                type="button"
-                onClick={otherTopic}
-                className="text-[#adadad] underline hover:text-white hover:no-underline"
-              >
-                {reflection.otherTopic}
-              </button>
-            </div>
-          </section>
-        </>
-      )}
+        {done && (
+          <EndScreen
+            topic={topic!}
+            palette={`topic-${topicIndex}`}
+            backdrop={topicAbstraction(topicIndex, run.length)}
+            light={daylight(1)} questions={run} texts={reflection} onOtherTopic={otherTopic} />
+        )}
+      </div>
+
+      <div className="pause" data-visible={pausing} inert={!pausing} onClick={endPause}>
+        <p>{reflection.pauseHint}</p>
+        {pausing && <span className="pause__line" style={{ animationDuration: `${PAUSE_SECONDS}s` }} />}
+      </div>
     </div>
   );
 }
@@ -417,7 +423,7 @@ const MIN_FIT = 0.6;
 /**
  * Keeps a whole screen within one viewport: when it does not fit, the block's type scale (--fit)
  * is narrowed down by bisection until it does. Hidden steps already take their space, so opening
- * them never changes the fit. Declared before the headline split so lines are measured at the final size.
+ * them never changes the fit. Declared before the headline split so words are measured at the final size.
  */
 function useFitToViewport(ref: React.RefObject<HTMLElement | null>) {
   useLayoutEffect(() => {
@@ -442,24 +448,27 @@ function useFitToViewport(ref: React.RefObject<HTMLElement | null>) {
   }, [ref]);
 }
 
-/** Headline lines rise out of masks, and the marked rows fade in, as the block scrolls into view. */
-function useScreenReveal(ref: React.RefObject<HTMLElement | null>) {
+/**
+ * The headline comes into focus word by word, then the marked rows fade in, when the screen arrives.
+ * `delay` holds the rows back, e.g. until a longer headline has settled.
+ */
+function useScreenReveal(ref: React.RefObject<HTMLElement | null>, { wordStagger = 0.05, delay = 0.3 } = {}) {
   useGSAP(
     () => {
       if (prefersReducedMotion()) return;
       const section = ref.current!;
       const trigger = { trigger: section, start: "top 75%", once: true };
       SplitText.create(section.querySelector("h1, h2")!, {
-        type: "lines",
-        mask: "lines",
-        linesClass: "title-line",
+        type: "words",
         autoSplit: true,
         onSplit: (self) =>
-          gsap.from(self.lines, {
-            yPercent: 110,
-            duration: 1,
-            ease: "expo.out",
-            stagger: 0.08,
+          gsap.from(self.words, {
+            opacity: 0,
+            filter: "blur(10px)",
+            y: 8,
+            duration: 1.1,
+            ease: "power2.out",
+            stagger: wordStagger,
             scrollTrigger: trigger,
           }),
       });
@@ -469,7 +478,7 @@ function useScreenReveal(ref: React.RefObject<HTMLElement | null>) {
         duration: 0.8,
         ease: "power3.out",
         stagger: 0.06,
-        delay: 0.25,
+        delay,
         scrollTrigger: trigger,
       });
     },
@@ -482,26 +491,39 @@ interface IntroScreenProps {
   topics: { name: string; count: number }[];
   current: string | null;
   onChoose: (topic: string) => void;
+  onPreview: (topic: string | null) => void;
 }
 
-function IntroScreen({ labels, topics, current, onChoose }: IntroScreenProps) {
+/** Opens with the product's own question, slowly, before the topics appear. */
+function IntroScreen({ labels, topics, current, onChoose, onPreview }: IntroScreenProps) {
   const sectionRef = useRef<HTMLElement>(null);
   useFitToViewport(sectionRef);
-  useScreenReveal(sectionRef);
+  useScreenReveal(sectionRef, { wordStagger: 0.18, delay: 1.4 });
 
   return (
-    <section ref={sectionRef} data-screen data-palette="intro" className="project">
-      <h1 className="project__title project__title--question">{labels.introTitle}</h1>
+    <section ref={sectionRef} data-screen data-palette="intro" data-backdrop={abstraction(0)} data-depth="0" className="project">
+      <h1 className="project__title project__title--hook">{labels.lockedTitle}</h1>
+      <p data-reveal className="project__subtitle">
+        {labels.introTitle}
+      </p>
       <span data-reveal className="project__label">
         {labels.topicsLabel}
       </span>
       <p data-reveal className="project__lead">
         {labels.introText}
       </p>
-      <ul data-reveal className="topics col-start-2">
+      <ul data-reveal className="topics col-start-2" onMouseLeave={() => onPreview(null)}>
         {topics.map(({ name, count }) => (
           <li key={name}>
-            <button type="button" onClick={() => onChoose(name)} aria-pressed={current === name} className="topic">
+            <button
+              type="button"
+              onClick={() => onChoose(name)}
+              onMouseEnter={() => onPreview(name)}
+              onFocus={() => onPreview(name)}
+              onBlur={() => onPreview(null)}
+              aria-pressed={current === name}
+              className="topic"
+            >
               <span className="topic__name">{name}</span>
               <span className="topic__count">{labels.questionsCount.replace("{n}", String(count))}</span>
             </button>
@@ -517,8 +539,10 @@ interface QuestionScreenProps {
   question: ReflectionQuestion;
   /** Aurora palette of this screen. */
   palette: string;
-  position: number;
-  total: number;
+  /** Blurred abstraction behind the aurora while this screen is shown. */
+  backdrop: string;
+  /** How light the page is on this screen, 0 to 1. */
+  light: number;
   /** How many steps are open, 0 to STEPS. */
   steps: number;
   labels: QuizContent["labels"];
@@ -526,6 +550,7 @@ interface QuestionScreenProps {
   nextLabel: string;
   onStep: () => void;
   onNext: () => void;
+  onPause: () => void;
 }
 
 /**
@@ -536,14 +561,15 @@ function QuestionScreen({
   ref,
   question,
   palette,
-  position,
-  total,
+  backdrop,
+  light,
   steps,
   labels,
   texts,
   nextLabel,
   onStep,
   onNext,
+  onPause,
 }: QuestionScreenProps) {
   const sectionRef = useRef<HTMLElement | null>(null);
   useFitToViewport(sectionRef);
@@ -559,13 +585,19 @@ function QuestionScreen({
   const finished = steps === STEPS;
 
   return (
-    <section ref={setRefs} data-screen data-palette={palette} className="project">
+    <section
+      ref={setRefs}
+      data-screen
+      data-palette={palette}
+      data-backdrop={backdrop}
+      data-light={light}
+      data-depth={steps / STEPS}
+      className="project"
+    >
       <span data-reveal className="project__label">
         {labels.rowQuestion}
       </span>
-      <span data-reveal>
-        {pad(position)} / {pad(total)} · {question.category}
-      </span>
+      <span data-reveal>{question.category}</span>
 
       <h2 className="project__title project__title--question">{question.question}</h2>
 
@@ -587,7 +619,7 @@ function QuestionScreen({
         ))}
       </ol>
 
-      {/* Both controls share one cell, so switching between them never shifts the block. */}
+      {/* "Next" and "Next question" share one cell, so switching between them never shifts the block. */}
       <div className="step-controls col-start-2">
         <button type="button" onClick={onStep} inert={finished} data-visible={!finished} className="scroll-hint">
           <span className="scroll-hint__line" aria-hidden="true" />
@@ -596,6 +628,88 @@ function QuestionScreen({
         <button type="button" onClick={onNext} inert={!finished} data-visible={finished} className="scroll-hint">
           <span className="scroll-hint__line" aria-hidden="true" />
           <span>{nextLabel}</span>
+        </button>
+        <button
+          type="button"
+          onClick={onPause}
+          inert={!finished}
+          data-visible={finished}
+          className="scroll-hint step-controls__pause"
+        >
+          {texts.pause}
+        </button>
+      </div>
+    </section>
+  );
+}
+
+interface EndScreenProps {
+  topic: string;
+  palette: string;
+  backdrop: string;
+  light: number;
+  questions: ReflectionQuestion[];
+  texts: ReflectionLabels;
+  onOtherTopic: () => void;
+}
+
+/**
+ * The end of a topic, the moment that is remembered: the questions gone through gather one by one,
+ * stay for a while, and only then the invitation to a session comes into focus.
+ */
+function EndScreen({ topic, palette, backdrop, light, questions, texts, onOtherTopic }: EndScreenProps) {
+  const sectionRef = useRef<HTMLElement>(null);
+  useFitToViewport(sectionRef);
+  useScreenReveal(sectionRef);
+
+  useGSAP(
+    () => {
+      if (prefersReducedMotion()) return;
+      const section = sectionRef.current!;
+      const focus = { opacity: 0, filter: "blur(10px)", ease: "power2.out" };
+      gsap
+        .timeline({ scrollTrigger: { trigger: section, start: "top 75%", once: true }, delay: 0.8 })
+        .from(section.querySelectorAll("[data-passed]"), { ...focus, y: 8, duration: 1, stagger: 0.3 })
+        .from(section.querySelectorAll("[data-after]"), { ...focus, duration: 1.4, stagger: 0.3 }, "+=1.6");
+    },
+    { scope: sectionRef },
+  );
+
+  return (
+    <section ref={sectionRef} data-screen data-palette={palette} data-backdrop={backdrop} data-light={light} data-depth="0" className="project">
+      <span data-reveal className="project__label">
+        {texts.endEyebrow}
+      </span>
+      <span data-reveal>{topic}</span>
+      <h2 className="project__title project__title--question">{texts.endTitle.replace("{category}", topic)}</h2>
+
+      <span data-passed className="project__label">
+        {texts.endPassed.replace("{n}", String(questions.length))}
+      </span>
+      <ol className="passed">
+        {questions.map((question) => (
+          <li key={question.number} data-passed>
+            {question.question}
+          </li>
+        ))}
+      </ol>
+
+      <div data-after className="project__columns col-start-2">
+        {texts.endText.map((paragraph) => (
+          <p key={paragraph}>{paragraph}</p>
+        ))}
+      </div>
+      <div data-after className="project__answer-row col-start-2 flex flex-wrap items-baseline gap-x-10 gap-y-4">
+        <a
+          href={quizBookingUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="project__choice underline decoration-1 underline-offset-[0.2em] hover:no-underline"
+        >
+          {texts.book}
+        </a>
+        <button type="button" onClick={onOtherTopic} className="text-[var(--ink-2)] underline hover:text-[var(--ink)] hover:no-underline">
+          {texts.otherTopic}
         </button>
       </div>
     </section>
