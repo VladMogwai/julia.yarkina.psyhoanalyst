@@ -693,7 +693,8 @@ function CardShell({
     function fit() {
       card.style.setProperty("--fit", "1");
       if (fits()) return;
-      let [low, high] = [0.6, 1];
+      // Down to half size, so even the smallest phones in an in-app browser show the whole card.
+      let [low, high] = [0.5, 1];
       for (let step = 0; step < 7; step++) {
         const middle = (low + high) / 2;
         card.style.setProperty("--fit", String(middle));

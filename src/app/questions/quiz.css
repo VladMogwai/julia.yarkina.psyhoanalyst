@@ -1026,6 +1026,8 @@ body:has(.codrops) {
   justify-content: center;
   gap: 0.7em;
   margin: auto 0 0;
+  /* Room above and below for the dot's pulse, which the card would otherwise clip. */
+  padding-block: 12px;
   font-size: 0.8em;
   opacity: 0.75;
 }
@@ -1068,7 +1070,7 @@ body:has(.codrops) {
     box-shadow: 0 0 0 0 color-mix(in srgb, currentColor 45%, transparent);
   }
   to {
-    box-shadow: 0 0 0 14px transparent;
+    box-shadow: 0 0 0 10px transparent;
   }
 }
 
@@ -1100,7 +1102,7 @@ body:has(.codrops) {
   grid-template-columns: auto 1fr auto;
   align-items: baseline;
   gap: 0.6em;
-  padding: 0.5em 0;
+  padding: 0.42em 0;
   border-top: 1px solid rgb(251 246 238 / 0.2);
   text-align: left;
 }
