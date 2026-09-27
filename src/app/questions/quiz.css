@@ -818,8 +818,12 @@ body:has(.codrops) {
 .m-title {
   margin: 0;
   font-family: var(--font-display);
-  /* Unbounded is wide: a smaller size keeps long questions within the card. */
-  font-size: calc(clamp(22px, 6.2vw, 31px) * var(--fit));
+  /*
+   * Unbounded is wide: a smaller size keeps long questions within the card. It also follows the screen's
+   * height, so on a short screen (an in-app browser with its bars) the question shrinks first, rather
+   * than the fit shrinking all the text.
+   */
+  font-size: calc(clamp(20px, min(6.2vw, 3.3svh), 31px) * var(--fit));
   font-weight: 300;
   letter-spacing: -0.01em;
   line-height: 1.18;
@@ -1024,6 +1028,10 @@ body:has(.codrops) {
   margin: auto 0 0;
   font-size: 0.8em;
   opacity: 0.75;
+}
+
+.m-tap-hint[data-empty="true"] {
+  visibility: hidden;
 }
 
 .m-tap-hint__dot {

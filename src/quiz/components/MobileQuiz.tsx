@@ -842,12 +842,11 @@ function QuestionCard({
       <button type="button" onClick={onNext} className="sr-only">
         {nextLabel}
       </button>
-      {hint && (
-        <p className="m-tap-hint" aria-hidden="true">
-          {steps < STEPS ? <span className="m-tap-hint__dot" /> : <span className="m-tap-hint__arrow">↑</span>}
-          {hint}
-        </p>
-      )}
+      {/* Always in the layout, empty or not, so the card's fit already leaves room for the hint that comes later. */}
+      <p className="m-tap-hint" data-empty={!hint} aria-hidden="true">
+        {hint && (steps < STEPS ? <span className="m-tap-hint__dot" /> : <span className="m-tap-hint__arrow">↑</span>)}
+        {hint ?? "\u00a0"}
+      </p>
     </CardShell>
   );
 }
