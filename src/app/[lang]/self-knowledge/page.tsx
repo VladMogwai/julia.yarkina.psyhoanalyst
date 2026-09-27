@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { Marked, unmarked } from "@/components/self-knowledge/Marked";
+import { MarkerFallback } from "@/components/self-knowledge/MarkerFallback";
 import { ProductCta } from "@/components/self-knowledge/ProductCta";
 import { whatYouDontSee } from "@/content/what-you-dont-see";
 import { isLocale, type Locale } from "@/i18n/config";
@@ -31,7 +33,11 @@ export default async function SelfKnowledgePage({
 }: PageProps<"/[lang]/self-knowledge">) {
   const { lang } = await params;
   const locale = lang as Locale;
-  const texts = getDictionary(locale).selfKnowledge;
+  const { selfKnowledge: texts, person } = getDictionary(locale);
+  // Julia's marks on her own text: each marked phrase gets its own colour, a noted one her portrait.
+  // Ready but switched off for now: the phrases show as plain text.
+  const showMarks = false;
+  const author = person.name;
   const text = whatYouDontSee[locale];
   const cta = {
     product: PRODUCT,
@@ -43,6 +49,7 @@ export default async function SelfKnowledgePage({
 
   return (
     <article className="pb-24">
+      {showMarks && <MarkerFallback />}
       <header className="container-page pt-14 pb-14 md:pt-20">
         <p className="eyebrow">{texts.title}</p>
         <h1 className="mt-6 max-w-4xl font-serif text-5xl font-medium sm:text-7xl">
@@ -60,8 +67,16 @@ export default async function SelfKnowledgePage({
         <div className="grid max-w-3xl gap-6 text-lg leading-relaxed">
           <h2 className="font-serif text-3xl font-medium">{text.welcome}</h2>
           <p>{text.intro[0]}</p>
-          <p>{text.intro[1]}</p>
-          <p className="font-serif text-3xl">{text.intro[2]}</p>
+          <p>
+            {showMarks ? <Marked text={text.intro[1]} hue={45} author={author} /> : unmarked(text.intro[1])}
+          </p>
+          <p className="font-serif text-3xl">
+            {showMarks ? (
+              <Marked text={text.intro[2]} hue={280} author={author} note={text.questionsNote} />
+            ) : (
+              unmarked(text.intro[2])
+            )}
+          </p>
           <p>{text.intro[3]}</p>
           <ul className="my-4 grid gap-4">
             {text.whys.map((why) => (

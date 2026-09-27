@@ -160,10 +160,12 @@ export const en: Dictionary = {
     signedInAs: "Signed in as {email}",
     signOut: "Sign out",
     checkoutError: "Could not open the payment. Please try again.",
-    terms: "By clicking “Buy”, you accept the terms of the public offer.",
+    terms: "By clicking “Buy”, you accept {offer}.",
+    termsOffer: "the terms of the public offer",
     thanksTitle: "Thank you!",
     thanksPending: "Waiting for the payment to be confirmed — usually a few seconds.",
     thanksApproved: "Payment received, access is open.",
+    thanksSoon: "Payment opens very soon. Your order for {amount} is saved — come back a little later to complete the purchase.",
     thanksDeclined:
       "The payment did not go through. Nothing was charged — you can try again.",
     thanksUnknown:

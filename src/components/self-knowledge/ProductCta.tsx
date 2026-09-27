@@ -99,7 +99,15 @@ export function ProductCta({ product, locale, texts, openLabel, soonLabel, withS
       ) : (
         price === null && <p className="text-muted">{soonLabel}</p>
       )}
-      {!isOwned && price && <p className="text-xs text-muted">{texts.terms}</p>}
+      {!isOwned && price && (
+        <p className="text-xs text-muted">
+          {texts.terms.split("{offer}")[0]}
+          <a href={`/${locale}/legal/offer`} className="underline hover:text-ink">
+            {texts.termsOffer}
+          </a>
+          {texts.terms.split("{offer}")[1]}
+        </p>
+      )}
       {error && (
         <p role="alert" className="text-red-700">
           {error}

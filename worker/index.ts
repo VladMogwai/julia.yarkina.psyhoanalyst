@@ -2,7 +2,8 @@
  * Cloudflare Worker in front of the static site. It serves `out/` as before and adds the only
  * server-side part of the site: paying for "Self-knowledge" content with WayForPay.
  *
- *   POST /api/checkout            signed-in buyer → a signed WayForPay payment form
+ *   POST /api/checkout            signed-in buyer → a signed WayForPay payment form (or, before WayForPay
+ *                                 is connected, the thanks page saying payment opens soon)
  *   POST /api/wayforpay/callback  WayForPay → marks the order and grants (or revokes) access
  *   *    /api/wayforpay/return    WayForPay sends the buyer back → redirect to the thank-you page
  *
@@ -95,6 +96,12 @@ async function checkout(request: Request, env: Env): Promise<Response> {
     method: "POST",
     body: { reference, user_id: user.id, product_slug: product.slug, amount, currency },
   });
+
+  // Until WayForPay is connected (its merchant keys are not set yet), the order is still recorded and the
+  // buyer goes to the thanks page, which says payment opens soon. Setting the keys switches to real payment.
+  if (!env.WAYFORPAY_MERCHANT_ACCOUNT || !env.WAYFORPAY_SECRET_KEY) {
+    return json({ redirect: `/${locale}/self-knowledge/thanks?order=${encodeURIComponent(reference)}&soon=1` });
+  }
 
   const productName = product.title[locale] ?? product.title.uk;
   const orderDate = String(Math.floor(Date.now() / 1000));

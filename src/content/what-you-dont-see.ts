@@ -4,6 +4,7 @@ import type { Locale } from "@/i18n/config";
  * Landing page of the paid questionnaire "What don't you see?" in the "Self-knowledge" section:
  * Julia's text (Ukrainian original, 2026-09-26) and its translations.
  */
+/** A phrase wrapped in … is a note Julia marked: it gets a marker highlight as it scrolls into view. */
 export interface WhatYouDontSeeText {
   metaTitle: string;
   metaDescription: string;
@@ -11,6 +12,8 @@ export interface WhatYouDontSeeText {
   subtitle: string;
   welcome: string;
   intro: string[];
+  /** Julia's note beside the marked "There are questions." of the intro. */
+  questionsNote: string;
   /** The "why do I…" questions, shown as quotes. */
   whys: string[];
   optics: string;
@@ -39,10 +42,11 @@ export const whatYouDontSee: Record<Locale, WhatYouDontSeeText> = {
     welcome: "Ласкаво прошу!",
     intro: [
       "Цей простір створений для того, щоб на деякий час зупинитися, прислухатися до себе й подивитися на знайомі переживання з іншого боку.",
-      "Тут немає тестів, діагнозів і готових відповідей.",
-      "Є питання.",
+      "==Тут немає тестів, діагнозів і готових відповідей.==",
+      "==Є питання.==",
       "Іноді здається ми можемо дуже добре знати, що з нами відбувається, але зовсім не розуміти, чому саме це з нами відбувається.",
     ],
+    questionsNote: "Спробуй відповідати першим, що спадає на думку.",
     whys: [
       "Чому я знову опинився/опинилася у схожих стосунках?",
       "Чому мені так складно сказати «ні»?",
@@ -97,10 +101,11 @@ export const whatYouDontSee: Record<Locale, WhatYouDontSeeText> = {
     welcome: "Welcome!",
     intro: [
       "This space was created so that you can stop for a while, listen to yourself and look at familiar experiences from another side.",
-      "There are no tests, diagnoses or ready-made answers here.",
-      "There are questions.",
+      "==There are no tests, diagnoses or ready-made answers here.==",
+      "==There are questions.==",
       "Sometimes it seems we can know very well what is happening to us, yet not understand at all why exactly it is happening to us.",
     ],
+    questionsNote: "Try answering with the first thing that comes to mind.",
     whys: [
       "Why do I end up in similar relationships again?",
       "Why is it so hard for me to say “no”?",
@@ -155,10 +160,11 @@ export const whatYouDontSee: Record<Locale, WhatYouDontSeeText> = {
     welcome: "Bienvenue !",
     intro: [
       "Cet espace a été créé pour s’arrêter un moment, s’écouter et regarder des vécus familiers sous un autre angle.",
-      "Il n’y a ici ni tests, ni diagnostics, ni réponses toutes faites.",
-      "Il y a des questions.",
+      "==Il n’y a ici ni tests, ni diagnostics, ni réponses toutes faites.==",
+      "==Il y a des questions.==",
       "Il semble parfois que nous savons très bien ce qui nous arrive, sans comprendre du tout pourquoi cela nous arrive.",
     ],
+    questionsNote: "Essaie de répondre la première chose qui te vient à l’esprit.",
     whys: [
       "Pourquoi est-ce que je me retrouve encore dans des relations semblables ?",
       "Pourquoi est-ce si difficile pour moi de dire « non » ?",
@@ -213,10 +219,11 @@ export const whatYouDontSee: Record<Locale, WhatYouDontSeeText> = {
     welcome: "Bine ai venit!",
     intro: [
       "Acest spațiu a fost creat ca să te oprești pentru o vreme, să te asculți și să privești trăiri cunoscute din altă parte.",
-      "Aici nu există teste, diagnostice sau răspunsuri gata făcute.",
-      "Există întrebări.",
+      "==Aici nu există teste, diagnostice sau răspunsuri gata făcute.==",
+      "==Există întrebări.==",
       "Uneori pare că știm foarte bine ce ni se întâmplă, dar nu înțelegem deloc de ce anume ni se întâmplă.",
     ],
+    questionsNote: "Încearcă să răspunzi primul lucru care îți vine în minte.",
     whys: [
       "De ce ajung din nou în relații asemănătoare?",
       "De ce îmi este atât de greu să spun „nu”?",
@@ -271,10 +278,11 @@ export const whatYouDontSee: Record<Locale, WhatYouDontSeeText> = {
     welcome: "Добро пожаловать!",
     intro: [
       "Это пространство создано для того, чтобы ненадолго остановиться, прислушаться к себе и посмотреть на знакомые переживания с другой стороны.",
-      "Здесь нет тестов, диагнозов и готовых ответов.",
-      "Есть вопросы.",
+      "==Здесь нет тестов, диагнозов и готовых ответов.==",
+      "==Есть вопросы.==",
       "Иногда кажется, что мы можем очень хорошо знать, что с нами происходит, но совсем не понимать, почему именно это с нами происходит.",
     ],
+    questionsNote: "Попробуй отвечать первым, что приходит в голову.",
     whys: [
       "Почему я снова оказался/оказалась в похожих отношениях?",
       "Почему мне так трудно сказать «нет»?",

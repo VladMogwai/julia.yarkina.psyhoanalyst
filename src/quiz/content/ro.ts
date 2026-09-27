@@ -109,7 +109,7 @@ export const ro: QuizTexts = {
     topicsLabel: "Teme",
     questionsCount: "{n} întrebări",
     notSeeingLabel: "Ce s-ar putea să nu observi",
-    deeperLabel: "Mai adânc",
+    deeperLabel: "Mai profund",
     nextStep: "Mai departe",
     tapHint: "Atinge cardul ca să deschizi continuarea",
     swipeUpHint: "Glisează în sus pentru întrebarea următoare",

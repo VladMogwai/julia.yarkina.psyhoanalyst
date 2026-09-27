@@ -9,7 +9,7 @@ import { productLink } from "@/premium/products";
 import { SignInForm } from "./SignInForm";
 
 type Texts = Dictionary["selfKnowledge"];
-type Status = "loading" | "created" | "approved" | "declined" | "unknown";
+type Status = "loading" | "created" | "approved" | "declined" | "unknown" | "soon";
 
 /** How long to wait for the payment callback before telling the buyer to write to us. */
 const POLL_MS = 2000;
@@ -23,20 +23,32 @@ export function ThanksStatus({ locale, texts }: { locale: Locale; texts: Texts }
   const session = useSession();
   const [status, setStatus] = useState<Status>("loading");
   const [product, setProduct] = useState<string | null>(null);
+  const [amount, setAmount] = useState("");
 
   useEffect(() => {
     if (!session) return;
-    const reference = new URLSearchParams(window.location.search).get("order") ?? "";
+    const params = new URLSearchParams(window.location.search);
+    const reference = params.get("order") ?? "";
+    // Sent here before WayForPay is connected: the order is saved, payment itself opens soon.
+    const soon = params.get("soon") === "1";
     let attempts = 0;
     let timer: ReturnType<typeof setTimeout>;
     async function check() {
       const { data } = await getSupabase()!
         .from("orders")
-        .select("status,product_slug")
+        .select("status,product_slug,amount,currency")
         .eq("reference", reference)
         .maybeSingle();
       if (!data) return setStatus("unknown");
       setProduct(data.product_slug);
+      if (soon && data.status === "created") {
+        setAmount(
+          new Intl.NumberFormat(locale, { style: "currency", currency: data.currency, minimumFractionDigits: 0 }).format(
+            Number(data.amount),
+          ),
+        );
+        return setStatus("soon");
+      }
       if (data.status === "approved") return setStatus("approved");
       if (data.status !== "created") return setStatus("declined");
       setStatus("created");
@@ -45,7 +57,7 @@ export function ThanksStatus({ locale, texts }: { locale: Locale; texts: Texts }
     }
     check();
     return () => clearTimeout(timer);
-  }, [session]);
+  }, [session, locale]);
 
   if (session === null) {
     return (
@@ -75,6 +87,7 @@ export function ThanksStatus({ locale, texts }: { locale: Locale; texts: Texts }
           )}
         </>
       )}
+      {status === "soon" && <p>{texts.thanksSoon.replace("{amount}", amount)}</p>}
       {status === "declined" && <p>{texts.thanksDeclined}</p>}
       {status === "unknown" && <p>{texts.thanksUnknown}</p>}
       {status !== "approved" && back}

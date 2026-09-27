@@ -161,12 +161,13 @@ export const fr: Dictionary = {
     signedInAs: "Connectée en tant que {email}",
     signOut: "Se déconnecter",
     checkoutError: "Impossible d’accéder au paiement. Réessayez.",
-    terms:
-      "En cliquant sur « Acheter », vous acceptez les conditions de l’offre publique.",
+    terms: "En cliquant sur « Acheter », vous acceptez {offer}.",
+    termsOffer: "les conditions de l’offre publique",
     thanksTitle: "Merci !",
     thanksPending:
       "Nous attendons la confirmation du paiement — cela prend généralement quelques secondes.",
     thanksApproved: "Paiement accepté, l’accès est ouvert.",
+    thanksSoon: "Le paiement ouvre très bientôt. Votre commande de {amount} est enregistrée — revenez un peu plus tard pour finaliser l’achat.",
     thanksDeclined:
       "Le paiement n’a pas abouti. Rien n’a été débité — vous pouvez réessayer.",
     thanksUnknown:

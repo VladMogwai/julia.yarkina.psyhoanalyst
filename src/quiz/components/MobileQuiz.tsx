@@ -170,10 +170,11 @@ const visibleContents = (card: HTMLElement) => [
 ];
 
 /**
- * The next card rises from below still flooded with the light of its abstraction; the light settles
- * back into the cover, and then the text comes into focus. Returns a cleanup; `onDone` runs once it is in place.
+ * The next card rises from below (or, going back, comes down from above) still flooded with the light of
+ * its abstraction; the light settles back into the cover, and then the text comes into focus. Returns a
+ * cleanup; `onDone` runs once it is in place.
  */
-function riseIntoLight(slot: HTMLElement, onDone: () => void) {
+function riseIntoLight(slot: HTMLElement, from: 1 | -1, onDone: () => void) {
   const card = slot.querySelector<HTMLElement>(".m-card")!;
   const cover = card.querySelector<HTMLElement>(".m-card__cover")!;
   const contents = visibleContents(card);
@@ -182,7 +183,7 @@ function riseIntoLight(slot: HTMLElement, onDone: () => void) {
   gsap.set(cover, COVER_FLOOD);
   const timeline = gsap
     .timeline({ onComplete: onDone })
-    .fromTo(slot, { yPercent: 70, opacity: 0 }, { yPercent: 0, opacity: 1, duration: 0.72, ease: "power3.out" }, 0.26)
+    .fromTo(slot, { yPercent: 70 * from, opacity: 0 }, { yPercent: 0, opacity: 1, duration: 0.72, ease: "power3.out" }, 0.26)
     .to(cover, { ...COVER_REST, duration: 0.85, ease: "sine.inOut" }, 0.55)
     .to(contents, { opacity: 1, filter: "blur(0px)", duration: 0.5, stagger: 0.07, ease: "power2.out" }, 0.82)
     // Hand the looks back to CSS, which knows what each element should rest at.
@@ -398,27 +399,34 @@ export function MobileQuiz({ locale, content }: MobileQuizProps) {
   }
 
   const slotRef = useRef<HTMLDivElement>(null);
-  /** Set by show(): the card about to mount rises into place. Cleared once it has. */
-  const arriveRef = useRef(false);
+  /** Set by show(): the card about to mount rises into place from below (1) or above (-1). Cleared once it has. */
+  const arriveRef = useRef<1 | -1 | 0>(0);
   const dragRef = useRef<{
     x0: number;
     y0: number;
     dy: number;
     dx: number;
     dragging: boolean;
+    /** The end card is pulled sideways to its ways; a pull down on any card goes back. */
+    sideways: boolean;
     /** Recent positions, to tell a quick flick from a slow pull. */
     samples: { dy: number; dx: number; t: number }[];
   } | null>(null);
   const suppressClickRef = useRef(false);
   const clearLeaving = useCallback(() => setLeaving(null), []);
 
+  /** Steps opened per question of the topic in progress, so a question returned to opens as far as it was. */
+  const openedRef = useRef<number[]>([]);
+
   function show(next: Card, nextTopic = topic, fromY = 0, fromX = 0) {
+    if (card.kind === "question") openedRef.current[card.index] = Math.max(openedRef.current[card.index] ?? 0, steps);
+    if (nextTopic !== topic || next.kind === "intro") openedRef.current = [];
     setLeaving({ card, topic, steps, fromY, fromX });
     setTopic(nextTopic);
     setCard(next);
-    setSteps(0);
+    setSteps(next.kind === "question" ? (openedRef.current[next.index] ?? 0) : 0);
     setBlown(false);
-    arriveRef.current = true;
+    arriveRef.current = fromY > 0 ? -1 : 1;
   }
 
   /** Opens the next step, or replaces the card once all steps are open. */
@@ -432,11 +440,20 @@ export function MobileQuiz({ locale, content }: MobileQuizProps) {
     else show({ kind: "end" }, topic, fromY);
   }
 
+  /** Whether a pull down has a card to go back to: the question before, or the last one from the end card. */
+  const canGoBack = card.kind === "end" || (card.kind === "question" && card.index > 0);
+
+  /** Goes back to the question before, open as far as it was left. */
+  function previous(fromY: number) {
+    if (card.kind === "end") show({ kind: "question", index: run.length - 1 }, topic, fromY);
+    else if (card.kind === "question" && card.index > 0) show({ kind: "question", index: card.index - 1 }, topic, fromY);
+  }
+
   const currentKey = cardKey(card, topic);
   useLayoutEffect(() => {
     if (!arriveRef.current || prefersReducedMotion()) return;
-    return riseIntoLight(slotRef.current!, () => {
-      arriveRef.current = false;
+    return riseIntoLight(slotRef.current!, arriveRef.current || 1, () => {
+      arriveRef.current = 0;
     });
   }, [currentKey]);
 
@@ -471,8 +488,9 @@ export function MobileQuiz({ locale, content }: MobileQuizProps) {
     };
   }, [card.kind]);
 
-  // Swipe: the card follows the finger; a swipe up works like the "Next" button. The end card is
-  // swiped sideways instead: right books a session, left goes back to the topics.
+  // Swipe: the card follows the finger; a swipe up works like the "Next" button, a swipe down goes back
+  // to the question before. The end card is swiped sideways instead: right books a session, left goes
+  // back to the topics; down still goes back to the last question.
   function onPointerDown(event: React.PointerEvent<HTMLDivElement>) {
     gsap.killTweensOf(event.currentTarget);
     // A touch stops the hinting sway where it is: the card settles back in the middle.
@@ -487,6 +505,7 @@ export function MobileQuiz({ locale, content }: MobileQuizProps) {
       dy: 0,
       dx: 0,
       dragging: false,
+      sideways: false,
       samples: [{ dy: 0, dx: 0, t: performance.now() }],
     };
   }
@@ -496,17 +515,19 @@ export function MobileQuiz({ locale, content }: MobileQuizProps) {
     if (!drag) return;
     const dy = event.clientY - drag.y0;
     const dx = event.clientX - drag.x0;
-    const sideways = card.kind === "end";
     if (!drag.dragging) {
+      const vertical = Math.abs(dy) > Math.abs(dx);
+      drag.sideways = card.kind === "end" && !(vertical && dy > 0);
       // Taps on buttons stay taps; only a clear move along the card's swipe direction becomes a drag.
-      const [along, across] = sideways ? [dx, dy] : [dy, dx];
+      const [along, across] = drag.sideways ? [dx, dy] : [dy, dx];
       // On the end card a swipe up, out of habit, is answered by a sway towards its real ways.
-      if (sideways && Math.abs(dy) > UP_ATTEMPT && Math.abs(dy) > Math.abs(dx)) swayHint();
+      if (card.kind === "end" && vertical && dy < -UP_ATTEMPT) swayHint();
       if (Math.abs(along) < 8 || Math.abs(along) < Math.abs(across)) return;
       drag.dragging = true;
-      if (sideways) sidewaysLearnedRef.current = true;
+      if (drag.sideways) sidewaysLearnedRef.current = true;
       event.currentTarget.setPointerCapture(event.pointerId);
     }
+    const sideways = drag.sideways;
     trailDust(event);
     const now = performance.now();
     if (sideways) {
@@ -521,7 +542,8 @@ export function MobileQuiz({ locale, content }: MobileQuizProps) {
       showWays(event.currentTarget, dx);
       return;
     }
-    drag.dy = dy < 0 ? dy : dy * 0.25;
+    // Up follows the finger on a question, down wherever there is a card to go back to; otherwise it resists.
+    drag.dy = (dy < 0 ? card.kind === "question" : canGoBack) ? dy : dy * 0.25;
     drag.samples = [...drag.samples.filter((sample) => now - sample.t < 120), { dy: drag.dy, dx: 0, t: now }];
     gsap.set(event.currentTarget, { y: drag.dy, rotate: drag.dy * 0.015 });
   }
@@ -532,7 +554,7 @@ export function MobileQuiz({ locale, content }: MobileQuizProps) {
     if (!drag?.dragging) return;
     suppressClickRef.current = true;
     const [first] = drag.samples;
-    if (card.kind === "end") {
+    if (drag.sideways) {
       const speedX = (drag.dx - first.dx) / Math.max(1, performance.now() - first.t);
       const pulled = (direction: 1 | -1) =>
         direction * drag.dx > SWIPE_DISTANCE || (direction * drag.dx > FLICK_DISTANCE && direction * speedX > FLICK_SPEED);
@@ -546,6 +568,11 @@ export function MobileQuiz({ locale, content }: MobileQuizProps) {
       return;
     }
     const speed = -(drag.dy - first.dy) / Math.max(1, performance.now() - first.t);
+    const pulledDown = canGoBack && (drag.dy > SWIPE_DISTANCE || (drag.dy > FLICK_DISTANCE && -speed > FLICK_SPEED));
+    if (pulledDown) {
+      previous(drag.dy);
+      return;
+    }
     const swiped =
       card.kind === "question" && (drag.dy < -SWIPE_DISTANCE || (drag.dy < -FLICK_DISTANCE && speed > FLICK_SPEED));
     if (swiped && steps === STEPS) {

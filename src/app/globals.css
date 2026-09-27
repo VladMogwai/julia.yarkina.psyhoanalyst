@@ -48,3 +48,110 @@
 .video-embed iframe {
   @apply my-8 aspect-video w-full rounded-2xl;
 }
+
+/*
+ * Marker notes (components/self-knowledge/Marked.tsx): a phrase is filled in like a highlighter stroke
+ * from left to right once it is fully on screen, and a noted one shows Julia's portrait and note in the
+ * paragraph's margin. Everything follows one variable, --highlighted (0 or 1): scroll-driven CSS sets it where
+ * supported, MarkerFallback otherwise; unsupported and without JS, the phrase simply stays highlighted.
+ */
+mark[data-author] {
+  --lightness: 80%;
+  --highlighted: 1;
+  --highlight: hsl(var(--hue, 45) 80% var(--lightness));
+  background: transparent;
+  color: inherit;
+}
+
+@supports (animation-timeline: view()) {
+  /*
+   * Switched on in one step the moment the phrase is fully on screen (entry 100%) and kept after it;
+   * scrolling back above that point switches it off again. The fill itself is the transition below.
+   */
+  mark[data-author] {
+    --highlighted: 0;
+    animation: marker-highlight steps(1, jump-start) both;
+    animation-timeline: view();
+    animation-range: entry 100% cover 100%;
+  }
+}
+
+@keyframes marker-highlight {
+  to {
+    --highlighted: 1;
+  }
+}
+
+/* The stroke: a 200% wide gradient with a slanted edge, waiting past the right end until highlighted. */
+mark[data-author] > span:first-child {
+  background: linear-gradient(120deg, var(--highlight) 50%, transparent 50%) 110% 0 / 200% 100% no-repeat;
+  background-position: calc((1 - var(--highlighted)) * 110%) 0;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+  transition: background-position 1s;
+}
+
+/*
+ * A mark with Julia's note: her portrait and the note beside it, in the paragraph's right
+ * margin where the page is wide enough, under the phrase otherwise. It comes in once the phrase is filled.
+ */
+:is(p, li):has(> mark[data-author]) {
+  position: relative;
+}
+
+.mark-note {
+  position: absolute;
+  top: 0.15em;
+  left: calc(100% + 2rem);
+  display: flex;
+  width: 15rem;
+  align-items: flex-start;
+  gap: 0.75rem;
+  color: var(--color-muted, #6b6b6b);
+  font-family: var(--font-sans, system-ui, sans-serif);
+  font-size: 0.9375rem;
+  font-style: normal;
+  line-height: 1.45;
+  opacity: var(--highlighted);
+  translate: 0 calc((1 - var(--highlighted)) * 6px);
+  transition:
+    opacity 0.4s 0.7s,
+    translate 0.4s 0.7s;
+}
+
+@media (max-width: 1199px) {
+  .mark-note {
+    position: static;
+    margin-top: 0.75rem;
+    width: auto;
+  }
+}
+
+/* Julia's portrait, framed in the colour of the mark. */
+.mark-note__author {
+  width: 36px;
+  height: 36px;
+  flex: none;
+  border: 2px solid var(--highlight);
+  border-radius: 50%;
+  object-fit: cover;
+  scale: var(--highlighted);
+  transition: scale 0.2s 0.6s;
+}
+
+.mark-note__text {
+  padding-top: 0.45rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  mark[data-author] {
+    --highlighted: 1 !important;
+    animation: none;
+  }
+
+  mark[data-author] > span:first-child,
+  .mark-note,
+  .mark-note__author {
+    transition: none;
+  }
+}

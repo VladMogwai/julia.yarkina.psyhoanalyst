@@ -107,7 +107,13 @@ export async function startCheckout(product: string, locale: string, session: Se
   });
   if (response.status === 409) return "owned";
   if (!response.ok) throw new Error(`checkout ${response.status}`);
-  const { action, fields } = (await response.json()) as { action: string; fields: Record<string, string> };
+  const result = (await response.json()) as { redirect?: string; action?: string; fields?: Record<string, string> };
+  // Before WayForPay is connected the order goes to our own thanks page instead of a payment form.
+  if (result.redirect) {
+    window.location.assign(result.redirect);
+    return;
+  }
+  const { action, fields } = result as { action: string; fields: Record<string, string> };
 
   const form = document.createElement("form");
   form.method = "POST";

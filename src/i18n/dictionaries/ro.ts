@@ -160,10 +160,12 @@ export const ro: Dictionary = {
     signedInAs: "Te-ai conectat ca {email}",
     signOut: "Ieși",
     checkoutError: "Nu s-a putut deschide plata. Încearcă din nou.",
-    terms: "Apăsând „Cumpără”, accepți condițiile ofertei publice.",
+    terms: "Apăsând „Cumpără”, accepți {offer}.",
+    termsOffer: "condițiile ofertei publice",
     thanksTitle: "Mulțumim!",
     thanksPending: "Așteptăm confirmarea plății — de obicei durează câteva secunde.",
     thanksApproved: "Plata a reușit, accesul este deschis.",
+    thanksSoon: "Plata se deschide foarte curând. Comanda ta de {amount} este salvată — revino puțin mai târziu ca să finalizezi cumpărarea.",
     thanksDeclined:
       "Plata nu a reușit. Nu s-a retras nimic — poți încerca din nou.",
     thanksUnknown:

@@ -12,14 +12,15 @@ export function Header({ locale }: { locale: Locale }) {
     { href: `/${locale}/articles`, label: nav.articles },
     { href: `/${locale}/videos`, label: nav.videos },
     { href: `/${locale}/certificates`, label: nav.certificates },
+    { href: `/${locale}/self-knowledge`, label: nav.selfKnowledge },
   ];
 
   return (
     <header className="border-b border-line/70">
       <div className="container-page flex h-20 items-center justify-between gap-6">
-        <Link href={`/${locale}`} className="group flex flex-col leading-none">
+        <Link href={`/${locale}`} className="group flex min-w-0 flex-col leading-none whitespace-nowrap">
           <span className="font-serif text-2xl font-medium tracking-tight">{person.name}</span>
-          <span className="mt-1 text-[0.65rem] font-semibold tracking-[0.25em] text-muted uppercase">
+          <span className="mt-1 text-[0.65rem] font-semibold tracking-[0.15em] text-muted uppercase sm:tracking-[0.25em]">
             {person.role}
           </span>
         </Link>
@@ -33,7 +34,10 @@ export function Header({ locale }: { locale: Locale }) {
         </nav>
 
         <div className="flex items-center gap-4">
-          <LanguageSwitcher current={locale} label={nav.languageLabel} />
+          {/* On phones the languages move into the menu, leaving the name room. */}
+          <div className="hidden sm:block">
+            <LanguageSwitcher current={locale} label={nav.languageLabel} />
+          </div>
           <BookingButton locale={locale} className="hidden !px-5 !py-2.5 sm:inline-flex" />
 
           <MobileMenu label={nav.menu}>
@@ -43,6 +47,9 @@ export function Header({ locale }: { locale: Locale }) {
               </Link>
             ))}
             <BookingButton locale={locale} className="mt-2" />
+            <div className="mt-3 px-1 sm:hidden">
+              <LanguageSwitcher current={locale} label={nav.languageLabel} />
+            </div>
           </MobileMenu>
         </div>
       </div>

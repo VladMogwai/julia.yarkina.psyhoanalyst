@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ContactLinks } from "@/components/ContactLinks";
 import { contacts } from "@/config/site";
+import { legal, legalPages } from "@/content/legal";
 import type { Locale } from "@/i18n/config";
 import { getDictionary } from "@/i18n/get-dictionary";
 
@@ -31,6 +32,9 @@ export function Footer({ locale }: { locale: Locale }) {
           <Link href={`/${locale}/certificates`} className="hover:text-ink">
             {nav.certificates}
           </Link>
+          <Link href={`/${locale}/self-knowledge`} className="hover:text-ink">
+            {nav.selfKnowledge}
+          </Link>
         </nav>
 
         {Object.values(contacts).some(Boolean) && (
@@ -41,9 +45,18 @@ export function Footer({ locale }: { locale: Locale }) {
         )}
       </div>
 
-      <p className="container-page mt-10">
-        © {new Date().getFullYear()} {person.name}. {footer.rights}
-      </p>
+      <div className="container-page mt-10 flex flex-wrap justify-between gap-x-8 gap-y-3">
+        <p>
+          © {new Date().getFullYear()} {person.name}. {footer.rights}
+        </p>
+        <nav className="flex flex-wrap gap-x-5 gap-y-2">
+          {legalPages.map((page) => (
+            <Link key={page} href={`/${locale}/legal/${page}`} className="hover:text-ink">
+              {legal[locale][page].linkLabel}
+            </Link>
+          ))}
+        </nav>
+      </div>
     </footer>
   );
 }
