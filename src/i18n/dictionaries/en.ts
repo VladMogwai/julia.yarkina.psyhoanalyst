@@ -139,20 +139,11 @@ export const en: Dictionary = {
     back: "Back to home",
   },
   selfKnowledge: {
-    metaTitle: "Self-knowledge — questions and practices for yourself",
-    metaDescription:
-      "Paid materials by psychoanalyst Yuliia Yarkina for working on your own: questions to ask yourself, practices and exercises.",
     title: "Self-knowledge",
-    intro:
-      "Materials for working on your own between sessions, or before taking the first step towards them. A one-time purchase: access opens at once and stays forever.",
-    empty: "The first materials are coming soon.",
     buy: "Buy",
     open: "Open",
-    owned: "Purchased",
-    more: "Learn more",
     alreadyBought:
       "Already bought it or were given access? Sign in with the same email and the questions will open.",
-    loading: "Loading…",
     signInTitle: "Sign in",
     signInToBuy: "To buy, sign in — payment opens right after.",
     signInText:

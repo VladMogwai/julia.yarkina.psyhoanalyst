@@ -2,3 +2,4 @@
 /questions  /questions/uk  301
 /quiz  /questions/uk  301
 /quiz/*  /questions/:splat  301
+/:lang/self-knowledge/what-you-dont-see  /:lang/self-knowledge  301

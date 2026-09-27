@@ -12,7 +12,6 @@ const translatedPaths = [
   "/videos",
   "/certificates",
   "/self-knowledge",
-  "/self-knowledge/what-you-dont-see",
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

@@ -139,20 +139,11 @@ export const ro: Dictionary = {
     back: "Înapoi acasă",
   },
   selfKnowledge: {
-    metaTitle: "Cunoaștere de sine — întrebări și practici pentru tine",
-    metaDescription:
-      "Materiale plătite ale psihanalistei Iulia Iarkina pentru lucrul pe cont propriu: întrebări pentru tine, practici și exerciții.",
     title: "Cunoaștere de sine",
-    intro:
-      "Materiale pentru lucrul pe cont propriu între ședințe sau înainte de primul pas spre ele. Cumpărare unică: accesul se deschide imediat și rămâne pentru totdeauna.",
-    empty: "Primele materiale apar în curând.",
     buy: "Cumpără",
     open: "Deschide",
-    owned: "Cumpărat",
-    more: "Află mai mult",
     alreadyBought:
       "Ai cumpărat deja sau ai primit acces? Autentifică-te cu același e-mail și întrebările se vor deschide.",
-    loading: "Se încarcă…",
     signInTitle: "Autentificare",
     signInToBuy: "Pentru a cumpăra, autentifică-te — plata se deschide imediat după.",
     signInText:

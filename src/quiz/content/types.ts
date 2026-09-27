@@ -72,6 +72,8 @@ export interface ReflectionLabels {
   lockedTitle: string;
   lockedText: string;
   lockedCta: string;
+  /** Signed in, but this email has no access yet; "{email}" is replaced with it. */
+  lockedNoAccess: string;
 }
 
 export interface QuizContent {

@@ -131,5 +131,6 @@ export const ro: QuizTexts = {
     lockedText:
       "Chestionarul se deschide după cumpărare, în rubrica „Cunoaștere de sine”. Dacă l-ai cumpărat deja, conectează-te cu același e-mail.",
     lockedCta: "Mergi la rubrică",
+    lockedNoAccess: "Întrebările nu sunt încă deschise pentru {email}. Le poți obține în rubrica „Cunoaștere de sine”.",
   },
 };

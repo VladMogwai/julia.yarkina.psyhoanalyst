@@ -131,5 +131,6 @@ export const en: QuizTexts = {
     lockedText:
       "The questionnaire opens after purchase in the “Self-knowledge” section. If you have already bought it, sign in with the same email.",
     lockedCta: "Go to the section",
+    lockedNoAccess: "The questions aren’t open for {email} yet. You can get them in the “Self-knowledge” section.",
   },
 };

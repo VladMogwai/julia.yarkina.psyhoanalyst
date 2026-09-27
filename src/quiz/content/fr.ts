@@ -131,5 +131,6 @@ export const fr: QuizTexts = {
     lockedText:
       "Le questionnaire est accessible après achat dans la rubrique « Connaissance de soi ». Si vous l’avez déjà acheté, connectez-vous avec le même e-mail.",
     lockedCta: "Aller à la rubrique",
+    lockedNoAccess: "Les questions ne sont pas encore ouvertes pour {email}. Vous pouvez les obtenir dans la rubrique « Connaissance de soi ».",
   },
 };
