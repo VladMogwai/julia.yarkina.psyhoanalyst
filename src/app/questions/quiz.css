@@ -252,7 +252,7 @@ body:has(.codrops) {
 }
 
 .deeper li::marker {
-  color: var(--ink-3);
+  color: var(--ink-2);
 }
 
 /* "Next" and "Next question" share one cell; only the one that applies is in focus. */
@@ -292,7 +292,7 @@ body:has(.codrops) {
 }
 
 .passed li::marker {
-  color: var(--ink-3);
+  color: var(--ink-2);
   font-size: 0.8em;
 }
 
