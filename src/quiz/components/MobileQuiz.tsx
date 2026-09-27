@@ -121,6 +121,11 @@ const TRAIL_SPACING = 5;
 const TAP_SEEDS = 7;
 const SEED_SPACING = 26;
 const SCATTER_SEEDS = 40;
+/** The end card's hinting sway: first this long after it lands, then again every so often (ms). */
+const SWAY_FIRST_MS = 1800;
+const SWAY_EVERY_MS = 4500;
+/** A move up this long (px) on the end card counts as an attempt to swipe up. */
+const UP_ATTEMPT = 24;
 /** A sideways pull this long (px) blows the end card's dandelion, in the direction of the pull. */
 const BLOW_PULL = 30;
 
@@ -435,20 +440,34 @@ export function MobileQuiz({ locale, content }: MobileQuizProps) {
     });
   }, [currentKey]);
 
-  // The end card sways once after it lands, a hint that it can be swiped left or right.
-  useEffect(() => {
-    if (card.kind !== "end" || prefersReducedMotion()) return;
-    const tween = gsap.to(slotRef.current, {
+  /** Set once the reader has pulled the end card sideways: from then on it stops swaying as a hint. */
+  const sidewaysLearnedRef = useRef(false);
+  const swayRef = useRef<gsap.core.Tween | null>(null);
+
+  /** The end card sways left and right: its two ways are to the sides, not up. */
+  function swayHint() {
+    const slot = slotRef.current;
+    if (!slot || prefersReducedMotion() || dragRef.current?.dragging || swayRef.current?.isActive()) return;
+    swayRef.current = gsap.to(slot, {
       keyframes: [
         { x: 18, rotate: 18 * SIDE_TILT, duration: 0.45 },
         { x: -18, rotate: -18 * SIDE_TILT, duration: 0.7 },
         { x: 0, rotate: 0, duration: 0.45 },
       ],
-      delay: 1.8,
       ease: "sine.inOut",
     });
+  }
+
+  // The end card keeps swaying now and then until the reader first pulls it sideways; a tap or a swipe up
+  // (the habit of the questions before) makes it sway at once, as an answer to where to go.
+  useEffect(() => {
+    if (card.kind !== "end" || prefersReducedMotion()) return;
+    const first = window.setTimeout(() => !sidewaysLearnedRef.current && swayHint(), SWAY_FIRST_MS);
+    const again = window.setInterval(() => !sidewaysLearnedRef.current && swayHint(), SWAY_EVERY_MS);
     return () => {
-      tween.kill();
+      window.clearTimeout(first);
+      window.clearInterval(again);
+      swayRef.current?.kill();
     };
   }, [card.kind]);
 
@@ -456,6 +475,8 @@ export function MobileQuiz({ locale, content }: MobileQuizProps) {
   // swiped sideways instead: right books a session, left goes back to the topics.
   function onPointerDown(event: React.PointerEvent<HTMLDivElement>) {
     gsap.killTweensOf(event.currentTarget);
+    // A touch stops the hinting sway where it is: the card settles back in the middle.
+    if (card.kind === "end") gsap.set(event.currentTarget, { x: 0, rotate: 0 });
     // A swipe by touch is followed by no click, so the "ignore the click after a drag" mark of the last
     // swipe must not outlive it: it would swallow the first tap after it.
     suppressClickRef.current = false;
@@ -479,8 +500,11 @@ export function MobileQuiz({ locale, content }: MobileQuizProps) {
     if (!drag.dragging) {
       // Taps on buttons stay taps; only a clear move along the card's swipe direction becomes a drag.
       const [along, across] = sideways ? [dx, dy] : [dy, dx];
+      // On the end card a swipe up, out of habit, is answered by a sway towards its real ways.
+      if (sideways && Math.abs(dy) > UP_ATTEMPT && Math.abs(dy) > Math.abs(dx)) swayHint();
       if (Math.abs(along) < 8 || Math.abs(along) < Math.abs(across)) return;
       drag.dragging = true;
+      if (sideways) sidewaysLearnedRef.current = true;
       event.currentTarget.setPointerCapture(event.pointerId);
     }
     trailDust(event);
@@ -654,6 +678,7 @@ export function MobileQuiz({ locale, content }: MobileQuizProps) {
           }}
           onClick={(event) => {
             const tapped = (event.target as HTMLElement).closest<HTMLElement>(".m-card");
+            if (card.kind === "end" && !(event.target as HTMLElement).closest(".m-dandelion")) swayHint();
             if ((event.target as HTMLElement).closest(".m-dandelion")) blowDandelion((Math.random() - 0.5) * 80);
             else if (isLight(tapped)) dustRef.current?.release(event.clientX, event.clientY, TAP_SEEDS, dustColours(tapped));
             else if (tapped) dustRef.current?.sprinkle(event.clientX, event.clientY, TAP_DUST, dustColours(tapped));
