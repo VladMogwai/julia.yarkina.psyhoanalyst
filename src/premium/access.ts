@@ -13,6 +13,27 @@ import { getSupabase } from "@/lib/supabase/client";
  * development with `wrangler dev`, set NEXT_PUBLIC_API_BASE=http://localhost:8787. */
 const apiBase = process.env.NEXT_PUBLIC_API_BASE ?? "";
 
+let linkSignIn: Promise<void> | undefined;
+
+/**
+ * Finishes a sign-in from the button in the letter. Its link leads to the site's own page (so every link in
+ * the letter is on the sender's domain) with ?token_hash=…&type=email; the page verifies it once and takes
+ * the parameters out of the address. Resolves at once when there is nothing to finish.
+ */
+export function completeLinkSignIn(): Promise<void> {
+  linkSignIn ??= (async () => {
+    const supabase = getSupabase();
+    const url = new URL(window.location.href);
+    const tokenHash = url.searchParams.get("token_hash");
+    if (!supabase || !tokenHash || url.searchParams.get("type") !== "email") return;
+    await supabase.auth.verifyOtp({ token_hash: tokenHash, type: "email" });
+    url.searchParams.delete("token_hash");
+    url.searchParams.delete("type");
+    window.history.replaceState(window.history.state, "", url);
+  })().catch(() => {});
+  return linkSignIn;
+}
+
 /** The current session: undefined while it is being read, null when signed out. */
 export function useSession(): Session | null | undefined {
   // Without a configured Supabase there is nobody to sign in: signed out from the start.
@@ -20,7 +41,9 @@ export function useSession(): Session | null | undefined {
   useEffect(() => {
     const supabase = getSupabase();
     if (!supabase) return;
-    supabase.auth.getSession().then(({ data }) => setSession(data.session));
+    completeLinkSignIn()
+      .then(() => supabase.auth.getSession())
+      .then(({ data }) => setSession(data.session));
     const { data } = supabase.auth.onAuthStateChange((_event, next) => setSession(next));
     return () => data.subscription.unsubscribe();
   }, []);
@@ -28,9 +51,9 @@ export function useSession(): Session | null | undefined {
 }
 
 /**
- * Sends a sign-in letter (the account is created on first sign-in). Supabase's standard letter holds
- * a link that brings the person back to this very page signed in; with the custom template
- * (supabase/email/magic-link.html, needs own SMTP) it also holds a one-time code.
+ * Sends a sign-in letter (the account is created on first sign-in). The custom template
+ * (supabase/email/magic-link.html, needs own SMTP) holds a one-time code and a button back to this very
+ * page, which signs the person in (completeLinkSignIn).
  */
 export async function sendCode(email: string) {
   const { error } = await getSupabase()!.auth.signInWithOtp({
@@ -105,6 +128,8 @@ export async function startCheckout(product: string, locale: string, session: Se
 export async function loadPremiumContent<T>(product: string, locale: string): Promise<T | null> {
   const supabase = getSupabase();
   if (!supabase) return null;
+  // Arriving from the letter's button: sign in first, or the content would be asked for as a guest.
+  await completeLinkSignIn();
   const { data } = await supabase
     .from("premium_content")
     .select("payload")

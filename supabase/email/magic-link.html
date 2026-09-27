@@ -4,6 +4,9 @@
   Subject: Код для входу: {{ .Token }}
   Tables and inline styles only. The aurora is CSS radial gradients in the header, no image:
   Apple Mail and most clients draw it, Gmail drops gradients and keeps the forest green with the name.
+  The button leads back to the page the code was asked on (RedirectTo, on the site's own domain), which
+  finishes the sign-in (completeLinkSignIn in src/premium/access.ts): every link here is on the sender's
+  domain, which mail filters trust more than a link to supabase.co.
 -->
 <html lang="uk">
   <head>
@@ -54,7 +57,7 @@
                   Ваш код для входу
                 </h1>
                 <p style="margin: 16px 0 0; font-size: 16px; line-height: 1.55; color: #3b4a43">
-                  Введіть його на сторінці входу. Код діє обмежений час і спрацює лише один раз.
+                  Натисніть «Увійти» або введіть код на сторінці входу. Діє обмежений час і спрацює лише один раз.
                 </p>
               </td>
             </tr>
@@ -76,11 +79,30 @@
               </td>
             </tr>
 
+            <!-- Sign-in button: back to the site, signed in -->
+            <tr>
+              <td align="center" style="padding: 24px 40px 0">
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
+                    <td align="center" bgcolor="#0f1c17" style="background-color: #0f1c17; border-radius: 999px">
+                      <a
+                        href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&amp;type=email"
+                        style="display: inline-block; padding: 15px 40px; font-family: Arial, Helvetica, sans-serif; font-size: 16px; color: #fbf6ee; text-decoration: none; border-radius: 999px"
+                        >Увійти</a
+                      >
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+
             <!-- Other languages -->
             <tr>
               <td style="padding: 28px 40px 0; font-family: Arial, Helvetica, sans-serif; font-size: 13px; line-height: 1.6; color: #5b6360">
-                <p style="margin: 0"><span style="color: #8b6cc9">RU</span> · Ваш код для входа — введите его на странице входа.</p>
-                <p style="margin: 4px 0 0"><span style="color: #8b6cc9">FR</span> · Votre code de connexion — saisissez-le sur la page de connexion.</p>
+                <p style="margin: 0"><span style="color: #8b6cc9">EN</span> · Your sign-in code: press the button or enter the code on the sign-in page.</p>
+                <p style="margin: 4px 0 0"><span style="color: #8b6cc9">FR</span> · Votre code de connexion : appuyez sur le bouton ou saisissez le code sur la page de connexion.</p>
+                <p style="margin: 4px 0 0"><span style="color: #8b6cc9">RO</span> · Codul tău de conectare: apasă butonul sau introdu codul pe pagina de conectare.</p>
+                <p style="margin: 4px 0 0"><span style="color: #8b6cc9">RU</span> · Ваш код для входа: нажмите кнопку или введите код на странице входа.</p>
               </td>
             </tr>
 

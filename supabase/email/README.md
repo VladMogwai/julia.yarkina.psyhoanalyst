@@ -1,6 +1,9 @@
 # Auth emails
 
-`magic-link.html` is the body of the sign-in letter with the one-time code.
+`magic-link.html` is the body of the sign-in letter: the one-time code and an "Увійти" button. The button
+leads back to the page the code was asked on, on the site's own domain, with `?token_hash=…&type=email`;
+the page finishes the sign-in (`completeLinkSignIn` in `src/premium/access.ts`). Keeping every link on the
+sender's domain helps the letter stay out of spam. Deploy the site before pasting a template with the button.
 
 Supabase → Authentication → Emails → Magic Link:
 
