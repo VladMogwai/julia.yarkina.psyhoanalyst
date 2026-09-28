@@ -334,7 +334,13 @@ body:has(.codrops) {
   height: 100%;
   background: var(--ink);
   transform-origin: left;
-  transition: transform 0.9s ease;
+  transition:
+    transform 0.9s ease,
+    opacity 0.9s ease;
+}
+
+.progress__fill[data-ahead="true"] {
+  opacity: 0.3;
 }
 
 /* The quiet pause: the text fades away and only the breathing light stays. */

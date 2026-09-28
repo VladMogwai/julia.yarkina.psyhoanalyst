@@ -106,6 +106,8 @@ export function ScrollQuiz({ locale, content }: ScrollQuizProps) {
   /** Steps opened per appended question; the last entry is the question in progress. */
   const [revealed, setRevealed] = useState<number[]>([]);
   const [pausing, setPausing] = useState(false);
+  /** Question the page rests on (-1 on the topics, run.length on the end); null until the first move. */
+  const [current, setCurrent] = useState<number | null>(null);
   /** Counts topic choices: every choice starts a fresh run, even of the same topic. */
   const [runId, setRunId] = useState(0);
   const run = topic ? [...all.filter((question) => question.category === topic && question !== closing), closing] : [];
@@ -181,6 +183,8 @@ export function ScrollQuiz({ locale, content }: ScrollQuizProps) {
 
     const arrive = () => {
       lenis.scrollTo(target, { immediate: true, force: true });
+      // Screens are the topics, then the questions, then the end: the question's index is one less.
+      if (arriving) setCurrent([...root.querySelectorAll("[data-screen]")].indexOf(arriving) - 1);
       // The text changes colour only while no screen is visible.
       root.dataset.tone = light >= LIGHT_TONE_FROM ? "light" : "dark";
       if (leaving) gsap.set(leaving, { clearProps: "opacity,filter" });
@@ -364,7 +368,12 @@ export function ScrollQuiz({ locale, content }: ScrollQuizProps) {
         <div className="progress" aria-hidden="true">
           {run.map((question, index) => (
             <span key={question.number} className="progress__segment">
-              <span className="progress__fill" style={{ transform: `scaleX(${(revealed[index] ?? 0) / STEPS})` }} />
+              {/* Questions after the one on screen, already gone through, stay dim: the bar shows where you are. */}
+              <span
+                className="progress__fill"
+                data-ahead={current !== null && index > current}
+                style={{ transform: `scaleX(${(revealed[index] ?? 0) / STEPS})` }}
+              />
             </span>
           ))}
         </div>
