@@ -281,6 +281,19 @@ body:has(.codrops) {
   text-underline-offset: 0.25em;
 }
 
+/* Back to the question before: quiet, in the labels' column, level with the way on. */
+.step-back {
+  align-self: center;
+  justify-self: end;
+  margin-top: 1.6em;
+  color: var(--ink-2);
+  transition: color 0.3s ease;
+}
+
+.step-back:hover {
+  color: var(--ink);
+}
+
 /* End of a topic: the questions gone through, one under another. */
 .passed {
   display: grid;

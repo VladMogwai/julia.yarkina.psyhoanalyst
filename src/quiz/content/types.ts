@@ -54,6 +54,8 @@ export interface ReflectionLabels {
   /** …and once all steps are open, only a swipe up moves to the next question. */
   swipeUpHint: string;
   nextQuestion: string;
+  /** Desktop: back to the question before (also the wheel or the up arrow). */
+  previousQuestion: string;
   finish: string;
   endEyebrow: string;
   /** "{category}" is replaced with the topic name. */

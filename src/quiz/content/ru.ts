@@ -114,6 +114,7 @@ export const ru: QuizTexts = {
     tapHint: "Коснись карточки — откроется дальше",
     swipeUpHint: "Проведи вверх — следующий вопрос",
     nextQuestion: "Следующий вопрос",
+    previousQuestion: "Предыдущий вопрос",
     finish: "Завершить",
     endEyebrow: "Конец темы",
     endTitle: "Тема «{category}» пройдена",

@@ -114,6 +114,7 @@ export const fr: QuizTexts = {
     tapHint: "Touche la carte pour ouvrir la suite",
     swipeUpHint: "Glisse vers le haut pour la question suivante",
     nextQuestion: "Question suivante",
+    previousQuestion: "Question précédente",
     finish: "Terminer",
     endEyebrow: "Fin du thème",
     endTitle: "Thème « {category} » terminé",

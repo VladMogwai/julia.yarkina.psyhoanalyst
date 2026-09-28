@@ -114,6 +114,7 @@ export const ro: QuizTexts = {
     tapHint: "Atinge cardul ca să deschizi continuarea",
     swipeUpHint: "Glisează în sus pentru întrebarea următoare",
     nextQuestion: "Întrebarea următoare",
+    previousQuestion: "Întrebarea anterioară",
     finish: "Încheie",
     endEyebrow: "Sfârșitul temei",
     endTitle: "Tema „{category}” este încheiată",

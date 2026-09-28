@@ -114,6 +114,7 @@ export const en: QuizTexts = {
     tapHint: "Tap the card to open the next part",
     swipeUpHint: "Swipe up for the next question",
     nextQuestion: "Next question",
+    previousQuestion: "Previous question",
     finish: "Finish",
     endEyebrow: "End of topic",
     endTitle: "You have finished “{category}”",

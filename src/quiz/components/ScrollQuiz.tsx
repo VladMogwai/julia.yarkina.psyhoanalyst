@@ -395,6 +395,7 @@ export function ScrollQuiz({ locale, content }: ScrollQuizProps) {
               nextLabel={index === run.length - 1 ? reflection.finish : reflection.nextQuestion}
               onStep={revealStep}
               onNext={() => goToScreen(1)}
+              onBack={index > 0 ? () => goToScreen(-1) : undefined}
               onPause={startPause}
             />
           );
@@ -550,6 +551,8 @@ interface QuestionScreenProps {
   nextLabel: string;
   onStep: () => void;
   onNext: () => void;
+  /** Back to the question before; not on a topic's first question. */
+  onBack?: () => void;
   onPause: () => void;
 }
 
@@ -569,6 +572,7 @@ function QuestionScreen({
   nextLabel,
   onStep,
   onNext,
+  onBack,
   onPause,
 }: QuestionScreenProps) {
   const sectionRef = useRef<HTMLElement | null>(null);
@@ -619,6 +623,14 @@ function QuestionScreen({
         ))}
       </ol>
 
+      {/* The way back sits in the labels' column, level with the way on; an empty cell keeps the grid on the first question. */}
+      {onBack ? (
+        <button type="button" onClick={onBack} data-reveal className="step-back">
+          <span aria-hidden="true">↑</span> {texts.previousQuestion}
+        </button>
+      ) : (
+        <span />
+      )}
       {/* "Next" and "Next question" share one cell, so switching between them never shifts the block. */}
       <div className="step-controls col-start-2">
         <button type="button" onClick={onStep} inert={finished} data-visible={!finished} className="scroll-hint">
