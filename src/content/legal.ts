@@ -23,14 +23,20 @@ export interface LegalText {
   sections: LegalSection[];
 }
 
-/** The seller's details, the same in every language until the FOP data is known. */
+/** The seller's details: as registered in Ukrainian for uk and ru, transliterated for en, fr and ro. */
 const seller = {
-  name: "[ПІБ ФОП]",
-  code: "[РНОКПП]",
-  address: "[адреса реєстрації]",
-  phone: "[телефон]",
+  name: "Яркіна Юлія Василівна",
+  code: "3147902368",
+  address: "м. Київ, вул. Єреванська, 1, кв. 29, 03087",
+  phone: "+380 73 000 39 15",
   email: "hello@yarkina-psy.online",
   site: "yarkina-psy.online",
+};
+
+const sellerLatin = {
+  ...seller,
+  name: "Yarkina Yuliia Vasylivna",
+  address: "1 Yerevanska St., apt. 29, Kyiv, 03087, Ukraine",
 };
 
 export const legal: Record<Locale, Record<LegalPage, LegalText>> = {
@@ -346,7 +352,7 @@ export const legal: Record<Locale, Record<LegalPage, LegalText>> = {
         {
           title: "1. General provisions",
           paragraphs: [
-            `This offer is a proposal by the sole proprietor ${seller.name}, tax number ${seller.code}, address: ${seller.address} (the Seller), to conclude a contract for the sale of a digital product on the terms below.`,
+            `This offer is a proposal by the sole proprietor ${sellerLatin.name}, tax number ${sellerLatin.code}, address: ${sellerLatin.address} (the Seller), to conclude a contract for the sale of a digital product on the terms below.`,
             "The offer is addressed to any adult with full legal capacity (the Buyer). Paying for an order means full and unconditional acceptance of these terms and concludes the contract.",
           ],
         },
@@ -400,7 +406,7 @@ export const legal: Record<Locale, Record<LegalPage, LegalText>> = {
         {
           title: "10. Seller’s details",
           paragraphs: [
-            `Sole proprietor ${seller.name}, tax number ${seller.code}. Address: ${seller.address}. Phone: ${seller.phone}. Email: ${seller.email}. Website: ${seller.site}.`,
+            `Sole proprietor ${sellerLatin.name}, tax number ${sellerLatin.code}. Address: ${sellerLatin.address}. Phone: ${sellerLatin.phone}. Email: ${sellerLatin.email}. Website: ${sellerLatin.site}.`,
           ],
         },
       ],
@@ -422,7 +428,7 @@ export const legal: Record<Locale, Record<LegalPage, LegalText>> = {
         {
           title: "How to ask for a refund",
           paragraphs: [
-            `Write to ${seller.email} from the email you bought with, and give the order number or the date of payment.`,
+            `Write to ${sellerLatin.email} from the email you bought with, and give the order number or the date of payment.`,
             "We reply within 3 working days. The money goes back to the same card through WayForPay; how long it takes depends on the bank, usually up to 7 banking days.",
           ],
         },
@@ -441,7 +447,7 @@ export const legal: Record<Locale, Record<LegalPage, LegalText>> = {
         {
           title: "Who processes the data",
           paragraphs: [
-            `The controller of personal data is the sole proprietor ${seller.name}, tax number ${seller.code}. Contact about data: ${seller.email}.`,
+            `The controller of personal data is the sole proprietor ${sellerLatin.name}, tax number ${sellerLatin.code}. Contact about data: ${sellerLatin.email}.`,
           ],
         },
         {
@@ -480,7 +486,7 @@ export const legal: Record<Locale, Record<LegalPage, LegalText>> = {
         {
           title: "Your rights",
           paragraphs: [
-            `You can find out what data about you is kept, correct it or ask for it to be deleted by writing to ${seller.email}. Deleting your account closes access to your purchases. You also have the right to complain to the Ukrainian Parliament Commissioner for Human Rights or, in the EU, to the supervisory authority of your country.`,
+            `You can find out what data about you is kept, correct it or ask for it to be deleted by writing to ${sellerLatin.email}. Deleting your account closes access to your purchases. You also have the right to complain to the Ukrainian Parliament Commissioner for Human Rights or, in the EU, to the supervisory authority of your country.`,
           ],
         },
       ],
@@ -496,7 +502,7 @@ export const legal: Record<Locale, Record<LegalPage, LegalText>> = {
         {
           title: "1. Dispositions générales",
           paragraphs: [
-            `La présente offre est une proposition de l’entrepreneur individuel ${seller.name}, numéro fiscal ${seller.code}, adresse : ${seller.address} (le Vendeur), de conclure un contrat de vente d’un produit numérique aux conditions ci-dessous.`,
+            `La présente offre est une proposition de l’entrepreneur individuel ${sellerLatin.name}, numéro fiscal ${sellerLatin.code}, adresse : ${sellerLatin.address} (le Vendeur), de conclure un contrat de vente d’un produit numérique aux conditions ci-dessous.`,
             "L’offre s’adresse à toute personne majeure et juridiquement capable (l’Acheteur). Le paiement d’une commande vaut acceptation pleine et sans réserve des présentes conditions et conclusion du contrat.",
           ],
         },
@@ -550,7 +556,7 @@ export const legal: Record<Locale, Record<LegalPage, LegalText>> = {
         {
           title: "10. Coordonnées du Vendeur",
           paragraphs: [
-            `Entrepreneur individuel ${seller.name}, numéro fiscal ${seller.code}. Adresse : ${seller.address}. Téléphone : ${seller.phone}. E-mail : ${seller.email}. Site : ${seller.site}.`,
+            `Entrepreneur individuel ${sellerLatin.name}, numéro fiscal ${sellerLatin.code}. Adresse : ${sellerLatin.address}. Téléphone : ${sellerLatin.phone}. E-mail : ${sellerLatin.email}. Site : ${sellerLatin.site}.`,
           ],
         },
       ],
@@ -572,7 +578,7 @@ export const legal: Record<Locale, Record<LegalPage, LegalText>> = {
         {
           title: "Comment demander un remboursement",
           paragraphs: [
-            `Écrivez à ${seller.email} depuis l’adresse utilisée pour l’achat, en indiquant le numéro de commande ou la date du paiement.`,
+            `Écrivez à ${sellerLatin.email} depuis l’adresse utilisée pour l’achat, en indiquant le numéro de commande ou la date du paiement.`,
             "Nous répondons sous 3 jours ouvrés. L’argent est reversé sur la même carte via WayForPay ; le délai dépend de la banque, en général jusqu’à 7 jours bancaires.",
           ],
         },
@@ -591,7 +597,7 @@ export const legal: Record<Locale, Record<LegalPage, LegalText>> = {
         {
           title: "Qui traite les données",
           paragraphs: [
-            `Le responsable du traitement est l’entrepreneur individuel ${seller.name}, numéro fiscal ${seller.code}. Contact pour les données : ${seller.email}.`,
+            `Le responsable du traitement est l’entrepreneur individuel ${sellerLatin.name}, numéro fiscal ${sellerLatin.code}. Contact pour les données : ${sellerLatin.email}.`,
           ],
         },
         {
@@ -630,7 +636,7 @@ export const legal: Record<Locale, Record<LegalPage, LegalText>> = {
         {
           title: "Vos droits",
           paragraphs: [
-            `Vous pouvez savoir quelles données vous concernant sont conservées, les corriger ou demander leur suppression en écrivant à ${seller.email}. La suppression du compte ferme l’accès aux achats. Vous pouvez aussi déposer une plainte auprès du Commissaire aux droits de l’homme du Parlement ukrainien ou, dans l’UE, auprès de l’autorité de contrôle de votre pays (en France, la CNIL).`,
+            `Vous pouvez savoir quelles données vous concernant sont conservées, les corriger ou demander leur suppression en écrivant à ${sellerLatin.email}. La suppression du compte ferme l’accès aux achats. Vous pouvez aussi déposer une plainte auprès du Commissaire aux droits de l’homme du Parlement ukrainien ou, dans l’UE, auprès de l’autorité de contrôle de votre pays (en France, la CNIL).`,
           ],
         },
       ],
@@ -646,7 +652,7 @@ export const legal: Record<Locale, Record<LegalPage, LegalText>> = {
         {
           title: "1. Dispoziții generale",
           paragraphs: [
-            `Această ofertă este propunerea persoanei fizice-antreprenor ${seller.name}, cod fiscal ${seller.code}, adresa: ${seller.address} (Vânzătorul), de a încheia un contract de vânzare a unui produs digital în condițiile de mai jos.`,
+            `Această ofertă este propunerea persoanei fizice-antreprenor ${sellerLatin.name}, cod fiscal ${sellerLatin.code}, adresa: ${sellerLatin.address} (Vânzătorul), de a încheia un contract de vânzare a unui produs digital în condițiile de mai jos.`,
             "Oferta se adresează oricărei persoane majore, cu capacitate deplină de exercițiu (Cumpărătorul). Plata comenzii înseamnă acceptarea deplină și necondiționată a acestor condiții și încheierea contractului.",
           ],
         },
@@ -700,7 +706,7 @@ export const legal: Record<Locale, Record<LegalPage, LegalText>> = {
         {
           title: "10. Datele Vânzătorului",
           paragraphs: [
-            `Persoană fizică-antreprenor ${seller.name}, cod fiscal ${seller.code}. Adresa: ${seller.address}. Telefon: ${seller.phone}. E-mail: ${seller.email}. Site: ${seller.site}.`,
+            `Persoană fizică-antreprenor ${sellerLatin.name}, cod fiscal ${sellerLatin.code}. Adresa: ${sellerLatin.address}. Telefon: ${sellerLatin.phone}. E-mail: ${sellerLatin.email}. Site: ${sellerLatin.site}.`,
           ],
         },
       ],
@@ -722,7 +728,7 @@ export const legal: Record<Locale, Record<LegalPage, LegalText>> = {
         {
           title: "Cum ceri rambursarea",
           paragraphs: [
-            `Scrie la ${seller.email} de pe adresa cu care ai cumpărat și indică numărul comenzii sau data plății.`,
+            `Scrie la ${sellerLatin.email} de pe adresa cu care ai cumpărat și indică numărul comenzii sau data plății.`,
             "Răspundem în 3 zile lucrătoare. Banii revin pe același card prin WayForPay; termenul depinde de bancă, de obicei până la 7 zile bancare.",
           ],
         },
@@ -741,7 +747,7 @@ export const legal: Record<Locale, Record<LegalPage, LegalText>> = {
         {
           title: "Cine prelucrează datele",
           paragraphs: [
-            `Operatorul datelor personale este persoana fizică-antreprenor ${seller.name}, cod fiscal ${seller.code}. Contact pentru date: ${seller.email}.`,
+            `Operatorul datelor personale este persoana fizică-antreprenor ${sellerLatin.name}, cod fiscal ${sellerLatin.code}. Contact pentru date: ${sellerLatin.email}.`,
           ],
         },
         {
@@ -780,7 +786,7 @@ export const legal: Record<Locale, Record<LegalPage, LegalText>> = {
         {
           title: "Drepturile tale",
           paragraphs: [
-            `Poți afla ce date despre tine sunt păstrate, le poți corecta sau cere ștergerea lor scriind la ${seller.email}. Ștergerea contului închide accesul la cumpărături. Ai și dreptul de a depune o plângere la Comisarul pentru drepturile omului al Parlamentului Ucrainei sau, în UE, la autoritatea de supraveghere din țara ta (în România, ANSPDCP).`,
+            `Poți afla ce date despre tine sunt păstrate, le poți corecta sau cere ștergerea lor scriind la ${sellerLatin.email}. Ștergerea contului închide accesul la cumpărături. Ai și dreptul de a depune o plângere la Comisarul pentru drepturile omului al Parlamentului Ucrainei sau, în UE, la autoritatea de supraveghere din țara ta (în România, ANSPDCP).`,
           ],
         },
       ],
