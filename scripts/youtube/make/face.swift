@@ -1,14 +1,15 @@
 // Usage: swift face.swift <image>...  → prints "<file> <imgW> <imgH> <faceX> <faceY> <faceW> <faceH>" (pixels, top-left origin, largest face)
-import AppKit
+// The image is turned upright first (phone photos are often stored sideways with an EXIF orientation flag).
+import CoreImage
 import Vision
 
 for path in CommandLine.arguments.dropFirst() {
-  let img = NSImage(contentsOfFile: path)!
-  var r = CGRect(origin: .zero, size: img.size)
-  let cg = img.cgImage(forProposedRect: &r, context: nil, hints: nil)!
-  let (w, h) = (Double(cg.width), Double(cg.height))
+  guard let img = CIImage(contentsOf: URL(fileURLWithPath: path), options: [.applyOrientationProperty: true]) else {
+    print(path, 0, 0, "none"); continue
+  }
+  let (w, h) = (Double(img.extent.width), Double(img.extent.height))
   let req = VNDetectFaceRectanglesRequest()
-  try VNImageRequestHandler(cgImage: cg).perform([req])
+  try VNImageRequestHandler(ciImage: img).perform([req])
   guard let f = req.results?.max(by: { $0.boundingBox.width < $1.boundingBox.width })?.boundingBox else {
     print(path, Int(w), Int(h), "none"); continue
   }

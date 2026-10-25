@@ -18,11 +18,18 @@ const BIN = process.env.STUDIO_BIN; // compiled face/blurbg instead of running t
 const swiftTool = (name, args) => (BIN ? execFile(join(BIN, name), args) : execFile("swift", [join(here, `${name}.swift`), ...args]));
 export const LABELS = { int: "Інтерв'ю", tema: "Тема · Юлія Яркіна", teor: "Теорія психоаналізу" };
 
-/** Size and face box of a photo, found by macOS Vision. */
+/**
+ * Size and face box of a photo, found by macOS Vision. Without a face (a profile, a tiny face, no person) the photo is
+ * centred on its upper middle instead, and noFace is set so the studio can say so.
+ */
 async function photo(file) {
   const { stdout } = await swiftTool("face", [file]);
   const [w, h, ...face] = stdout.trim().split("\n").pop().split(" ").slice(1).map(Number);
-  if (face.length < 4 || face.some(Number.isNaN)) throw new Error(`No face found in ${file}`);
+  if (!w || !h) throw new Error(`Cannot read the photo ${file}`);
+  if (face.length < 4 || face.some(Number.isNaN)) {
+    const side = Math.min(w, h) * 0.35;
+    return { src: pathToFileURL(file).href, w, h, face: [(w - side) / 2, h * 0.2, side, side], noFace: true };
+  }
   return { src: pathToFileURL(file).href, w, h, face };
 }
 

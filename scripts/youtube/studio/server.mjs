@@ -330,7 +330,8 @@ const server = createServer(async (req, res) => {
         try {
           const spec = await buildSpec({ ...job.form, guests: job.form.kind === "int" ? guests : [] }, join(jobDir(id), "work"));
           await renderCover(spec, join(jobDir(id), "preview.jpg"));
-          return json(res, 200, { ok: true });
+          const missing = (spec.guests || []).map((g, i) => (g.noFace ? i + 1 : 0)).filter(Boolean);
+          return json(res, 200, { ok: true, noFace: missing });
         } catch (e) {
           return json(res, 200, { error: String(e.message || e) });
         }

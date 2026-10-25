@@ -294,7 +294,8 @@
         const r = await (await fetch(`/api/jobs/${job.id}/preview`, { method: "POST" })).json();
         if (run !== previewRun) return;
         $("prev").classList.remove("loading");
-        $("prevMsg").textContent = r.error ? "Не вдалося: " + r.error : "";
+        $("prevMsg").textContent = r.error ? "Не вдалося: " + r.error
+          : r.noFace?.length ? `На фото гостя ${r.noFace.join(", ")} не знайдено обличчя — його поставлено по центру. Краще взяти фото, де обличчя видно анфас.` : "";
         if (!r.error) $("prev").innerHTML = `<img src="/files/${job.id}/preview.jpg?${Date.now()}" alt="" style="width:100%;height:100%;object-fit:cover">`;
       }, 700);
     }
