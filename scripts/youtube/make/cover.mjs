@@ -29,6 +29,7 @@ export function shapes(s, extra = () => "") {
     // Guests first, Julia last; [left, top, size] of each circle for one, two or three guests.
     const people = [...(s.guests ?? [s.guest]), s.photo];
     const LAYOUTS = {
+      1: [[717, 158, 486]], // no guest photo yet: Julia alone
       2: [[440, 150, 420], [880, 215, 360]],
       3: [[455, 175, 340], [790, 70, 340], [830, 415, 290]],
       4: [[565, 55, 290], [885, 55, 290], [565, 375, 290], [885, 375, 290]],

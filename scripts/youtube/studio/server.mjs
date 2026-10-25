@@ -302,6 +302,12 @@ const server = createServer(async (req, res) => {
     if (m && validId(m[1])) {
       const [, id, action] = m;
       if (!action && req.method === "GET") return json(res, 200, load(id));
+      // Deletes the video with everything made from it; not while it is being worked on.
+      if (!action && req.method === "DELETE") {
+        if (["preparing", "rendering"].includes(load(id).status)) return json(res, 409, { error: "Відео ще обробляється" });
+        rmSync(jobDir(id), { recursive: true, force: true });
+        return json(res, 200, { ok: true });
+      }
       if (action === "form" && req.method === "PUT") return json(res, 200, update(id, { form: { ...load(id).form, ...JSON.parse(String(await readBody(req))) } }));
       // Chunked upload: PUT …/upload?name=video|guest|guest2|guest3&offset=N appends a chunk; a repeated chunk is ignored.
       if (action === "upload" && req.method === "PUT") {

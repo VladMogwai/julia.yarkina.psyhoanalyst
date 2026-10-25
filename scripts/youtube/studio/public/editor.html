@@ -79,6 +79,7 @@
     <a class="back" href="/" title="Усі відео">‹</a>
     <div class="title" id="name"></div>
     <span class="saved" id="saved"></span>
+    <a class="btn ghost" id="coverLink" style="color:var(--txt);border-color:var(--line2)">Оформлення</a>
     <button class="help" id="helpBtn" title="Як це працює">?</button>
     <button class="export" id="render">Змонтувати</button>
   </div>
@@ -148,6 +149,7 @@
     const info = await (await fetch("/api/info")).json();
     const D = job.source.duration;
     $("name").textContent = job.form?.title || "";
+    $("coverLink").href = `/?id=${id}`;
     const [peaks, words] = await Promise.all([
       fetch(`/files/${id}/peaks.json`).then((r) => r.json()),
       job.transcript ? fetch(`/files/${id}/transcript.json`).then((r) => r.json()) : Promise.resolve([]),

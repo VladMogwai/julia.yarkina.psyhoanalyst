@@ -262,7 +262,8 @@
       const i = e.target.closest("[data-rm]")?.dataset.rm;
       if (i == null) return;
       guests.splice(+i, 1);
-      // Slots on the server follow the order on screen.
+      // Slots on the server follow the order on screen; photos already there are read back first.
+      for (const g of guests) g.file ??= await (await fetch(g.url)).blob();
       for (const n of ["guest", "guest2", "guest3"]) await fetch(`/api/jobs/${job.id}/upload?name=${n}`, { method: "DELETE" });
       for (const [k, g] of guests.entries()) await upload(job.id, ["guest", "guest2", "guest3"][k], g.file);
       renderPeople();
@@ -285,8 +286,8 @@
       previewTimer = setTimeout(async () => {
         const run = ++previewRun, f = form();
         await fetch(`/api/jobs/${job.id}/form`, { method: "PUT", body: JSON.stringify(f) });
-        if (!f.title || (f.kind === "int" && !guests.length)) {
-          $("prevMsg").textContent = !f.title ? "Введіть заголовок." : "Додайте фото гостя.";
+        if (!f.title) {
+          $("prevMsg").textContent = "Введіть заголовок.";
           return;
         }
         $("prev").classList.add("loading");
@@ -295,6 +296,7 @@
         if (run !== previewRun) return;
         $("prev").classList.remove("loading");
         $("prevMsg").textContent = r.error ? "Не вдалося: " + r.error
+          : f.kind === "int" && !guests.length ? "Фото гостя ще немає — на обкладинці буде лише Юлія. Додайте фото в «Учасники»."
           : r.noFace?.length ? `На фото гостя ${r.noFace.join(", ")} не знайдено обличчя — його поставлено по центру. Краще взяти фото, де обличчя видно анфас.` : "";
         if (!r.error) $("prev").innerHTML = `<img src="/files/${job.id}/preview.jpg?${Date.now()}" alt="" style="width:100%;height:100%;object-fit:cover">`;
       }, 700);
@@ -318,14 +320,53 @@
             ${busy ? `<div class="bar"><i style="width:${(j.progress || 0) * 100}%"></i></div>` : ""}
             <div class="actions">
               ${["ready", "done", "error"].includes(j.status) && j.source ? `<a class="btn pink" href="/editor?id=${j.id}">Монтаж</a>` : ""}
-              ${j.status === "done" ? `<a class="btn ghost" href="/files/${j.id}/final.mp4?dl">Відео</a><a class="btn ghost" href="/files/${j.id}/cover.jpg?dl">Обкладинка</a>` : ""}
+              ${j.source ? `<a class="btn ghost" href="/?id=${j.id}">Оформлення</a>` : ""}
+              ${j.status === "done" ? `<a class="btn ghost" href="/files/${j.id}/final.mp4?dl">⬇ Відео</a><a class="btn ghost" href="/files/${j.id}/cover.jpg?dl">⬇ Обкладинка</a>` : ""}
+              ${busy ? "" : `<button class="ghost" data-del="${j.id}" data-title="${esc(j.form?.title)}">Видалити</button>`}
             </div>
           </div>
         </div>`;
       }).join("") || `<p class="hint">Поки що порожньо.</p>`;
       if (jobs.some((j) => ["preparing", "rendering"].includes(j.status))) setTimeout(refresh, 3000);
     }
+    $("jobs").addEventListener("click", async (e) => {
+      const b = e.target.closest("[data-del]");
+      if (!b || !confirm(`Видалити «${b.dataset.title}»? Оригінал і змонтоване відео буде стерто назавжди.`)) return;
+      const r = await fetch(`/api/jobs/${b.dataset.del}`, { method: "DELETE" });
+      if (!r.ok) alert((await r.json()).error || "Не вдалося видалити");
+      if (job?.id === b.dataset.del) location.href = "/";
+      refresh();
+    });
     refresh();
+
+    // Opened as /?id=…: the cover setup of a video that is already uploaded.
+    const openId = new URLSearchParams(location.search).get("id");
+    if (openId) {
+      job = await (await fetch(`/api/jobs/${openId}`)).json();
+      drop.hidden = true;
+      $("setup").hidden = false;
+      const f = job.form || {};
+      document.querySelector(`[name=kind][value="${f.kind || "int"}"]`).checked = true;
+      $("title").value = f.title || "";
+      $("label").value = f.label || "";
+      const jr = document.querySelector(`[name=julia][value="${f.julia}"]`);
+      if (jr) jr.checked = true;
+      const cr = document.querySelector(`[name=color][value="${f.color || 0}"]`);
+      if (cr) cr.checked = true;
+      for (const n of ["guest", "guest2", "guest3"]) {
+        if ((await fetch(`/files/${openId}/${n}`, { method: "HEAD" })).ok) guests.push({ url: `/files/${openId}/${n}?${Date.now()}` });
+      }
+      syncKind();
+      changed();
+      if (["preparing"].includes(job.status)) { buddyUi = buddy($("progress")); follow(); }
+      else {
+        $("progress").innerHTML = `<b>${esc(f.title)}</b> <span class="hint">${job.status === "done" ? "Після змін натисніть «Змонтувати» в монтажі ще раз — обкладинка й інтро оновляться." : ""}</span>`;
+        $("toEdit").style.cssText = "margin-top:8px";
+        $("toEdit").href = `/editor?id=${openId}`;
+        $("toEdit").textContent = "До монтажу →";
+        $("toEditHint").textContent = "Усі зміни зберігаються одразу.";
+      }
+    }
 
     // The Mac app works without a password; the website offers the app for download.
     $("logout").hidden = info.local;

@@ -41,7 +41,6 @@ export async function buildSpec(o, workDir) {
   const guests = [o.guests ?? o.guest ?? []].flat().filter(Boolean);
   if (!LABELS[o.kind]) throw new Error("kind must be int, tema or teor");
   if (!o.title) throw new Error("title is required");
-  if (o.kind === "int" && !guests.length) throw new Error("an interview needs a guest photo");
   if (guests.length > 3) throw new Error("at most 3 guests fit on a cover");
   const colors = o.kind === "teor" ? THEORY : { ...PALETTE[(+o.color || 0) % PALETTE.length], titleColor: "#fff" };
   const spec = {
