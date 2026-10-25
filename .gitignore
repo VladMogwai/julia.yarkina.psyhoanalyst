@@ -49,3 +49,8 @@ next-env.d.ts
 
 # Paid content: uploaded to Supabase with scripts/upload-premium-content.mjs, never public (the repo is public)
 supabase/seed/
+
+# YouTube API: OAuth secrets, token and generated covers
+/scripts/youtube/client_secret.json
+/scripts/youtube/token.json
+/scripts/youtube/covers/
