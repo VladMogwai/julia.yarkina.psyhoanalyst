@@ -13,7 +13,7 @@ const { values: o } = parseArgs({
     kind: { type: "string" }, // int | tema | teor
     title: { type: "string" },
     label: { type: "string" },
-    guest: { type: "string" },
+    guest: { type: "string", multiple: true }, // repeat for up to 3 guests
     julia: { type: "string" },
     color: { type: "string", default: "0" },
     name: { type: "string" },
@@ -21,7 +21,7 @@ const { values: o } = parseArgs({
   },
 });
 if (!o.name) {
-  console.error('Usage: node scripts/youtube/make/make.mjs --kind int|tema|teor --title "…" --name slug [--label "…"] [--guest photo.jpg] [--julia 6|7|8|10|11] [--color 0-4] [--no-intro]');
+  console.error('Usage: node scripts/youtube/make/make.mjs --kind int|tema|teor --title "…" --name slug [--label "…"] [--guest photo.jpg …] [--julia 6|7|8|10|11] [--color 0-4] [--no-intro]');
   process.exit(1);
 }
 mkdirSync(OUT, { recursive: true });

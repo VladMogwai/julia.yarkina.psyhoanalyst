@@ -32,9 +32,9 @@
       <input type="text" id="label" placeholder="Інтерв'ю · Ім'я Прізвище">
 
       <div id="guestBox">
-        <label for="guest">Фото гостя</label>
-        <input type="file" id="guest" accept="image/*">
-        <p class="hint">Найкраще власне фото гостя. Фон розмиється сам.</p>
+        <label for="guest">Фото гостей</label>
+        <input type="file" id="guest" accept="image/*" multiple>
+        <p class="hint">Один–три гості: виберіть кілька файлів разом, у тому порядку, як на обкладинці. Найкраще власні фото гостей. Фон розмиється сам.</p>
       </div>
 
       <label>Фото Юлії</label>
@@ -100,11 +100,16 @@
         color: +(document.querySelector("[name=color]:checked")?.value || 0),
         fileName: video.name,
       };
+      const guests = [...$("guest").files];
+      if (form.kind === "int" && guests.length > 3) {
+        $("upmsg").textContent = "На обкладинку поміщається не більше трьох гостей.";
+        return;
+      }
       $("go").disabled = true;
       $("upbar").hidden = false;
       try {
         const job = await (await fetch("/api/jobs", { method: "POST", body: JSON.stringify(form) })).json();
-        if (form.kind === "int") await upload(job.id, "guest", $("guest").files[0], () => {});
+        if (form.kind === "int") for (const [i, file] of guests.entries()) await upload(job.id, ["guest", "guest2", "guest3"][i], file, () => {});
         await upload(job.id, "video", video, (p) => {
           $("upbar").firstElementChild.style.width = p * 100 + "%";
           $("upmsg").textContent = `Завантажено ${Math.round(p * 100)}% з ${(video.size / 1e9).toFixed(2)} ГБ`;

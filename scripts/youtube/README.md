@@ -102,7 +102,7 @@ node scripts/youtube/make/make.mjs --kind teor --title "Аналітик як с
 | `--kind` | `int` interview, `tema` Julia's topic, `teor` theory |
 | `--title` | Big title; it shrinks by itself to fit. Keep it to 2–5 words |
 | `--label` | Small line above the title. Default: `Інтерв'ю`, `Тема · Юлія Яркіна`, `Теорія психоаналізу` |
-| `--guest` | Guest photo, required for `int`. The guest's own photo is best; a Zoom frame works if cropped to the guest first (Preview → Crop) |
+| `--guest` | Guest photo, required for `int`; repeat it for two or three guests (in cover order, Julia comes last). The guest's own photo is best; a Zoom frame works if cropped to the guest first (Preview → Crop) |
 | `--julia` | Which photo of Julia from `assets/julia/`. Default `7` for circles, `11` for the arch |
 | `--color` | Background colour 0–4: pink, navy, blue, orange, green. Alternate them between videos. Ignored for `teor` |
 | `--name` | File name of the result |

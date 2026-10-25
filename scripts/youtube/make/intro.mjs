@@ -14,7 +14,7 @@ export function introHtml(s) {
 <div class="blob" data-x="560" data-y="720" data-r="180" data-dx="30" data-dy="40" data-sp="0.9" style="background:${s.accent};opacity:.12"></div>
 <div id="ring" style="left:${rx - 330}px;top:${ry - 330}px"></div>
 ${[0, 1, 2].map((i) => `<div class="wave" data-i="${i}" style="left:${rx}px;top:${ry}px"></div>`).join("")}
-${shapes(s, (i) => `data-at="${1.1 + i * 0.25}"`)}
+${shapes(s, (i) => `data-at="${1.1 + i * 0.2}"`)}
 ${text(s)}
 ${bars("in")}
 <div id="logo"><div class="L">З Юлією Яркіною</div><div class="T"><span style="color:#E8336D">Pro</span> психоаналіз</div></div>

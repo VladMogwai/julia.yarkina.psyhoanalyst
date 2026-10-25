@@ -122,7 +122,8 @@ async function render(id) {
   const step = (message, progress = 0) => update(id, { status: "rendering", message, progress });
   try {
     step("Обкладинка");
-    const spec = await buildSpec({ ...job.form, guest: job.form.kind === "int" ? join(dir, "guest") : undefined }, join(dir, "work"));
+    const guests = ["guest", "guest2", "guest3"].map((n) => join(dir, n)).filter(existsSync);
+    const spec = await buildSpec({ ...job.form, guests: job.form.kind === "int" ? guests : [] }, join(dir, "work"));
     await renderCover(spec, join(dir, "cover.jpg"));
 
     const { width, height, fps, duration, bitrate, audio } = job.source;
@@ -241,10 +242,10 @@ const server = createServer(async (req, res) => {
       const [, id, action] = m;
       if (!action && req.method === "GET") return json(res, 200, load(id));
       if (action === "form" && req.method === "PUT") return json(res, 200, update(id, { form: { ...load(id).form, ...JSON.parse(String(await readBody(req))) } }));
-      // Chunked upload: PUT …/upload?name=video|guest&offset=N appends a chunk; a repeated chunk is ignored.
+      // Chunked upload: PUT …/upload?name=video|guest|guest2|guest3&offset=N appends a chunk; a repeated chunk is ignored.
       if (action === "upload" && req.method === "PUT") {
         const name = url.searchParams.get("name");
-        if (!["video", "guest"].includes(name)) return json(res, 400, { error: "bad name" });
+        if (!["video", "guest", "guest2", "guest3"].includes(name)) return json(res, 400, { error: "bad name" });
         const file = join(jobDir(id), name);
         const have = existsSync(file) ? statSync(file).size : 0;
         const offset = +url.searchParams.get("offset");

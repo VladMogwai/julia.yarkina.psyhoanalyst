@@ -1,6 +1,6 @@
 // HTML for a YouTube cover (1280x720) in the channel style, shared by the cover and the intro.
 //
-// A spec: { kind: "int" | "tema" | "teor", bg, accent, labelColor, titleColor, label, title, photo, guest? }
+// A spec: { kind: "int" | "tema" | "teor", bg, accent, labelColor, titleColor, label, title, photo, guests? (1–3 photos) }
 // A photo: { src (file URL), w, h, face: [x, y, w, h] } — placed so the face sits at a fixed spot in its shape.
 
 export const PALETTE = [
@@ -25,9 +25,17 @@ export function place(p, bw, bh, faceW, cx, cy) {
 export function shapes(s, extra = () => "") {
   const ring = `box-shadow:0 0 0 10px ${s.accent}`;
   const shape = (style, inner, i) => `<div class="c" ${extra(i)} style="position:absolute;overflow:hidden;${style};${ring}"><div class="z" style="position:absolute;inset:0">${inner}</div></div>`;
-  if (s.kind === "int")
-    return shape("left:440px;top:150px;width:420px;height:420px;border-radius:50%", place(s.guest, 420, 420, 0.34, 0.5, 0.42), 0) +
-      shape("left:880px;top:215px;width:360px;height:360px;border-radius:50%", place(s.photo, 360, 360, 0.34, 0.5, 0.42), 1);
+  if (s.kind === "int") {
+    // Guests first, Julia last; [left, top, size] of each circle for one, two or three guests.
+    const people = [...(s.guests ?? [s.guest]), s.photo];
+    const LAYOUTS = {
+      2: [[440, 150, 420], [880, 215, 360]],
+      3: [[455, 175, 340], [790, 70, 340], [830, 415, 290]],
+      4: [[565, 55, 290], [885, 55, 290], [565, 375, 290], [885, 375, 290]],
+    };
+    return LAYOUTS[people.length].map(([x, y, d], i) =>
+      shape(`left:${x}px;top:${y}px;width:${d}px;height:${d}px;border-radius:50%`, place(people[i], d, d, 0.34, 0.5, 0.42), i)).join("");
+  }
   if (s.kind === "teor")
     return shape("left:717px;top:158px;width:486px;height:486px;border-radius:50%", place(s.photo, 486, 486, 0.32, 0.5, 0.42), 0);
   return shape("right:-60px;bottom:-10px;width:720px;height:620px;border-radius:360px 360px 0 0", place(s.photo, 720, 620, 0.2, 0.42, 0.3), 0);

@@ -24,13 +24,15 @@ async function photo(file) {
 }
 
 /**
- * The cover spec from what the user gives: { kind, title, label?, guest? (photo file), julia? (name in assets/julia), color? (0–4) }.
- * A guest photo gets its background blurred into workDir.
+ * The cover spec from what the user gives: { kind, title, label?, guests? (1–3 photo files), julia? (name in assets/julia), color? (0–4) }.
+ * Guest photos get their background blurred into workDir.
  */
 export async function buildSpec(o, workDir) {
+  const guests = [o.guests ?? o.guest ?? []].flat().filter(Boolean);
   if (!LABELS[o.kind]) throw new Error("kind must be int, tema or teor");
   if (!o.title) throw new Error("title is required");
-  if (o.kind === "int" && !o.guest) throw new Error("an interview needs a guest photo");
+  if (o.kind === "int" && !guests.length) throw new Error("an interview needs a guest photo");
+  if (guests.length > 3) throw new Error("at most 3 guests fit on a cover");
   const colors = o.kind === "teor" ? THEORY : { ...PALETTE[(+o.color || 0) % PALETTE.length], titleColor: "#fff" };
   const spec = {
     kind: o.kind,
@@ -40,11 +42,14 @@ export async function buildSpec(o, workDir) {
     title: o.title,
     photo: await photo(join(ASSETS, "julia", `${o.julia || (o.kind === "tema" ? 11 : 7)}.jpg`)),
   };
-  if (o.guest) {
+  if (o.kind === "int") {
     mkdirSync(workDir, { recursive: true });
-    const blurred = join(workDir, "guest-blurred.jpg");
-    await execFile("swift", [join(here, "blurbg.swift"), resolve(o.guest), blurred, "20"]);
-    spec.guest = await photo(blurred);
+    spec.guests = [];
+    for (const [i, file] of guests.entries()) {
+      const blurred = join(workDir, `guest${i + 1}-blurred.jpg`);
+      await execFile("swift", [join(here, "blurbg.swift"), resolve(file), blurred, "20"]);
+      spec.guests.push(await photo(blurred));
+    }
   }
   return spec;
 }
