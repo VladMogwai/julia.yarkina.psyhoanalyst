@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Студія · Pro психоаналіз</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header>
+    <h1><b>Pro</b> психоаналіз · студія</h1>
+    <button class="ghost" id="logout">Вийти</button>
+  </header>
+  <main>
+    <form class="card" id="new">
+      <h2>Нове відео</h2>
+      <label for="video">Відео (оригінал)</label>
+      <input type="file" id="video" accept="video/*" required>
+
+      <label>Рубрика</label>
+      <div class="seg" id="kind">
+        <label><input type="radio" name="kind" value="int" checked><span>Інтерв'ю</span></label>
+        <label><input type="radio" name="kind" value="tema"><span>Тема</span></label>
+        <label><input type="radio" name="kind" value="teor"><span>Теорія психоаналізу</span></label>
+      </div>
+
+      <label for="title">Заголовок на обкладинці</label>
+      <input type="text" id="title" placeholder="Чому психоаналіз?" required>
+      <p class="hint">2–5 слів, розмір підбирається сам.</p>
+
+      <label for="label">Підпис над заголовком</label>
+      <input type="text" id="label" placeholder="Інтерв'ю · Ім'я Прізвище">
+
+      <div id="guestBox">
+        <label for="guest">Фото гостя</label>
+        <input type="file" id="guest" accept="image/*">
+        <p class="hint">Найкраще власне фото гостя. Фон розмиється сам.</p>
+      </div>
+
+      <label>Фото Юлії</label>
+      <div class="photos" id="julia"></div>
+
+      <div id="colorBox">
+        <label>Колір фону</label>
+        <div class="swatches" id="color"></div>
+      </div>
+
+      <div style="margin-top:18px">
+        <button class="pink" type="submit" id="go">Завантажити</button>
+        <div class="bar" id="upbar" hidden><i></i></div>
+        <p class="hint" id="upmsg"></p>
+      </div>
+    </form>
+
+    <h2>Відео</h2>
+    <div class="jobs" id="jobs"></div>
+  </main>
+
+  <script type="module">
+    const $ = (id) => document.getElementById(id);
+    const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+    const COLORS = ["#E8336D", "#16224A", "#2F5BEA", "#FF7A3D", "#2E6B57"];
+    const LABELS = { int: "Інтерв'ю · Ім'я Прізвище", tema: "Тема · Юлія Яркіна", teor: "Теорія психоаналізу · Гл. 1" };
+    const STATUS = { uploading: "Завантаження…", preparing: "Підготовка", ready: "Готово до монтажу", rendering: "Монтаж", done: "Готово", error: "Помилка" };
+
+    $("color").innerHTML = COLORS.map((c, i) => `<label style="background:${c}" title="${c}"><input type="radio" name="color" value="${i}" ${i ? "" : "checked"}></label>`).join("");
+    const julia = await (await fetch("/api/julia")).json();
+    $("julia").innerHTML = julia.map((n) => `<label><input type="radio" name="julia" value="${n}" ${n === "7" ? "checked" : ""}><img src="/julia/${n}.jpg" alt=""></label>`).join("");
+
+    function syncKind() {
+      const kind = document.querySelector("[name=kind]:checked").value;
+      $("guestBox").hidden = kind !== "int";
+      $("colorBox").hidden = kind === "teor";
+      $("label").placeholder = LABELS[kind];
+      $("guest").required = kind === "int";
+    }
+    $("kind").addEventListener("change", syncKind);
+    syncKind();
+
+    /** Sends a file in 50 MB chunks (Cloudflare lets through at most 100 MB per request); resumes where the server is. */
+    async function upload(id, name, file, onProgress) {
+      const CHUNK = 50 * 1024 * 1024;
+      let offset = 0;
+      while (offset < file.size) {
+        const r = await fetch(`/api/jobs/${id}/upload?name=${name}&offset=${offset}`, { method: "PUT", body: file.slice(offset, offset + CHUNK) });
+        if (!r.ok) throw new Error((await r.json()).error || "upload failed");
+        offset = (await r.json()).size;
+        onProgress(offset / file.size);
+      }
+    }
+
+    $("new").addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+      const video = $("video").files[0];
+      const form = {
+        kind: document.querySelector("[name=kind]:checked").value,
+        title: $("title").value.trim(),
+        label: $("label").value.trim(),
+        julia: document.querySelector("[name=julia]:checked")?.value,
+        color: +(document.querySelector("[name=color]:checked")?.value || 0),
+        fileName: video.name,
+      };
+      $("go").disabled = true;
+      $("upbar").hidden = false;
+      try {
+        const job = await (await fetch("/api/jobs", { method: "POST", body: JSON.stringify(form) })).json();
+        if (form.kind === "int") await upload(job.id, "guest", $("guest").files[0], () => {});
+        await upload(job.id, "video", video, (p) => {
+          $("upbar").firstElementChild.style.width = p * 100 + "%";
+          $("upmsg").textContent = `Завантажено ${Math.round(p * 100)}% з ${(video.size / 1e9).toFixed(2)} ГБ`;
+        });
+        await fetch(`/api/jobs/${job.id}/prepare`, { method: "POST" });
+        $("new").reset();
+        syncKind();
+        $("upmsg").textContent = "Готово. Відео готується до монтажу, це кілька хвилин.";
+        refresh();
+      } catch (e) {
+        $("upmsg").textContent = "Помилка: " + e.message + ". Спробуйте ще раз — завантаження продовжиться з місця зупинки.";
+      } finally {
+        $("go").disabled = false;
+      }
+    });
+
+    async function refresh() {
+      const jobs = await (await fetch("/api/jobs")).json();
+      $("jobs").innerHTML = jobs.map((j) => {
+        const busy = ["preparing", "rendering"].includes(j.status);
+        const stamp = j.renderedAt || "";
+        return `<div class="job">
+          <div class="thumb">${j.status === "done" ? `<img src="/files/${j.id}/cover.jpg?${stamp}" alt="">` : esc(j.form?.title)}</div>
+          <div class="body">
+            <b>${esc(j.form?.title)}</b>
+            <span class="hint">${esc(j.fileName)}</span>
+            <span class="status ${j.status === "error" ? "error" : ""}">${STATUS[j.status] || esc(j.status)}${j.message ? " · " + esc(j.message) : ""}${busy ? ` · ${Math.round((j.progress || 0) * 100)}%` : ""}</span>
+            ${busy ? `<div class="bar"><i style="width:${(j.progress || 0) * 100}%"></i></div>` : ""}
+            <div class="actions">
+              ${["ready", "done", "error"].includes(j.status) && j.source ? `<a class="btn pink" href="/editor?id=${j.id}">Редагувати</a>` : ""}
+              ${j.status === "done" ? `<a class="btn ghost" href="/files/${j.id}/final.mp4?dl">Відео</a><a class="btn ghost" href="/files/${j.id}/cover.jpg?dl">Обкладинка</a>` : ""}
+            </div>
+          </div>
+        </div>`;
+      }).join("") || `<p class="hint">Поки що порожньо.</p>`;
+      if (jobs.some((j) => ["preparing", "rendering"].includes(j.status))) setTimeout(refresh, 2000);
+    }
+    refresh();
+
+    $("logout").addEventListener("click", async () => {
+      await fetch("/api/logout", { method: "POST" });
+      location.href = "/login";
+    });
+  </script>
+</body>
+</html>

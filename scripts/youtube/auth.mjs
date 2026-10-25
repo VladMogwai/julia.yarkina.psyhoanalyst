@@ -46,7 +46,8 @@ async function signIn() {
       const params = new URL(req.url, redirect).searchParams;
       res.end(params.get("code") ? "Done, you can close this tab." : "Sign-in failed: " + params.get("error"));
       server.close();
-      params.get("code") ? resolve(params.get("code")) : reject(new Error(params.get("error")));
+      if (params.get("code")) resolve(params.get("code"));
+      else reject(new Error(params.get("error")));
     });
   });
   return tokenRequest({ code, redirect_uri: redirect, grant_type: "authorization_code" });

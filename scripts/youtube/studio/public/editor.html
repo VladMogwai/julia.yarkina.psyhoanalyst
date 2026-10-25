@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Монтаж · Pro психоаналіз</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header>
+    <h1><a href="/" style="color:inherit;text-decoration:none"><b>Pro</b> психоаналіз</a> · <span id="name"></span></h1>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span class="hint" id="saved"></span>
+      <button class="pink" id="render">Змонтувати</button>
+    </div>
+  </header>
+  <main class="editor">
+    <div class="card" id="done" hidden>
+      <b>Готово.</b>
+      <div class="tools"><a class="btn pink" id="dlVideo">Завантажити відео</a><a class="btn ghost" id="dlCover">Обкладинка</a><a class="btn ghost" id="watch" target="_blank">Переглянути</a></div>
+    </div>
+    <div class="card" id="busy" hidden><span id="busyMsg"></span><div class="bar"><i></i></div></div>
+
+    <video id="v" playsinline preload="auto"></video>
+    <div id="wave"></div>
+    <div class="tools">
+      <button id="play">▶︎ <kbd>Пробіл</kbd></button>
+      <span class="time" id="time">0:00 / 0:00</span>
+      <button class="ghost" id="markIn">Початок вирізу <kbd>I</kbd></button>
+      <button class="ghost" id="markOut">Кінець вирізу <kbd>O</kbd></button>
+      <button class="ghost" id="del" disabled>Видалити виріз <kbd>Del</kbd></button>
+      <label class="hint" style="margin:0;display:flex;gap:6px;align-items:center"><input type="checkbox" id="skip" checked> Перегляд без вирізів</label>
+      <label class="hint" style="margin:0;display:flex;gap:6px;align-items:center">Масштаб <input type="range" id="zoom" min="2" max="300" value="20"></label>
+    </div>
+    <div class="card">
+      <h2>Вирізи</h2>
+      <p class="hint">Червоне буде вирізано. Довгі паузи знайдено автоматично. Нові вирізи: протягніть мишею по хвилі або <kbd>I</kbd>/<kbd>O</kbd> у потрібних місцях. Краї можна тягнути. <kbd>←</kbd>/<kbd>→</kbd> — 5 секунд.</p>
+      <div class="tools">
+        <span id="total" class="hint"></span>
+        <button class="ghost" id="clear">Прибрати всі вирізи</button>
+        <button class="ghost" id="restore">Повернути знайдені паузи</button>
+      </div>
+      <div class="cuts" id="list"></div>
+    </div>
+  </main>
+
+  <script type="module">
+    import WaveSurfer from "https://unpkg.com/wavesurfer.js@7.8.6/dist/wavesurfer.esm.js";
+    import Regions from "https://unpkg.com/wavesurfer.js@7.8.6/dist/plugins/regions.esm.js";
+    import Timeline from "https://unpkg.com/wavesurfer.js@7.8.6/dist/plugins/timeline.esm.js";
+
+    const $ = (id) => document.getElementById(id);
+    const id = new URLSearchParams(location.search).get("id");
+    const fmt = (t) => {
+      t = Math.round(t * 10) / 10; // round first, so 59.96 s shows as 1:00.0, not 0:60.0
+      const h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), s = (t % 60).toFixed(1).padStart(4, "0");
+      return (h ? h + ":" + String(m).padStart(2, "0") : m) + ":" + s;
+    };
+    const CUT = "rgba(232, 51, 109, 0.32)", SEL = "rgba(232, 51, 109, 0.6)";
+
+    let job = await (await fetch(`/api/jobs/${id}`)).json();
+    $("name").textContent = job.form?.title || "";
+    const peaks = await (await fetch(`/files/${id}/peaks.json`)).json();
+    const video = $("v");
+    video.src = `/files/${id}/proxy.mp4`;
+
+    const regions = Regions.create();
+    const ws = WaveSurfer.create({
+      container: "#wave", media: video, peaks: [peaks], duration: job.source.duration,
+      height: 110, waveColor: "#16224A", progressColor: "#2F5BEA", cursorColor: "#E8336D", cursorWidth: 2,
+      minPxPerSec: 20, normalize: true, plugins: [regions, Timeline.create({ height: 18, style: { fontSize: "11px", color: "#6b6762" } })],
+    });
+    regions.enableDragSelection({ color: CUT });
+
+    let selected = null;
+    const cuts = () => regions.getRegions().map((r) => [+r.start.toFixed(2), +r.end.toFixed(2)]).sort((a, b) => a[0] - b[0]);
+    function add([start, end]) {
+      return regions.addRegion({ start, end, color: CUT, drag: false, resize: true });
+    }
+    function select(r) {
+      if (selected) selected.setOptions({ color: CUT });
+      selected = r;
+      if (r) r.setOptions({ color: SEL });
+      $("del").disabled = !r;
+      renderList();
+    }
+
+    let saveTimer;
+    function changed() {
+      renderList();
+      $("saved").textContent = "Зберігаю…";
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(async () => {
+        await fetch(`/api/jobs/${id}/cuts`, { method: "PUT", body: JSON.stringify(cuts()) });
+        $("saved").textContent = "Збережено";
+      }, 600);
+    }
+    function renderList() {
+      const list = cuts();
+      const removed = list.reduce((s, [a, b]) => s + b - a, 0);
+      $("total").textContent = `${list.length} вирізів, ${fmt(removed)} з ${fmt(job.source.duration)} · після монтажу ≈ ${fmt(job.source.duration - removed + 5)} з інтро`;
+      $("list").innerHTML = list.map(([a, b]) => `<div data-a="${a}" class="${selected && Math.abs(selected.start - a) < 0.01 ? "sel" : ""}"><span>${fmt(a)} → ${fmt(b)}</span><span class="hint">${(b - a).toFixed(1)} с</span></div>`).join("");
+    }
+
+    ws.on("ready", () => {
+      (job.cuts || []).forEach(add);
+      regions.on("region-created", (r) => { r.setOptions({ color: CUT }); select(r); changed(); });
+      regions.on("region-updated", changed);
+      regions.on("region-clicked", (r, e) => { e.stopPropagation(); select(r); video.currentTime = Math.max(0, r.start - 2); });
+      renderList();
+    });
+    $("zoom").addEventListener("input", (e) => ws.zoom(+e.target.value));
+
+    // Preview without cuts: playback jumps over every red region.
+    video.addEventListener("timeupdate", () => {
+      $("time").textContent = `${fmt(video.currentTime)} / ${fmt(job.source.duration)}`;
+      if (!$("skip").checked || video.paused) return;
+      const r = regions.getRegions().find((r) => video.currentTime >= r.start && video.currentTime < r.end - 0.05);
+      if (r) video.currentTime = r.end;
+    });
+    const toggle = () => (video.paused ? video.play() : video.pause());
+    video.addEventListener("play", () => ($("play").firstChild.textContent = "❚❚ "));
+    video.addEventListener("pause", () => ($("play").firstChild.textContent = "▶︎ "));
+    $("play").addEventListener("click", toggle);
+
+    let markIn = null;
+    const doIn = () => { markIn = video.currentTime; $("markIn").textContent = `Початок: ${fmt(markIn)}`; };
+    const doOut = () => {
+      if (markIn == null || video.currentTime <= markIn) return;
+      select(add([markIn, video.currentTime]));
+      markIn = null;
+      $("markIn").innerHTML = "Початок вирізу <kbd>I</kbd>";
+      changed();
+    };
+    const doDel = () => { if (!selected) return; selected.remove(); selected = null; $("del").disabled = true; changed(); };
+    $("markIn").addEventListener("click", doIn);
+    $("markOut").addEventListener("click", doOut);
+    $("del").addEventListener("click", doDel);
+    $("list").addEventListener("click", (e) => {
+      const row = e.target.closest("[data-a]");
+      if (!row) return;
+      const r = regions.getRegions().find((r) => Math.abs(r.start - +row.dataset.a) < 0.01);
+      select(r);
+      video.currentTime = Math.max(0, r.start - 2);
+    });
+    $("clear").addEventListener("click", () => { if (confirm("Прибрати всі вирізи?")) { regions.clearRegions(); select(null); changed(); } });
+    $("restore").addEventListener("click", () => {
+      const have = cuts();
+      (job.suggestions || []).filter(([a]) => !have.some(([x, y]) => a >= x && a < y)).forEach(add);
+      changed();
+    });
+    document.addEventListener("keydown", (e) => {
+      if (e.target.matches("input")) return;
+      if (e.code === "Space") { e.preventDefault(); toggle(); }
+      else if (e.code === "KeyI") doIn();
+      else if (e.code === "KeyO") doOut();
+      else if (e.code === "Delete" || e.code === "Backspace") doDel();
+      else if (e.code === "ArrowLeft") video.currentTime = Math.max(0, video.currentTime - 5);
+      else if (e.code === "ArrowRight") video.currentTime += 5;
+    });
+
+    // Rendering: start, then follow progress until the files are ready.
+    function showState() {
+      const busy = job.status === "rendering";
+      $("busy").hidden = !busy && job.status !== "error";
+      $("busyMsg").textContent = busy ? `${job.message || "Монтаж"} · ${Math.round((job.progress || 0) * 100)}%` : job.status === "error" ? "Помилка: " + job.message : "";
+      $("busy").querySelector("i").style.width = (job.progress || 0) * 100 + "%";
+      $("render").disabled = busy;
+      $("done").hidden = job.status !== "done";
+      $("dlVideo").href = `/files/${id}/final.mp4?dl`;
+      $("dlCover").href = `/files/${id}/cover.jpg?dl`;
+      $("watch").href = `/files/${id}/final.mp4?${job.renderedAt}`;
+      if (busy) setTimeout(async () => { job = await (await fetch(`/api/jobs/${id}`)).json(); showState(); }, 2000);
+    }
+    $("render").addEventListener("click", async () => {
+      clearTimeout(saveTimer);
+      await fetch(`/api/jobs/${id}/cuts`, { method: "PUT", body: JSON.stringify(cuts()) });
+      await fetch(`/api/jobs/${id}/render`, { method: "POST" });
+      job = await (await fetch(`/api/jobs/${id}`)).json();
+      showState();
+    });
+    showState();
+  </script>
+</body>
+</html>

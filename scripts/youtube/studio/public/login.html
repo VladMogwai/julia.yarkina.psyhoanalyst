@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Студія · Pro психоаналіз</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main>
+    <form class="card login" id="f">
+      <h1><b>Pro</b> психоаналіз</h1>
+      <p class="hint">Студія: монтаж, інтро та обкладинки</p>
+      <label for="p">Пароль</label>
+      <input type="password" id="p" autocomplete="current-password" autofocus required>
+      <p class="err" id="e"></p>
+      <button class="pink" type="submit">Увійти</button>
+    </form>
+  </main>
+  <script>
+    document.getElementById("f").addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+      const r = await fetch("/api/login", { method: "POST", body: JSON.stringify({ password: document.getElementById("p").value }) });
+      if (r.ok) location.href = "/";
+      else document.getElementById("e").textContent = (await r.json()).error || "Помилка";
+    });
+  </script>
+</body>
+</html>
