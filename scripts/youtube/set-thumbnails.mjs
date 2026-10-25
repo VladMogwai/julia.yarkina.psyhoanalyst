@@ -2,6 +2,7 @@
 //
 //   node scripts/youtube/set-thumbnails.mjs            upload every cover in thumbnails.json
 //   node scripts/youtube/set-thumbnails.mjs --dry-run  only check the files and the sign-in
+//   node scripts/youtube/set-thumbnails.mjs <videoId>…  upload only these videos' covers
 //
 // Sign-in: see auth.mjs. thumbnails.set costs 50 quota units out of 10,000 a day, so about 200 covers a day.
 import { readFile, stat } from "node:fs/promises";
@@ -11,7 +12,10 @@ import { accessToken, here, showChannel } from "./auth.mjs";
 const MAP = join(here, "thumbnails.json");
 const dryRun = process.argv.includes("--dry-run");
 
-const covers = JSON.parse(await readFile(MAP, "utf8"));
+const only = process.argv.slice(2).filter((a) => !a.startsWith("--"));
+const covers = Object.fromEntries(
+  Object.entries(JSON.parse(await readFile(MAP, "utf8"))).filter(([id]) => !only.length || only.includes(id)),
+);
 for (const file of Object.values(covers)) {
   const { size } = await stat(join(here, file));
   if (size > 2 * 1024 * 1024) throw new Error(`${file} is over YouTube's 2 MB limit`);
