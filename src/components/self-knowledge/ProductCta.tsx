@@ -34,14 +34,11 @@ interface ProductCtaProps {
 
 const SIGN_IN_ID = "sign-in";
 
-/** "Buy" with the price, or "Go to the questions" for people who own the product. */
-export function ProductCta({ product, locale, texts, openLabel, soonLabel, withSignIn = false }: ProductCtaProps) {
-  const session = useSession();
-  const owned = useOwnedProducts(session);
-  // undefined while loading, null when not on sale (hidden products are not returned).
-  const [price, setPrice] = useState<{ uah: string; eur: string } | null | undefined>(undefined);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
+type Price = { uah: string; eur: string };
+
+/** The product's price: undefined while loading, null when not on sale (hidden products are not returned). */
+export function useProductPrice(product: string): Price | null | undefined {
+  const [price, setPrice] = useState<Price | null | undefined>(undefined);
 
   useEffect(() => {
     getSupabase()
@@ -51,6 +48,25 @@ export function ProductCta({ product, locale, texts, openLabel, soonLabel, withS
       .maybeSingle()
       .then(({ data }) => setPrice(data ? { uah: data.price_uah, eur: data.price_eur } : null));
   }, [product]);
+
+  return price;
+}
+
+/** "399 ₴" in hryvnias for uk and ru, euros elsewhere. */
+export function formatPrice(price: Price, locale: Locale): string {
+  const currency = locale === "uk" || locale === "ru" ? "UAH" : "EUR";
+  return new Intl.NumberFormat(locale, { style: "currency", currency, minimumFractionDigits: 0 }).format(
+    Number(currency === "EUR" ? price.eur : price.uah),
+  );
+}
+
+/** "Buy" with the price, or "Go to the questions" for people who own the product. */
+export function ProductCta({ product, locale, texts, openLabel, soonLabel, withSignIn = false }: ProductCtaProps) {
+  const session = useSession();
+  const owned = useOwnedProducts(session);
+  const price = useProductPrice(product);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (!withSignIn || !session) return;
@@ -77,7 +93,6 @@ export function ProductCta({ product, locale, texts, openLabel, soonLabel, withS
   }
 
   const isOwned = owned?.has(product);
-  const currency = locale === "uk" || locale === "ru" ? "UAH" : "EUR";
 
   return (
     <div className="grid justify-items-start gap-4">
@@ -87,11 +102,7 @@ export function ProductCta({ product, locale, texts, openLabel, soonLabel, withS
         </a>
       ) : price ? (
         <div className="flex flex-wrap items-center gap-5">
-          <span className="font-serif text-3xl">
-            {new Intl.NumberFormat(locale, { style: "currency", currency, minimumFractionDigits: 0 }).format(
-              Number(currency === "EUR" ? price.eur : price.uah),
-            )}
-          </span>
+          <span className="font-serif text-3xl">{formatPrice(price, locale)}</span>
           <button type="button" onClick={buy} disabled={busy} className="button-primary disabled:opacity-60">
             {texts.buy}
           </button>
