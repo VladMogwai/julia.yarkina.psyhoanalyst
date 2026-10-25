@@ -16,11 +16,13 @@ import { SECONDS } from "../make/intro.mjs";
 
 const execFile = promisify(execFileCb);
 const here = dirname(fileURLToPath(import.meta.url));
-const DATA = join(here, "../studio-data");
+// STUDIO_LOCAL=1 is the packaged app: it listens only on this computer, so no password is asked.
+const LOCAL = process.env.STUDIO_LOCAL === "1";
+const DATA = process.env.STUDIO_DATA || join(here, "../studio-data");
 const PUBLIC = join(here, "public");
 const PORT = +(process.env.STUDIO_PORT || 3300);
 const PASSWORD = process.env.STUDIO_PASSWORD;
-if (!PASSWORD) {
+if (!PASSWORD && !LOCAL) {
   console.error("Set STUDIO_PASSWORD in .env.local and start with: node --env-file=.env.local scripts/youtube/studio/server.mjs");
   process.exit(1);
 }
@@ -36,6 +38,7 @@ const session = () => {
   return `${exp}.${sign(exp)}`;
 };
 function authed(req) {
+  if (LOCAL) return true;
   const m = /(?:^|;\s*)studio=([^;]+)/.exec(req.headers.cookie || "");
   if (!m) return false;
   const [exp, mac] = m[1].split(".");
@@ -181,7 +184,7 @@ function sendFile(req, res, file, download) {
   const size = statSync(file).size;
   const headers = { "Content-Type": TYPES[extname(file)] || "application/octet-stream", "Accept-Ranges": "bytes", "Cache-Control": "no-cache" };
   // filename* carries the Cyrillic name; filename is the plain fallback.
-  if (download) headers["Content-Disposition"] = `attachment; filename="${extname(file) === ".jpg" ? "cover.jpg" : "video.mp4"}"; filename*=UTF-8''${encodeURIComponent(download)}`;
+  if (download) headers["Content-Disposition"] = `attachment; filename="${{ ".jpg": "cover.jpg", ".zip": "Pro-Studio.zip" }[extname(file)] ?? "video.mp4"}"; filename*=UTF-8''${encodeURIComponent(download)}`;
   const m = /bytes=(\d*)-(\d*)/.exec(req.headers.range || "");
   if (m) {
     const start = m[1] ? +m[1] : size - +m[2];
@@ -217,9 +220,17 @@ const server = createServer(async (req, res) => {
 
     if (path === "/") return sendFile(req, res, join(PUBLIC, "index.html"));
     if (path === "/editor") return sendFile(req, res, join(PUBLIC, "editor.html"));
+    if (path === "/download" && !LOCAL) return sendFile(req, res, join(PUBLIC, "download.html"));
     if (path.startsWith("/static/")) return sendFile(req, res, join(PUBLIC, path.slice(8).replace(/\.\./g, "")));
     if (path === "/api/logout" && req.method === "POST") {
       res.setHeader("Set-Cookie", "studio=; Path=/; Max-Age=0");
+      return json(res, 200, { ok: true });
+    }
+    const appZip = join(here, "app/dist/Pro-Studio.zip");
+    if (path === "/api/info") return json(res, 200, { local: LOCAL, app: !LOCAL && existsSync(appZip) });
+    if (path === "/download/Pro-Studio.zip" && !LOCAL) return sendFile(req, res, appZip, "Pro-Studio.zip");
+    if (path === "/api/reveal" && req.method === "POST" && LOCAL) {
+      spawn("open", [join(DATA, "jobs")]);
       return json(res, 200, { ok: true });
     }
     if (path === "/api/julia") return json(res, 200, readdirSync(join(ASSETS, "julia")).filter((f) => f.endsWith(".jpg")).map((f) => f.slice(0, -4)));
@@ -283,4 +294,4 @@ const server = createServer(async (req, res) => {
   }
 });
 server.requestTimeout = 0; // large uploads and long downloads
-server.listen(PORT, () => console.log(`Studio: http://localhost:${PORT}`));
+server.listen(PORT, LOCAL ? "127.0.0.1" : undefined, () => console.log(`Studio: http://localhost:${PORT}`));

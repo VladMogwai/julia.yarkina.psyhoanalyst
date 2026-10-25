@@ -11,13 +11,16 @@ import { writeMidi } from "./piano.mjs";
 
 const execFile = promisify(execFileCb);
 const here = dirname(fileURLToPath(import.meta.url));
-export const ASSETS = join(here, "../assets");
-const CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+// The packaged app (studio/app/) points these at its own copies; otherwise the repo's.
+export const ASSETS = process.env.STUDIO_ASSETS || join(here, "../assets");
+const CHROME = process.env.STUDIO_CHROME || "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+const BIN = process.env.STUDIO_BIN; // compiled face/blurbg instead of running the Swift sources
+const swiftTool = (name, args) => (BIN ? execFile(join(BIN, name), args) : execFile("swift", [join(here, `${name}.swift`), ...args]));
 export const LABELS = { int: "Інтерв'ю", tema: "Тема · Юлія Яркіна", teor: "Теорія психоаналізу" };
 
 /** Size and face box of a photo, found by macOS Vision. */
 async function photo(file) {
-  const { stdout } = await execFile("swift", [join(here, "face.swift"), file]);
+  const { stdout } = await swiftTool("face", [file]);
   const [w, h, ...face] = stdout.trim().split("\n").pop().split(" ").slice(1).map(Number);
   if (face.length < 4 || face.some(Number.isNaN)) throw new Error(`No face found in ${file}`);
   return { src: pathToFileURL(file).href, w, h, face };
@@ -47,7 +50,7 @@ export async function buildSpec(o, workDir) {
     spec.guests = [];
     for (const [i, file] of guests.entries()) {
       const blurred = join(workDir, `guest${i + 1}-blurred.jpg`);
-      await execFile("swift", [join(here, "blurbg.swift"), resolve(file), blurred, "20"]);
+      await swiftTool("blurbg", [resolve(file), blurred, "20"]);
       spec.guests.push(await photo(blurred));
     }
   }
@@ -91,13 +94,17 @@ export async function renderIntro(spec, out, { width = 1920, fps = 30, onProgres
   });
   const video = ["-framerate", String(fps), "-i", join(frames, "%04d.png")];
   const sf2 = join(ASSETS, "GeneralUser-GS.sf2");
+  const ready = join(ASSETS, "piano.wav"); // the packaged app ships the piano already played
   let audio = ["-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo"];
   let af = `atrim=0:${SECONDS}`;
-  if (existsSync(sf2)) {
-    const mid = join(frames, "piano.mid");
-    const wav = join(frames, "piano.wav");
-    writeMidi(mid);
-    execFileSync("fluidsynth", ["-ni", "-q", "-r", "48000", "-g", "0.6", "-F", wav, sf2, mid]);
+  if (existsSync(ready) || existsSync(sf2)) {
+    let wav = ready;
+    if (!existsSync(ready)) {
+      const mid = join(frames, "piano.mid");
+      wav = join(frames, "piano.wav");
+      writeMidi(mid);
+      execFileSync("fluidsynth", ["-ni", "-q", "-r", "48000", "-g", "0.6", "-F", wav, sf2, mid]);
+    }
     audio = ["-i", wav];
     af = `atrim=0:${SECONDS},afade=t=out:st=${SECONDS - 0.3}:d=0.3,loudnorm=I=-16:TP=-1.5:LRA=11,aresample=48000`;
   }

@@ -75,6 +75,22 @@ After that `start.sh` brings the site online too. It is reachable only while thi
 can run the studio the same way (clone the repo, `npm install`, the tools above, copy `assets/` and the `.env.local` line, and
 copy `~/.cloudflared/` for the tunnel), but only one of them at a time: each keeps its videos on its own disk.
 
+### Mac app for others
+
+For people who should run the studio on their own Mac without any setup: "Pro Studio.app" bundles Node, ffmpeg, headless
+Chrome, the compiled Swift tools, Julia's photos and the intro piano. It runs on Apple Silicon with macOS 14+, listens only on
+that Mac (no password), keeps videos in `~/Movies/Pro Studio` and is quit from the Dock. Logged-in users of the website get a
+"Скачати програму для Mac" button with step-by-step install instructions (`/download`).
+
+Rebuild it after changing the studio or the generators (first run downloads ~210 MB of tools into `studio/app/vendor/`):
+
+```bash
+scripts/youtube/studio/app/build.sh
+```
+
+The result, `studio/app/dist/Pro-Studio.zip`, is what the website hands out. The app has no paid Apple signature, so on first
+launch macOS needs "Open Anyway" in System Settings → Privacy & Security, as the download page explains.
+
 ## Cover and intro for a new video
 
 Run from the project folder. One video takes about a minute; `--no-intro` makes only the cover in a few seconds.

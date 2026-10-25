@@ -9,7 +9,11 @@
 <body>
   <header>
     <h1><b>Pro</b> психоаналіз · студія</h1>
-    <button class="ghost" id="logout">Вийти</button>
+    <div style="display:flex;gap:8px">
+      <a class="btn ghost" id="getApp" href="/download" hidden>Скачати програму для Mac</a>
+      <button class="ghost" id="reveal" hidden>Папка з відео</button>
+      <button class="ghost" id="logout" hidden>Вийти</button>
+    </div>
   </header>
   <main>
     <form class="card" id="new">
@@ -149,6 +153,12 @@
     }
     refresh();
 
+    // The Mac app works without a password; the website offers the app for download.
+    const info = await (await fetch("/api/info")).json();
+    $("logout").hidden = info.local;
+    $("reveal").hidden = !info.local;
+    $("getApp").hidden = !info.app;
+    $("reveal").addEventListener("click", () => fetch("/api/reveal", { method: "POST" }));
     $("logout").addEventListener("click", async () => {
       await fetch("/api/logout", { method: "POST" });
       location.href = "/login";

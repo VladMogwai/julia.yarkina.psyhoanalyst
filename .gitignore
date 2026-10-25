@@ -56,3 +56,5 @@ supabase/seed/
 /scripts/youtube/covers/
 /scripts/youtube/assets/
 /scripts/youtube/studio-data/
+/scripts/youtube/studio/app/vendor/
+/scripts/youtube/studio/app/dist/
