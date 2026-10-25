@@ -48,6 +48,7 @@
     .context b { color: var(--txt); font-variant-numeric: tabular-nums; }
     .context button { padding: 8px 14px; font-size: 13px; }
     .context .ghost { color: var(--txt); border-color: var(--line2); }
+    .context .q { color: var(--txt); max-width: 46vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
     .track { position: relative; height: 128px; touch-action: none; cursor: grab; user-select: none; }
     .track:active { cursor: grabbing; }
@@ -57,25 +58,12 @@
     .times #now { color: var(--txt); }
     .times #total { text-align: right; }
 
-    .drawer { width: 380px; flex: none; background: var(--panel); display: flex; flex-direction: column; min-height: 0; }
-    .drawer .dh { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--line2); }
-    .drawer .dh b { flex: 1; font: 800 13px Manrope; text-transform: uppercase; letter-spacing: .5px; }
-    .drawer .body { flex: 1; overflow: auto; padding: 14px; font-size: 16px; line-height: 1.75; }
-    .drawer p { margin: 0 0 12px; }
-    .drawer .ts { display: block; font: 700 12px Manrope; color: var(--dim); }
-    .w { cursor: pointer; border-radius: 4px; padding: 1px; }
-    .w:hover { background: #2a2a30; }
-    .w.cur { background: rgba(232, 51, 109, .35); }
-    .w.fill { background: rgba(255, 196, 0, .22); color: #ffd860; font-weight: 700; padding: 1px 4px; }
-    .w.cut { color: #5d5d66; text-decoration: line-through; background: transparent; }
     @media (max-width: 900px) {
-      .drawer { position: fixed; left: 0; right: 0; bottom: 0; width: auto; height: 55vh; border-radius: 16px 16px 0 0; z-index: 30; }
       .tools { justify-content: flex-start; }
       .top .saved, .top .title { display: none; }
       .top .back { margin-right: auto; }
     }
 
-    #cutSel { position: fixed; z-index: 40; display: none; }
     .pop { position: fixed; z-index: 40; background: #2a2a2e; color: var(--txt); border-radius: 12px; padding: 10px 12px; box-shadow: 0 8px 30px rgba(0,0,0,.5); font-size: 14px; display: none; }
     .pop button { margin-top: 8px; }
     #help { position: fixed; inset: 0; background: rgba(0, 0, 0, .7); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 16px; }
@@ -101,9 +89,7 @@
     <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v5M14 11v5"/></symbol>
     <symbol id="i-ee" viewBox="0 0 24 24"><path d="M3 12h1.5M7 9v6M10.5 6v12M14 9v6M17.5 11v2M20.5 12h.5"/></symbol>
     <symbol id="i-pause2" viewBox="0 0 24 24"><path d="M4 6l7 6-7 6zM13 6l7 6-7 6z"/></symbol>
-    <symbol id="i-text" viewBox="0 0 24 24"><path d="M5 7V4h14v3M12 4v16M9 20h6"/></symbol>
     <symbol id="i-cover" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 8"/></symbol>
-    <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
   </svg>
 
   <div class="top">
@@ -143,20 +129,14 @@
         <span class="sep"></span>
         <button id="slips"><svg class="ic"><use href="#i-ee"/></svg><span>«Е-е»</span></button>
         <button id="pauses"><svg class="ic"><use href="#i-pause2"/></svg><span>Паузи</span></button>
-        <button id="textBtn"><svg class="ic"><use href="#i-text"/></svg><span>Текст</span></button>
         <button id="coverBtn"><svg class="ic"><use href="#i-cover"/></svg><span>Обкладинка</span></button>
       </div>
       <div class="context" id="context"></div>
       <div class="track" id="track"><canvas id="tl"></canvas><div class="head"></div></div>
       <div class="times"><span></span><span id="now"></span><span id="total"></span></div>
     </div>
-    <aside class="drawer" id="drawer" hidden>
-      <div class="dh"><b>Текст розмови</b><button class="flat" id="closeText" title="Закрити"><svg class="ic"><use href="#i-x"/></svg></button></div>
-      <div class="body" id="text"></div>
-    </aside>
   </div>
 
-  <button class="pink" id="cutSel">✂ Вирізати виділене</button>
   <div class="pop" id="pop"><span id="popText"></span><br><button class="pink" id="popRestore">↩ Повернути</button></div>
 
   <div id="help" hidden>
@@ -167,7 +147,8 @@
         <li>Дійдіть до місця, звідки різати, і натисніть <b>«Початок»</b>.</li>
         <li>Гортайте далі — шматок підсвічується рожевим. Дійдіть до кінця і натисніть <b>«Кінець»</b>. Краї рожевого шматка можна підтягнути.</li>
         <li>Натисніть <b>«Вирізати»</b>. Місце вирізу позначене ✂ на стрічці — торкніться, щоб повернути. Помилилися — стрілка «назад» угорі ліворуч.</li>
-        <li><b>«Е-е»</b> і <b>«Паузи»</b> прибирають усе знайдене одним натиском. <b>«Змонтувати»</b> дасть відео з інтро, обкладинку й субтитри.</li>
+        <li>Над кадрами — <b>текст розмови</b> (фіолетові фрази), <b>«е-е»</b> (рожеві) і <b>паузи</b> (коралові). Торкніться будь-якого — він виділиться, лишиться натиснути «Вирізати».</li>
+        <li>Кнопки <b>«Е-е»</b> і <b>«Паузи»</b> прибирають усе знайдене одним натиском. <b>«Змонтувати»</b> дасть відео з інтро, обкладинку й субтитри.</li>
       </ol>
       <button class="pink" id="helpOk">Зрозуміло</button>
     </div>
@@ -200,11 +181,11 @@
     const sugPauses = job.suggestions || [];
     $("slips").hidden = !sugSlips.length;
     $("pauses").hidden = !sugPauses.length;
-    $("textBtn").hidden = !words.length;
 
     // ---- Edit state in source seconds: cuts (removed) and splits (dividers), with undo. ----
     let cuts = [], splits = [], sel = null; // sel: index of the selected clip
     let range = null; // { a, b } in output seconds; b is null while the end follows the playhead
+    let picked = null; // the phrase, «е-е» or pause the range was taken from
     const past = [], future = [];
     const normalize = (list) => {
       const s = list.map(([a, b]) => [Math.max(0, Math.min(a, b)), Math.min(D, Math.max(a, b))]).filter(([a, b]) => b - a >= 0.05).sort((x, y) => x[0] - y[0]);
@@ -228,7 +209,7 @@
       cuts = c;
       splits = [...new Set(s.map((t) => +t.toFixed(2)))].filter((t) => !cutAt(t) && t > 0.05 && t < D - 0.05).sort((a, b) => a - b);
       sel = null;
-      range = null;
+      range = picked = null;
       layout();
       changed();
     }
@@ -275,7 +256,7 @@
       $("pauses").title = openPauses ? `Прибрати довгі паузи (${openPauses})` : "Паузи прибрано";
       $("slips").disabled = !openSlips;
       $("pauses").disabled = !openPauses;
-      markWords();
+      placeLanes();
       draw();
     }
     addEventListener("pagehide", () => saveTimer && save()); // leaving right after an edit still keeps it
@@ -286,10 +267,34 @@
       $("saved").textContent = `Збережено · ${fmt(outD + 5)} з інтро`;
     }
 
-    // ---- Timeline: a fixed playhead in the middle; frames and sound move under it. ----
+    // ---- Lanes above the frames, like InShot's audio layers: pauses, «е-е» and the speech in phrases. ----
+    const phrases = [];
+    for (const x of words) {
+      if (x.f) continue;
+      const p = phrases[phrases.length - 1];
+      if (p && x.t0 - p.t1 < 0.6 && x.t1 - p.t0 < 8 && !/[.?!…]$/.test(p.words[p.words.length - 1].w)) { p.words.push(x); p.t1 = x.t1; }
+      else phrases.push({ t0: x.t0, t1: x.t1, words: [x] });
+    }
+    const LANES = [
+      { items: sugPauses.map(([t0, t1]) => ({ t0, t1, label: `пауза ${(t1 - t0).toFixed(1)} с` })), color: "#cd6b67", h: 24 },
+      { items: words.filter((x) => x.f).map((x) => ({ t0: x.t0, t1: x.t1, label: x.w })), color: "#b5648f", h: 24 },
+      { items: phrases, color: "#9b7bb8", h: 30 },
+    ].filter((l) => l.items.length);
+
+    // ---- Timeline: a fixed playhead in the middle; lanes, frames and sound move under it. ----
     let T = 0, pps = 40; // output time under the playhead; pixels per second
     const cv = $("tl"), track = $("track");
-    const Y_TH = 18, H_TH = 58, Y_WV = Y_TH + H_TH + 2, H_WV = 18, H_CLIP = H_TH + 2 + H_WV, Y_JOIN = Y_TH + H_CLIP + 14;
+    const H_TH = 58, H_WV = 18, H_CLIP = H_TH + 2 + H_WV;
+    let lanes = [], Y_TH, Y_WV, Y_JOIN;
+    /** Only lanes with something left in them take room; the frames sit right under them. */
+    function placeLanes() {
+      lanes = LANES.filter((l) => l.items.some((it) => !isCut(it.t0, it.t1)));
+      let y = 18;
+      for (const l of lanes) { l.y = y; y += l.h + 6; }
+      Y_TH = y + (lanes.length ? 4 : 0); Y_WV = Y_TH + H_TH + 2; Y_JOIN = Y_TH + H_CLIP + 14;
+      track.style.height = Y_JOIN + 16 + "px";
+      Object.assign(track.querySelector(".head").style, { top: "14px", height: Y_TH + H_CLIP + 2 - 14 + "px" });
+    }
     const xOf = (t) => track.clientWidth / 2 + (t - T) * pps;
     const rangeAB = () => range && [Math.min(range.a, range.b ?? T), Math.max(range.a, range.b ?? T)];
     function draw() {
@@ -331,12 +336,6 @@
           const h = Math.max(1, (peaks[Math.floor((cl.a + (x - left) / pps) * 100)] || 0) * H_WV);
           c.fillRect(x, Y_WV + (H_WV - h) / 2, 1.5, h);
         }
-        // Slips and pauses still in: yellow along the bottom of the clip.
-        c.fillStyle = "#ffc400";
-        for (const [a, b] of [...sugSlips, ...sugPauses]) {
-          if (b <= cl.a || a >= cl.b || isCut(a, b)) continue;
-          c.fillRect(left + (Math.max(a, cl.a) - cl.a) * pps, Y_TH + H_CLIP - 3, Math.max(2, (Math.min(b, cl.b) - Math.max(a, cl.a)) * pps), 3);
-        }
         c.restore();
         if (i === sel) {
           c.strokeStyle = "#fff"; c.lineWidth = 2.5;
@@ -346,6 +345,7 @@
           badge(c, left + w - 6, `${len(cl).toFixed(1)} с`);
         }
       });
+      drawLanes(c, W);
       // The pink range being marked for cutting, with handles to adjust its ends.
       if (range) {
         const [a, b] = rangeAB(), xa = xOf(a), xb = xOf(b);
@@ -370,6 +370,50 @@
       $("now").textContent = fmt1(T);
       $("total").textContent = `всього ${fmt(outD)}`;
       context();
+    }
+    /** Each item where it plays in the result (cut parts close up); fully cut items are gone. Words sit at their own time. */
+    function drawLanes(c, W) {
+      const sMin = toSource(Math.max(0, T - W / 2 / pps)), sMax = toSource(Math.min(outD, T + W / 2 / pps));
+      c.font = "700 12px Manrope"; c.textBaseline = "middle";
+      for (const l of lanes) for (const it of l.items) {
+        if (it.t1 < sMin || it.t0 > sMax) continue;
+        const o0 = toOutput(it.t0), o1 = toOutput(it.t1);
+        if (o1 - o0 < 0.02) continue;
+        const x = xOf(o0), w = Math.max(4, (o1 - o0) * pps), ym = l.y + l.h / 2;
+        c.save();
+        c.fillStyle = l.color;
+        c.beginPath(); c.roundRect(x, l.y, w, l.h, 7); c.fill();
+        if (it === picked) { c.strokeStyle = "#fff"; c.lineWidth = 2.5; c.stroke(); }
+        c.clip();
+        c.fillStyle = "#26122a";
+        if (it.words) {
+          let free = x + 7;
+          for (const wd of it.words) {
+            if (isCut(wd.t0, wd.t1)) continue;
+            const wx = Math.max(free, xOf(toOutput(wd.t0)));
+            if (wx > W) break;
+            c.fillText(wd.w, wx, ym);
+            free = wx + c.measureText(wd.w).width + 4;
+          }
+        } else if (w > c.measureText(it.label).width + 10) c.fillText(it.label, x + 6, ym);
+        c.restore();
+      }
+      c.textBaseline = "alphabetic";
+    }
+    /** Tapping a lane item marks it for cutting. */
+    function pickAt(x, y) {
+      const l = lanes.find((l) => y >= l.y - 3 && y <= l.y + l.h + 3);
+      const it = l?.items.find((it) => {
+        const o0 = toOutput(it.t0), o1 = toOutput(it.t1);
+        return o1 - o0 >= 0.02 && x >= xOf(o0) - 3 && x <= xOf(o0) + Math.max(4, (o1 - o0) * pps) + 3;
+      });
+      if (!it) return;
+      video.pause();
+      sel = null;
+      picked = it;
+      range = { a: toOutput(it.t0), b: toOutput(it.t1) };
+      video.currentTime = it.t0;
+      draw();
     }
     function handle(c, x, bg, fg, mark) {
       c.fillStyle = bg;
@@ -398,7 +442,8 @@
       $("del").disabled = sel == null || clips.length < 2;
       if (range) {
         const [a, b] = rangeAB();
-        const part = `<b>${fmt1(a)}</b> → <b>${fmt1(b)}</b> · ${(b - a).toFixed(1)} с`;
+        const what = picked && (picked.words ? `«${picked.words.map((x) => x.w).join(" ")}»` : `«${picked.label}»`);
+        const part = (what ? `<span class="q" title="${esc(what)}">${esc(what)}</span>` : `<b>${fmt1(a)}</b> → <b>${fmt1(b)}</b>`) + ` · ${(b - a).toFixed(1)} с`;
         html = range.b == null
           ? `${part}<span>Гортайте до кінця шматка і натисніть «Кінець»</span><button class="ghost" data-act="clear">Скасувати</button>`
           : `${part}<button class="ghost" data-act="clear">Скасувати</button><button class="pink" data-act="cut">✂ Вирізати</button>`;
@@ -407,13 +452,13 @@
         html = `Шматок <b>${fmt1(cl.o)} → ${fmt1(cl.o + len(cl))}</b> · ${len(cl).toFixed(1)} с` +
           (clips.length > 1 ? `<button class="pink" data-act="del">Видалити шматок</button>` : "") + `<button class="ghost" data-act="unsel">Готово</button>`;
       } else {
-        html = video.paused ? "Щоб вирізати: «Початок» → гортайте → «Кінець» → «Вирізати»" : "";
+        html = video.paused ? (lanes.length ? "Торкніться фрази, «е-е» чи паузи над кадрами — або «Початок» → «Кінець» → «Вирізати»" : "Щоб вирізати: «Початок» → гортайте → «Кінець» → «Вирізати»") : "";
       }
       if (html !== shown) $("context").innerHTML = shown = html;
     }
     $("context").addEventListener("click", (e) => {
       const act = e.target.closest("[data-act]")?.dataset.act;
-      if (act === "clear") { range = null; draw(); }
+      if (act === "clear") { range = picked = null; draw(); }
       else if (act === "cut") cutRange();
       else if (act === "del") $("del").click();
       else if (act === "unsel") { sel = null; draw(); }
@@ -423,6 +468,7 @@
     function markA() {
       video.pause();
       sel = null;
+      picked = null;
       range = range?.b != null && range.b > T + 0.1 ? { a: T, b: range.b } : { a: T, b: null };
       draw();
     }
@@ -492,6 +538,7 @@
         if (near) return askRestore(near, e.clientX, e.clientY);
         return;
       }
+      if (e.offsetY < Y_TH - 2) return pickAt(e.offsetX, e.offsetY);
       if (range) return; // while marking, taps on the strip do nothing surprising
       const t = T + (e.offsetX - track.clientWidth / 2) / pps;
       const k = clips.findIndex((c) => t >= c.o && t < c.o + len(c));
@@ -539,7 +586,6 @@
       T = t;
       video.currentTime = toSource(t);
       draw();
-      highlightWord(video.currentTime);
     }
     const toggle = () => (video.paused ? video.play() : video.pause());
     $("play").addEventListener("click", toggle);
@@ -554,7 +600,6 @@
       else T = toOutput(s);
       if (T >= outD - 0.05) video.pause();
       draw();
-      highlightWord(s);
       requestAnimationFrame(loop);
     }
 
@@ -574,9 +619,6 @@
     $("pauses").addEventListener("click", () => commit([...cuts, ...sugPauses]));
     $("undo").addEventListener("click", undo);
     $("redo").addEventListener("click", redo);
-    const showText = (on) => { $("drawer").hidden = !on; $("textBtn").classList.toggle("on", on); requestAnimationFrame(draw); };
-    $("textBtn").addEventListener("click", () => showText($("drawer").hidden));
-    $("closeText").addEventListener("click", () => showText(false));
     document.addEventListener("keydown", (e) => {
       if (e.target.matches("input, textarea")) return;
       const mod = e.metaKey || e.ctrlKey;
@@ -590,75 +632,14 @@
       else if (e.code === "Delete" || e.code === "Backspace") { e.preventDefault(); range ? cutRange() : $("del").click(); }
       else if (e.code === "ArrowLeft") seekOutput(Math.max(0, T - (e.shiftKey ? 0.1 : 5)));
       else if (e.code === "ArrowRight") seekOutput(Math.min(outD, T + (e.shiftKey ? 0.1 : 5)));
-      else if (e.code === "Escape") { sel = null; range = null; draw(); }
-    });
-
-    // ---- Text: every word with its time; click to go there, select a phrase to cut it. ----
-    if (words.length) {
-      let html = "", last = -Infinity;
-      words.forEach((x, i) => {
-        if (x.t0 - last > 1.5) html += `${html ? "</p>" : ""}<p><span class="ts">${fmt(x.t0)}</span>`;
-        html += `<span class="w${x.f ? " fill" : ""}" data-i="${i}">${esc(x.w)}</span> `;
-        last = x.t1;
-      });
-      $("text").innerHTML = html + "</p>";
-    }
-    function markWords() {
-      document.querySelectorAll(".w").forEach((el) => {
-        const x = words[+el.dataset.i];
-        el.classList.toggle("cut", isCut(x.t0, x.t1));
-      });
-    }
-    let lastWord = -1, textScrolledAt = 0;
-    $("text").addEventListener("wheel", () => (textScrolledAt = Date.now()), { passive: true });
-    function highlightWord(s) {
-      let lo = 0, hi = words.length - 1, i = -1;
-      while (lo <= hi) { const m = (lo + hi) >> 1; if (words[m].t0 <= s) { i = m; lo = m + 1; } else hi = m - 1; }
-      if (i === lastWord) return;
-      document.querySelector(".w.cur")?.classList.remove("cur");
-      const el = document.querySelector(`.w[data-i="${i}"]`);
-      el?.classList.add("cur");
-      if (el && !$("drawer").hidden && Date.now() - textScrolledAt > 4000) el.scrollIntoView({ block: "center", behavior: "smooth" });
-      lastWord = i;
-    }
-    $("text").addEventListener("click", (e) => {
-      const el = e.target.closest(".w");
-      if (!el || !getSelection().isCollapsed) return;
-      const x = words[+el.dataset.i];
-      if (x.f) return commit(isCut(x.t0, x.t1) ? subtract(cuts, [x.t0, x.t1]) : [...cuts, [x.t0, x.t1]]);
-      const c = cutAt(x.t0);
-      video.pause();
-      seekOutput(toOutput(c ? c[1] : x.t0));
-    });
-    function selectedWords() {
-      const s = getSelection();
-      if (s.isCollapsed || !s.rangeCount) return null;
-      const r = s.getRangeAt(0);
-      const els = [...document.querySelectorAll(".w")].filter((el) => r.intersectsNode(el));
-      return els.length ? [+els[0].dataset.i, +els[els.length - 1].dataset.i] : null;
-    }
-    document.addEventListener("selectionchange", () => {
-      const sw = selectedWords(), b = $("cutSel");
-      if (!sw) { b.style.display = "none"; return; }
-      const rect = getSelection().getRangeAt(0).getBoundingClientRect();
-      b.style.display = "inline-flex";
-      b.style.left = Math.max(8, Math.min(innerWidth - 220, rect.left)) + "px";
-      b.style.top = Math.max(8, rect.top - 52) + "px";
-    });
-    $("cutSel").addEventListener("mousedown", (e) => e.preventDefault());
-    $("cutSel").addEventListener("click", () => {
-      const r = selectedWords();
-      if (!r) return;
-      commit([...cuts, [words[r[0]].t0, words[r[1]].t1]]);
-      getSelection().removeAllRanges();
-      $("cutSel").style.display = "none";
+      else if (e.code === "Escape") { sel = null; range = picked = null; draw(); }
     });
 
     // ---- Help on the first visit. ----
     let seen = false;
-    try { seen = localStorage.getItem("studio-help-3") === "1"; } catch {}
+    try { seen = localStorage.getItem("studio-help-4") === "1"; } catch {}
     $("help").hidden = seen;
-    $("helpOk").addEventListener("click", () => { $("help").hidden = true; try { localStorage.setItem("studio-help-3", "1"); } catch {} });
+    $("helpOk").addEventListener("click", () => { $("help").hidden = true; try { localStorage.setItem("studio-help-4", "1"); } catch {} });
     $("helpBtn").addEventListener("click", () => ($("help").hidden = false));
 
     // ---- Export. The tab title shows progress; a notification comes when the tab is in the background. ----
@@ -695,7 +676,7 @@
     cuts = normalize(job.cuts || []);
     splits = job.splits || [];
     layout();
-    pps = Math.max(4, Math.min(60, track.clientWidth / Math.min(outD, 60)));
+    pps = Math.max(4, Math.min(60, track.clientWidth / Math.min(outD, LANES.length ? 25 : 60))); // with text: enough to read the words
     changed();
     $("saved").textContent = `${fmt(outD + 5)} з інтро`;
     showState();
