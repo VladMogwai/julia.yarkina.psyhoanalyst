@@ -5,6 +5,51 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Студія · Pro психоаналіз</title>
   <link rel="stylesheet" href="/style.css">
+  <style>
+    .drop { border: 2px dashed #d8cfc3; border-radius: 18px; background: #fff; padding: 56px 20px; text-align: center; cursor: pointer; transition: border-color .2s, background .2s; }
+    .drop.over, .drop:hover { border-color: var(--pink); background: #fff7f9; }
+    .drop .big { font: 700 24px Oswald; text-transform: uppercase; margin: 14px 0 6px; }
+    .drop input { display: none; }
+
+    .wizard { display: grid; grid-template-columns: minmax(0, 1fr) 460px; gap: 20px; align-items: start; }
+    @media (max-width: 1000px) { .wizard { grid-template-columns: 1fr; } }
+    .step { margin-bottom: 22px; }
+    .step > b { display: block; font: 700 13px Manrope; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 8px; }
+    .kinds { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .kinds label { margin: 0; border: 2px solid var(--line); border-radius: 14px; padding: 12px; cursor: pointer; background: #fff; font-weight: 700; }
+    .kinds label:has(input:checked) { border-color: var(--pink); background: #fff7f9; }
+    .kinds input { display: none; }
+    .kinds .sw { display: block; height: 46px; border-radius: 8px; margin-bottom: 8px; position: relative; overflow: hidden; }
+    .kinds .sw i { position: absolute; border-radius: 50%; background: rgba(255, 255, 255, .85); }
+    .kinds small { display: block; font-weight: 500; color: var(--muted); font-size: 12px; margin-top: 2px; }
+    .people { display: flex; gap: 12px; flex-wrap: wrap; }
+    .person { position: relative; width: 84px; height: 84px; border-radius: 50%; overflow: hidden; background: #eee; }
+    .person img { width: 100%; height: 100%; object-fit: cover; }
+    .person button { position: absolute; top: 2px; right: 2px; width: 26px; height: 26px; padding: 0; justify-content: center; border-radius: 50%; font-size: 14px; }
+    .addp { width: 84px; height: 84px; border-radius: 50%; border: 2px dashed #d8cfc3; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 12px; font-weight: 700; cursor: pointer; background: #fff; }
+    .addp:hover { border-color: var(--pink); }
+    .preview { position: sticky; top: 84px; }
+    .preview .img { aspect-ratio: 16/9; border-radius: 12px; background: #e9e3da center/cover; position: relative; overflow: hidden; }
+    .preview .img span { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); font-size: 14px; text-align: center; padding: 16px; }
+    .preview .img.loading::after { content: ""; position: absolute; inset: 0; background: rgba(246, 241, 234, .55); }
+
+    /* The little analyst who cuts film while the video loads. */
+    .buddy { display: flex; align-items: center; gap: 16px; }
+    .buddy svg { width: 150px; height: 120px; flex: none; }
+    .buddy .say { font: 700 16px Manrope; min-height: 1.5em; }
+    .film { animation: film 1.2s linear infinite; }
+    @keyframes film { to { transform: translateX(-24px); } }
+    .blade { transform-origin: 104px 70px; animation: snip .6s ease-in-out infinite alternate; }
+    .blade.b2 { animation-direction: alternate-reverse; }
+    @keyframes snip { from { transform: rotate(-14deg); } to { transform: rotate(8deg); } }
+    .head { transform-origin: 60px 60px; animation: nod 2.4s ease-in-out infinite; }
+    @keyframes nod { 0%, 100% { transform: rotate(0); } 50% { transform: rotate(-5deg); } }
+    .lid { transform-origin: center; transform-box: fill-box; animation: blink 4s infinite; }
+    @keyframes blink { 0%, 92%, 100% { transform: scaleY(0); } 95% { transform: scaleY(1); } }
+    .crumb { animation: fall 1.2s linear infinite; }
+    @keyframes fall { from { transform: translateY(0); opacity: 1; } to { transform: translateY(26px); opacity: 0; } }
+    @media (prefers-reduced-motion: reduce) { .film, .blade, .head, .lid, .crumb { animation: none; } }
+  </style>
 </head>
 <body>
   <header>
@@ -15,48 +60,75 @@
       <button class="ghost" id="logout" hidden>Вийти</button>
     </div>
   </header>
+
+  <template id="buddyTpl">
+    <div class="buddy">
+      <svg viewBox="0 0 150 120" aria-hidden="true">
+        <g class="film"><rect x="70" y="58" width="110" height="24" fill="#16224A" rx="2"/>
+          <g fill="#F6F1EA"><rect x="74" y="61" width="6" height="4"/><rect x="98" y="61" width="6" height="4"/><rect x="122" y="61" width="6" height="4"/><rect x="146" y="61" width="6" height="4"/><rect x="170" y="61" width="6" height="4"/>
+          <rect x="74" y="75" width="6" height="4"/><rect x="98" y="75" width="6" height="4"/><rect x="122" y="75" width="6" height="4"/><rect x="146" y="75" width="6" height="4"/><rect x="170" y="75" width="6" height="4"/></g>
+          <g fill="#FF7A9C"><rect x="84" y="66" width="10" height="8"/><rect x="108" y="66" width="10" height="8"/><rect x="132" y="66" width="10" height="8"/><rect x="156" y="66" width="10" height="8"/></g></g>
+        <rect class="crumb" x="96" y="84" width="6" height="6" fill="#16224A" rx="1"/>
+        <g><path class="blade" d="M104 70 L132 62 L132 66 Z" fill="#9aa3b5"/><path class="blade b2" d="M104 70 L132 78 L132 74 Z" fill="#9aa3b5"/>
+          <circle cx="98" cy="64" r="5" fill="none" stroke="#E8336D" stroke-width="3"/><circle cx="98" cy="76" r="5" fill="none" stroke="#E8336D" stroke-width="3"/></g>
+        <rect x="32" y="74" width="46" height="40" rx="14" fill="#E8336D"/>
+        <path d="M70 84 Q86 80 94 70" stroke="#E8336D" stroke-width="8" fill="none" stroke-linecap="round"/>
+        <g class="head"><circle cx="55" cy="50" r="26" fill="#f2d3bd"/>
+          <path d="M33 56 Q55 92 77 56 Q70 70 55 70 Q40 70 33 56Z" fill="#6b6762"/>
+          <path d="M31 44 Q34 22 55 22 Q78 22 79 44 Q70 30 55 31 Q40 31 31 44Z" fill="#6b6762"/>
+          <circle cx="46" cy="49" r="7" fill="#fff" stroke="#141414" stroke-width="2.5"/><circle cx="65" cy="49" r="7" fill="#fff" stroke="#141414" stroke-width="2.5"/>
+          <path d="M53 49 L58 49" stroke="#141414" stroke-width="2.5"/><circle cx="47" cy="50" r="2.4" fill="#141414"/><circle cx="66" cy="50" r="2.4" fill="#141414"/>
+          <rect class="lid" x="39" y="42" width="14" height="14" fill="#f2d3bd"/><rect class="lid" x="58" y="42" width="14" height="14" fill="#f2d3bd"/></g>
+      </svg>
+      <div><div class="say"></div><div class="bar"><i></i></div><div class="hint state"></div></div>
+    </div>
+  </template>
+
   <main>
-    <form class="card" id="new">
-      <h2>Нове відео</h2>
-      <label for="video">Відео (оригінал)</label>
-      <input type="file" id="video" accept="video/*" required>
+    <label class="drop card" id="drop">
+      <input type="file" id="video" accept="video/*">
+      <svg width="54" height="54" viewBox="0 0 24 24" fill="none" stroke="#E8336D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4"/><path d="m6 10 6-6 6 6"/><path d="M4 20h16"/></svg>
+      <div class="big">Завантажити відео</div>
+      <div class="hint">Натисніть або перетягніть сюди файл з відео</div>
+    </label>
 
-      <label>Рубрика</label>
-      <div class="seg" id="kind">
-        <label><input type="radio" name="kind" value="int" checked><span>Інтерв'ю</span></label>
-        <label><input type="radio" name="kind" value="tema"><span>Тема</span></label>
-        <label><input type="radio" name="kind" value="teor"><span>Теорія психоаналізу</span></label>
+    <section id="setup" hidden>
+      <div class="card" id="progress"></div>
+      <div class="wizard">
+        <div class="card">
+          <h2>Оформлення</h2>
+          <div class="step"><b>Тип відео</b>
+            <div class="kinds" id="kind">
+              <label><input type="radio" name="kind" value="int" checked><span class="sw" style="background:#2F5BEA"><i style="left:44%;top:10px;width:26px;height:26px"></i><i style="left:70%;top:14px;width:22px;height:22px"></i></span>Інтерв'ю<small>гість і Юлія в колах</small></label>
+              <label><input type="radio" name="kind" value="tema"><span class="sw" style="background:#E8336D"><i style="left:58%;top:6px;width:60px;height:60px;border-radius:30px 30px 0 0"></i></span>Тема<small>Юлія розповідає сама</small></label>
+              <label><input type="radio" name="kind" value="teor"><span class="sw" style="background:#F6F1EA;border:1px solid var(--line)"><i style="left:60%;top:7px;width:32px;height:32px;background:#E8336D"></i></span>Теорія психоаналізу<small>Фінк, Малер, Ракам'є…</small></label>
+            </div>
+          </div>
+          <div class="step" id="peopleStep"><b>Учасники</b>
+            <div class="people" id="people"></div>
+            <p class="hint">До трьох гостей, у порядку як на обкладинці. Найкраще — їхні власні фото; фон розмиється сам.</p>
+            <input type="file" id="guestFile" accept="image/*" hidden>
+          </div>
+          <div class="step"><b>Текст на обкладинці</b>
+            <label for="title" style="margin-top:0">Заголовок</label>
+            <input type="text" id="title" placeholder="Чому психоаналіз?">
+            <label for="label">Підпис над заголовком</label>
+            <input type="text" id="label">
+          </div>
+          <div class="step" id="colorStep"><b>Колір підкладки</b><div class="swatches" id="color"></div></div>
+          <div class="step"><b>Фото Юлії</b><div class="photos" id="julia"></div></div>
+        </div>
+        <div class="preview card">
+          <h2>Обкладинка</h2>
+          <div class="img" id="prev"><span>Тут з'явиться обкладинка, щойно ви введете заголовок</span></div>
+          <p class="hint" id="prevMsg"></p>
+          <a class="btn pink" id="toEdit" style="margin-top:8px;opacity:.45;pointer-events:none">Перейти до монтажу →</a>
+          <p class="hint" id="toEditHint">Монтаж відкриється, щойно відео підготується. Вікно можна згорнути: обробка триває, а коли все буде готово, прийде сповіщення.</p>
+        </div>
       </div>
+    </section>
 
-      <label for="title">Заголовок на обкладинці</label>
-      <input type="text" id="title" placeholder="Чому психоаналіз?" required>
-      <p class="hint">2–5 слів, розмір підбирається сам.</p>
-
-      <label for="label">Підпис над заголовком</label>
-      <input type="text" id="label" placeholder="Інтерв'ю · Ім'я Прізвище">
-
-      <div id="guestBox">
-        <label for="guest">Фото гостей</label>
-        <input type="file" id="guest" accept="image/*" multiple>
-        <p class="hint">Один–три гості: виберіть кілька файлів разом, у тому порядку, як на обкладинці. Найкраще власні фото гостей. Фон розмиється сам.</p>
-      </div>
-
-      <label>Фото Юлії</label>
-      <div class="photos" id="julia"></div>
-
-      <div id="colorBox">
-        <label>Колір фону</label>
-        <div class="swatches" id="color"></div>
-      </div>
-
-      <div style="margin-top:18px">
-        <button class="pink" type="submit" id="go">Завантажити</button>
-        <div class="bar" id="upbar" hidden><i></i></div>
-        <p class="hint" id="upmsg"></p>
-      </div>
-    </form>
-
-    <h2>Відео</h2>
+    <h2 style="margin-top:28px">Усі відео</h2>
     <div class="jobs" id="jobs"></div>
   </main>
 
@@ -66,95 +138,195 @@
     const COLORS = ["#E8336D", "#16224A", "#2F5BEA", "#FF7A3D", "#2E6B57"];
     const LABELS = { int: "Інтерв'ю · Ім'я Прізвище", tema: "Тема · Юлія Яркіна", teor: "Теорія психоаналізу · Гл. 1" };
     const STATUS = { uploading: "Завантаження…", preparing: "Підготовка", ready: "Готово до монтажу", rendering: "Монтаж", done: "Готово", error: "Помилка" };
+    const SAYINGS = {
+      upload: ["Приймаю плівку…", "Розмотую котушку…", "Рахую кадри…", "Ще трішки…"],
+      prepare: ["Ріжу плівку на кадри…", "Слухаю, що ви кажете…", "Шукаю «е-е» та «м-м»…", "Записую кожне слово…", "Міряю паузи…", "Майже все…"],
+    };
 
+    /** The animated analyst; returns a function that updates the text and progress. */
+    function buddy(el) {
+      el.replaceChildren($("buddyTpl").content.cloneNode(true));
+      let mode = "upload", k = 0;
+      const say = el.querySelector(".say");
+      const tick = () => { const list = SAYINGS[mode]; say.textContent = list[k++ % list.length]; };
+      tick();
+      const timer = setInterval(tick, 3500);
+      return {
+        set(m, progress, state) {
+          if (m !== mode) { mode = m; k = 0; tick(); }
+          el.querySelector(".bar i").style.width = Math.round(progress * 100) + "%";
+          el.querySelector(".state").textContent = state;
+        },
+        stop() { clearInterval(timer); },
+      };
+    }
+
+    const info = await (await fetch("/api/info")).json();
     $("color").innerHTML = COLORS.map((c, i) => `<label style="background:${c}" title="${c}"><input type="radio" name="color" value="${i}" ${i ? "" : "checked"}></label>`).join("");
     const julia = await (await fetch("/api/julia")).json();
     $("julia").innerHTML = julia.map((n) => `<label><input type="radio" name="julia" value="${n}" ${n === "7" ? "checked" : ""}><img src="/julia/${n}.jpg" alt=""></label>`).join("");
 
-    function syncKind() {
-      const kind = document.querySelector("[name=kind]:checked").value;
-      $("guestBox").hidden = kind !== "int";
-      $("colorBox").hidden = kind === "teor";
-      $("label").placeholder = LABELS[kind];
-      $("guest").required = kind === "int";
-    }
-    $("kind").addEventListener("change", syncKind);
-    syncKind();
+    // ---- Step 1: the video. Choosing it creates the job and starts the upload at once. ----
+    let job = null, guests = [], buddyUi = null;
+    const drop = $("drop");
+    ["dragenter", "dragover"].forEach((ev) => drop.addEventListener(ev, (e) => { e.preventDefault(); drop.classList.add("over"); }));
+    ["dragleave", "drop"].forEach((ev) => drop.addEventListener(ev, () => drop.classList.remove("over")));
+    drop.addEventListener("drop", (e) => { e.preventDefault(); if (e.dataTransfer.files[0]) start(e.dataTransfer.files[0]); });
+    $("video").addEventListener("change", () => $("video").files[0] && start($("video").files[0]));
 
-    /** Sends a file in 50 MB chunks (Cloudflare lets through at most 100 MB per request); resumes where the server is. */
     async function upload(id, name, file, onProgress) {
-      const CHUNK = 50 * 1024 * 1024;
+      const CHUNK = 50 * 1024 * 1024; // Cloudflare lets through at most 100 MB per request
       let offset = 0;
       while (offset < file.size) {
         const r = await fetch(`/api/jobs/${id}/upload?name=${name}&offset=${offset}`, { method: "PUT", body: file.slice(offset, offset + CHUNK) });
         if (!r.ok) throw new Error((await r.json()).error || "upload failed");
         offset = (await r.json()).size;
-        onProgress(offset / file.size);
+        onProgress?.(offset / file.size);
       }
     }
 
-    $("new").addEventListener("submit", async (ev) => {
-      ev.preventDefault();
-      const video = $("video").files[0];
-      const form = {
+    /** A system notification when the tab is in the background; in the Mac app the app itself notifies. */
+    const notify = (text) => {
+      if (info.local || !("Notification" in window) || Notification.permission !== "granted" || !document.hidden) return;
+      new Notification("Pro Studio", { body: text, icon: "/julia/7.jpg" });
+    };
+    const titleBase = document.title;
+
+    async function start(file) {
+      // Asked right away, while it is still part of the click.
+      if (!info.local && "Notification" in window && Notification.permission === "default") Notification.requestPermission();
+      drop.hidden = true;
+      $("setup").hidden = false;
+      $("title").value = file.name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " ").slice(0, 60);
+      buddyUi = buddy($("progress"));
+      job = await (await fetch("/api/jobs", { method: "POST", body: JSON.stringify({ ...form(), fileName: file.name }) })).json();
+      syncKind();
+      try {
+        await upload(job.id, "video", file, (p) => {
+          buddyUi.set("upload", p, `Завантажено ${Math.round(p * 100)}% з ${(file.size / 1e9).toFixed(2)} ГБ`);
+          document.title = `(${Math.round(p * 100)}%) Завантаження · ${titleBase}`;
+        });
+        await fetch(`/api/jobs/${job.id}/prepare`, { method: "POST" });
+        follow();
+      } catch (e) {
+        buddyUi.set("upload", 0, `Зв'язок перервався: ${e.message}. Виберіть той самий файл ще раз — завантаження продовжиться з місця зупинки.`);
+        drop.hidden = false;
+      }
+    }
+
+    /** Preparation progress until the editor can open. */
+    async function follow() {
+      const j = await (await fetch(`/api/jobs/${job.id}`)).json();
+      if (j.status === "ready" || j.status === "done") {
+        buddyUi.stop();
+        document.title = `✓ Готово до монтажу · ${titleBase}`;
+        notify(`«${form().title}» готове до монтажу.`);
+        $("progress").innerHTML = `<b>Відео готове до монтажу.</b> <span class="hint">${j.fillers ? `Знайдено «е-е» та «м-м»: ${j.fillers}. ` : ""}Пауз: ${(j.suggestions || []).length}.</span>`;
+        $("toEdit").style.cssText = "margin-top:8px";
+        $("toEdit").href = `/editor?id=${job.id}`;
+        $("toEditHint").textContent = "Обкладинку можна міняти й потім — вона збережеться.";
+        refresh();
+        return;
+      }
+      if (j.status === "error") {
+        notify("Не вдалося підготувати відео.");
+        return buddyUi.set("prepare", 0, "Помилка: " + j.message);
+      }
+      document.title = `(${Math.round((j.progress || 0) * 100)}%) Підготовка · ${titleBase}`;
+      buddyUi.set("prepare", j.progress || 0, `${j.message || "Підготовка"} · ${Math.round((j.progress || 0) * 100)}%. Тим часом налаштуйте обкладинку.`);
+      setTimeout(follow, 2000);
+    }
+
+    // ---- Step 2: cover. Every change is saved and the preview redrawn. ----
+    function form() {
+      return {
         kind: document.querySelector("[name=kind]:checked").value,
         title: $("title").value.trim(),
         label: $("label").value.trim(),
         julia: document.querySelector("[name=julia]:checked")?.value,
         color: +(document.querySelector("[name=color]:checked")?.value || 0),
-        fileName: video.name,
       };
-      const guests = [...$("guest").files];
-      if (form.kind === "int" && guests.length > 3) {
-        $("upmsg").textContent = "На обкладинку поміщається не більше трьох гостей.";
-        return;
-      }
-      $("go").disabled = true;
-      $("upbar").hidden = false;
-      try {
-        const job = await (await fetch("/api/jobs", { method: "POST", body: JSON.stringify(form) })).json();
-        if (form.kind === "int") for (const [i, file] of guests.entries()) await upload(job.id, ["guest", "guest2", "guest3"][i], file, () => {});
-        await upload(job.id, "video", video, (p) => {
-          $("upbar").firstElementChild.style.width = p * 100 + "%";
-          $("upmsg").textContent = `Завантажено ${Math.round(p * 100)}% з ${(video.size / 1e9).toFixed(2)} ГБ`;
-        });
-        await fetch(`/api/jobs/${job.id}/prepare`, { method: "POST" });
-        $("new").reset();
-        syncKind();
-        $("upmsg").textContent = "Готово. Відео готується до монтажу, це кілька хвилин.";
-        refresh();
-      } catch (e) {
-        $("upmsg").textContent = "Помилка: " + e.message + ". Спробуйте ще раз — завантаження продовжиться з місця зупинки.";
-      } finally {
-        $("go").disabled = false;
-      }
+    }
+    function syncKind() {
+      const kind = form().kind;
+      $("peopleStep").hidden = kind !== "int";
+      $("colorStep").hidden = kind === "teor";
+      $("label").placeholder = LABELS[kind];
+      renderPeople();
+    }
+    function renderPeople() {
+      $("people").innerHTML = guests.map((g, i) => `<div class="person"><img src="${g.url}" alt=""><button class="ghost" data-rm="${i}" title="Прибрати">×</button></div>`).join("") +
+        (guests.length < 3 ? `<label class="addp" for="guestFile">+ Додати<br>фото</label>` : "");
+    }
+    $("people").addEventListener("click", async (e) => {
+      const i = e.target.closest("[data-rm]")?.dataset.rm;
+      if (i == null) return;
+      guests.splice(+i, 1);
+      // Slots on the server follow the order on screen.
+      for (const n of ["guest", "guest2", "guest3"]) await fetch(`/api/jobs/${job.id}/upload?name=${n}`, { method: "DELETE" });
+      for (const [k, g] of guests.entries()) await upload(job.id, ["guest", "guest2", "guest3"][k], g.file);
+      renderPeople();
+      changed();
+    });
+    $("guestFile").addEventListener("change", async () => {
+      const file = $("guestFile").files[0];
+      $("guestFile").value = "";
+      if (!file || !job) return;
+      guests.push({ file, url: URL.createObjectURL(file) });
+      renderPeople();
+      await upload(job.id, ["guest", "guest2", "guest3"][guests.length - 1], file);
+      changed();
     });
 
+    let previewTimer, previewRun = 0;
+    function changed() {
+      if (!job) return;
+      clearTimeout(previewTimer);
+      previewTimer = setTimeout(async () => {
+        const run = ++previewRun, f = form();
+        await fetch(`/api/jobs/${job.id}/form`, { method: "PUT", body: JSON.stringify(f) });
+        if (!f.title || (f.kind === "int" && !guests.length)) {
+          $("prevMsg").textContent = !f.title ? "Введіть заголовок." : "Додайте фото гостя.";
+          return;
+        }
+        $("prev").classList.add("loading");
+        $("prevMsg").textContent = "Малюю обкладинку…";
+        const r = await (await fetch(`/api/jobs/${job.id}/preview`, { method: "POST" })).json();
+        if (run !== previewRun) return;
+        $("prev").classList.remove("loading");
+        $("prevMsg").textContent = r.error ? "Не вдалося: " + r.error : "";
+        if (!r.error) $("prev").innerHTML = `<img src="/files/${job.id}/preview.jpg?${Date.now()}" alt="" style="width:100%;height:100%;object-fit:cover">`;
+      }, 700);
+    }
+    $("kind").addEventListener("change", () => { syncKind(); changed(); });
+    ["title", "label"].forEach((x) => $(x).addEventListener("input", changed));
+    $("color").addEventListener("change", changed);
+    $("julia").addEventListener("change", changed);
+
+    // ---- All videos. ----
     async function refresh() {
       const jobs = await (await fetch("/api/jobs")).json();
       $("jobs").innerHTML = jobs.map((j) => {
         const busy = ["preparing", "rendering"].includes(j.status);
-        const stamp = j.renderedAt || "";
         return `<div class="job">
-          <div class="thumb">${j.status === "done" ? `<img src="/files/${j.id}/cover.jpg?${stamp}" alt="">` : esc(j.form?.title)}</div>
+          <div class="thumb">${j.status === "done" ? `<img src="/files/${j.id}/cover.jpg?${j.renderedAt || ""}" alt="">` : esc(j.form?.title)}</div>
           <div class="body">
             <b>${esc(j.form?.title)}</b>
             <span class="hint">${esc(j.fileName)}</span>
             <span class="status ${j.status === "error" ? "error" : ""}">${STATUS[j.status] || esc(j.status)}${j.message ? " · " + esc(j.message) : ""}${busy ? ` · ${Math.round((j.progress || 0) * 100)}%` : ""}</span>
             ${busy ? `<div class="bar"><i style="width:${(j.progress || 0) * 100}%"></i></div>` : ""}
             <div class="actions">
-              ${["ready", "done", "error"].includes(j.status) && j.source ? `<a class="btn pink" href="/editor?id=${j.id}">Редагувати</a>` : ""}
+              ${["ready", "done", "error"].includes(j.status) && j.source ? `<a class="btn pink" href="/editor?id=${j.id}">Монтаж</a>` : ""}
               ${j.status === "done" ? `<a class="btn ghost" href="/files/${j.id}/final.mp4?dl">Відео</a><a class="btn ghost" href="/files/${j.id}/cover.jpg?dl">Обкладинка</a>` : ""}
             </div>
           </div>
         </div>`;
       }).join("") || `<p class="hint">Поки що порожньо.</p>`;
-      if (jobs.some((j) => ["preparing", "rendering"].includes(j.status))) setTimeout(refresh, 2000);
+      if (jobs.some((j) => ["preparing", "rendering"].includes(j.status))) setTimeout(refresh, 3000);
     }
     refresh();
 
     // The Mac app works without a password; the website offers the app for download.
-    const info = await (await fetch("/api/info")).json();
     $("logout").hidden = info.local;
     $("reveal").hidden = !info.local;
     $("getApp").hidden = !info.app;

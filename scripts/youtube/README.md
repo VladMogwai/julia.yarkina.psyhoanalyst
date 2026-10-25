@@ -20,7 +20,7 @@ Git-ignored (the repo is public): `client_secret.json`, `token.json`, `covers/` 
 1. Tools, all free: Google Chrome, Node, and
 
    ```bash
-   brew install ffmpeg fluid-synth
+   brew install ffmpeg fluid-synth whisper-cpp
    ```
 
 2. Julia's photos in `assets/julia/` as `6.jpg`, `7.jpg`, `8.jpg`, `10.jpg`, `11.jpg`, with the background already
@@ -36,14 +36,25 @@ Git-ignored (the repo is public): `client_secret.json`, `token.json`, `covers/` 
    curl -L https://raw.githubusercontent.com/mrbumpy409/GeneralUser-GS/main/GeneralUser-GS.sf2 -o scripts/youtube/assets/GeneralUser-GS.sf2
    ```
 
-4. For uploads only: `client_secret.json` from Google Cloud project `yarkina-youtube` (OAuth client "Desktop app").
+4. Speech recognition for the studio (text of the conversation, "е-е" detection, subtitles): the whisper model, 574 MB.
+   Without it the studio still works, only without text.
+
+   ```bash
+   mkdir -p scripts/youtube/assets/whisper && curl -L https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo-q5_0.bin -o scripts/youtube/assets/whisper/ggml-large-v3-turbo-q5_0.bin
+   ```
+
+5. For uploads only: `client_secret.json` from Google Cloud project `yarkina-youtube` (OAuth client "Desktop app").
    The first upload opens Google sign-in: choose Yulyayarkina@gmail.com, then "Continue" on the "unverified app" screen.
 
 ## Studio (website)
 
-Upload the original video, a title and a guest photo; the studio suggests long pauses as cuts, you adjust them on the
-waveform (drag to add a cut, drag the edges, `I`/`O` to mark, `Del` to remove, "preview without cuts" plays the result),
-then "Змонтувати" gives the video with the intro in front and the cover. Everything runs on this Mac:
+Upload the original video; while it uploads and is prepared, choose the cover (type, guests' photos, title, colour) with a
+live preview. Preparation makes a light copy, timeline frames, finds pauses, and transcribes the speech with whisper.cpp
+(DTW word timings); "е-е" / "м-м" that whisper leaves out are found as sound without words and confirmed by hearing each
+piece again. The editor works like a phone video app: a fixed playhead over a strip of frames and sound, split, tap a clip
+and delete it or drag its edges, one-tap "remove all slips / pauses", the conversation text (click a word to go there,
+select a phrase to cut it), undo. "Змонтувати" gives the video with the intro in front, the cover and SRT subtitles. The
+Mac app shows a system notification when preparation or rendering finishes; the website a browser notification. Everything runs on this Mac:
 ffmpeg with the M1 hardware encoder, so an hour of video takes a few minutes.
 
 1. Add a password to `.env.local` (any long phrase): `STUDIO_PASSWORD=…`
@@ -88,8 +99,10 @@ Rebuild it after changing the studio or the generators (first run downloads ~210
 scripts/youtube/studio/app/build.sh
 ```
 
-The result, `studio/app/dist/Pro-Studio.zip`, is what the website hands out. The app has no paid Apple signature, so on first
-launch macOS needs "Open Anyway" in System Settings → Privacy & Security, as the download page explains.
+The result, `studio/app/dist/Pro-Studio.pkg`, is what the website hands out. Without a paid Apple Developer ID ($99 a year),
+macOS refuses an unsigned app downloaded by a browser ("damaged"), so the `/download` page gives a one-line Terminal command
+instead: it downloads the installer with `curl` (no "from the internet" mark) through a 24-hour token link, installs it with the
+Mac's password and opens the app.
 
 ## Cover and intro for a new video
 

@@ -10,6 +10,7 @@
   --card: #fff;
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 body { margin: 0; background: var(--cream); color: var(--ink); font: 500 15px/1.5 Manrope, system-ui, sans-serif; }
 a { color: var(--pink); }
 h1, h2 { font-family: Oswald, sans-serif; text-transform: uppercase; letter-spacing: .5px; margin: 0; }

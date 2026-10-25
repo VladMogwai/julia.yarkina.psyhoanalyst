@@ -17,7 +17,7 @@ xattr -dr com.apple.quarantine "$APP" 2>/dev/null
 if ! curl -s -o /dev/null "$URL/api/info"; then
   mkdir -p "$DATA"
   export PATH="$R/bin:$PATH" STUDIO_LOCAL=1 STUDIO_PORT=$PORT STUDIO_BIN="$R/bin" STUDIO_ASSETS="$R/assets" \
-    STUDIO_CHROME="$R/chrome/chrome-headless-shell" STUDIO_DATA="$DATA"
+    STUDIO_CHROME="$R/chrome/chrome-headless-shell" STUDIO_WHISPER="$R/bin/whisper-cli" STUDIO_DATA="$DATA"
   # caffeinate keeps the Mac awake while the studio runs, and ends with it.
   nohup caffeinate -is "$R/bin/node" "$R/app/scripts/youtube/studio/server.mjs" >>"$DATA/studio.log" 2>&1 &
   echo $! >"$DATA/studio.pid"

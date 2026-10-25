@@ -2,166 +2,520 @@
 <html lang="uk">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Монтаж · Pro психоаналіз</title>
   <link rel="stylesheet" href="/style.css">
+  <style>
+    /* A dark, full-height editor in the manner of mobile video apps: preview, time, timeline with a fixed playhead, tools. */
+    :root { --bg: #121214; --panel: #1c1c20; --line2: #2c2c32; --txt: #f2f2f2; --dim: #9a9aa3; }
+    html, body { height: 100%; }
+    body { background: var(--bg); color: var(--txt); display: flex; flex-direction: column; overflow: hidden; }
+    .top { display: flex; align-items: center; gap: 12px; padding: 10px 16px; }
+    .top a.back { color: var(--txt); text-decoration: none; font-size: 26px; line-height: 1; padding: 4px 8px; }
+    .top .title { flex: 1; min-width: 0; font: 700 18px Oswald; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .top .saved { color: var(--dim); font-size: 13px; white-space: nowrap; }
+    .top .help { background: transparent; border: 1px solid var(--line2); color: var(--txt); width: 36px; height: 36px; padding: 0; justify-content: center; }
+    .top .export { background: var(--pink); }
+
+    .stage { flex: 1; min-height: 0; display: flex; }
+    .viewer { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+    .screen { flex: 1; min-height: 120px; display: flex; align-items: center; justify-content: center; background: #000; position: relative; }
+    .screen video { max-width: 100%; max-height: 100%; display: block; }
+    .screen .bigplay { position: absolute; width: 64px; height: 64px; border-radius: 50%; background: rgba(0, 0, 0, .45); color: #fff; font-size: 26px; justify-content: center; padding: 0; }
+    .timebar { display: flex; align-items: center; gap: 12px; padding: 10px 16px; font: 700 15px Manrope; }
+    .timebar .play { width: 40px; height: 40px; border-radius: 50%; background: var(--txt); color: var(--bg); justify-content: center; padding: 0; font-size: 16px; }
+    .timebar .t { font-variant-numeric: tabular-nums; }
+    .timebar .t span { color: var(--dim); }
+    .timebar .grow { flex: 1; }
+    .timebar .zoom { background: transparent; border: 1px solid var(--line2); color: var(--txt); width: 34px; height: 34px; padding: 0; justify-content: center; }
+
+    .track { position: relative; height: 150px; touch-action: none; cursor: grab; user-select: none; }
+    .track:active { cursor: grabbing; }
+    .track canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .track .head { position: absolute; left: 50%; top: 16px; bottom: 26px; width: 2px; margin-left: -1px; background: #fff; border-radius: 2px; box-shadow: 0 0 6px rgba(0,0,0,.6); pointer-events: none; }
+    .track .head::before { content: ""; position: absolute; top: -5px; left: -5px; width: 12px; height: 12px; border-radius: 50%; background: #fff; }
+    .hintline { color: var(--dim); font-size: 13px; padding: 0 16px 6px; min-height: 1.4em; }
+
+    .tools { display: flex; gap: 4px; overflow-x: auto; padding: 8px 10px calc(10px + env(safe-area-inset-bottom)); background: var(--panel); border-top: 1px solid var(--line2); }
+    .tools button { flex: none; flex-direction: column; gap: 4px; min-width: 76px; padding: 8px 6px; border-radius: 12px; background: transparent; color: var(--txt); font: 700 12px Manrope; }
+    .tools button .i { font-size: 22px; line-height: 1; }
+    .tools button:hover:not(:disabled) { background: #26262c; }
+    .tools button.on { color: var(--pink); }
+    .tools button:disabled { opacity: .35; }
+    .tools .sep { width: 1px; background: var(--line2); margin: 6px 4px; flex: none; }
+
+    .drawer { width: 380px; flex: none; background: var(--panel); border-left: 1px solid var(--line2); display: flex; flex-direction: column; min-height: 0; }
+    .drawer .dh { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--line2); }
+    .drawer .dh b { flex: 1; font: 700 16px Oswald; text-transform: uppercase; }
+    .drawer .dh button { background: transparent; color: var(--txt); padding: 4px 8px; }
+    .drawer .body { flex: 1; overflow: auto; padding: 14px; font-size: 16px; line-height: 1.75; }
+    .drawer p { margin: 0 0 12px; }
+    .drawer .ts { display: block; font: 700 12px Manrope; color: var(--dim); }
+    .w { cursor: pointer; border-radius: 4px; padding: 1px; }
+    .w:hover { background: #2a2a30; }
+    .w.cur { background: rgba(232, 51, 109, .35); }
+    .w.fill { background: rgba(255, 196, 0, .22); color: #ffd860; font-weight: 700; padding: 1px 4px; }
+    .w.cut { color: #5d5d66; text-decoration: line-through; background: transparent; }
+    @media (max-width: 900px) {
+      .drawer { position: fixed; left: 0; right: 0; bottom: 0; width: auto; height: 55vh; border-left: 0; border-top: 1px solid var(--line2); border-radius: 16px 16px 0 0; z-index: 30; }
+    }
+
+    .banner { padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--line2); display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .banner .bar { flex: 1; min-width: 160px; background: var(--line2); margin: 0; }
+    .banner .btn { padding: 8px 12px; }
+    .banner .btn.ghost { color: var(--txt); border-color: var(--line2); }
+
+    #cutSel { position: fixed; z-index: 40; display: none; }
+    .pop { position: fixed; z-index: 40; background: #fff; color: var(--ink); border-radius: 12px; padding: 10px 12px; box-shadow: 0 8px 30px rgba(0,0,0,.4); font-size: 14px; display: none; }
+    .pop button { margin-top: 8px; }
+    #help { position: fixed; inset: 0; background: rgba(0, 0, 0, .6); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 16px; }
+    #help .card { max-width: 560px; margin: 0; color: var(--ink); }
+    #help ol { padding-left: 22px; line-height: 1.6; }
+    #help li { margin-bottom: 10px; }
+  </style>
 </head>
 <body>
-  <header>
-    <h1><a href="/" style="color:inherit;text-decoration:none"><b>Pro</b> психоаналіз</a> · <span id="name"></span></h1>
-    <div style="display:flex;gap:8px;align-items:center">
-      <span class="hint" id="saved"></span>
-      <button class="pink" id="render">Змонтувати</button>
-    </div>
-  </header>
-  <main class="editor">
-    <div class="card" id="done" hidden>
-      <b>Готово.</b>
-      <div class="tools"><a class="btn pink" id="dlVideo">Завантажити відео</a><a class="btn ghost" id="dlCover">Обкладинка</a><a class="btn ghost" id="watch" target="_blank">Переглянути</a></div>
-    </div>
-    <div class="card" id="busy" hidden><span id="busyMsg"></span><div class="bar"><i></i></div></div>
+  <div class="top">
+    <a class="back" href="/" title="Усі відео">‹</a>
+    <div class="title" id="name"></div>
+    <span class="saved" id="saved"></span>
+    <button class="help" id="helpBtn" title="Як це працює">?</button>
+    <button class="export" id="render">Змонтувати</button>
+  </div>
+  <div class="banner" id="busy" hidden><span id="busyMsg"></span><div class="bar"><i></i></div></div>
+  <div class="banner" id="done" hidden>
+    <b>Готово!</b>
+    <a class="btn pink" id="dlVideo">Завантажити відео</a><a class="btn ghost" id="dlCover">Обкладинка</a><a class="btn ghost" id="dlSrt">Субтитри</a><a class="btn ghost" id="watch" target="_blank">Переглянути</a>
+  </div>
 
-    <video id="v" playsinline preload="auto"></video>
-    <div id="wave"></div>
-    <div class="tools">
-      <button id="play">▶︎ <kbd>Пробіл</kbd></button>
-      <span class="time" id="time">0:00 / 0:00</span>
-      <button class="ghost" id="markIn">Початок вирізу <kbd>I</kbd></button>
-      <button class="ghost" id="markOut">Кінець вирізу <kbd>O</kbd></button>
-      <button class="ghost" id="del" disabled>Видалити виріз <kbd>Del</kbd></button>
-      <label class="hint" style="margin:0;display:flex;gap:6px;align-items:center"><input type="checkbox" id="skip" checked> Перегляд без вирізів</label>
-      <label class="hint" style="margin:0;display:flex;gap:6px;align-items:center">Масштаб <input type="range" id="zoom" min="2" max="300" value="20"></label>
-    </div>
-    <div class="card">
-      <h2>Вирізи</h2>
-      <p class="hint">Червоне буде вирізано. Довгі паузи знайдено автоматично. Нові вирізи: протягніть мишею по хвилі або <kbd>I</kbd>/<kbd>O</kbd> у потрібних місцях. Краї можна тягнути. <kbd>←</kbd>/<kbd>→</kbd> — 5 секунд.</p>
-      <div class="tools">
-        <span id="total" class="hint"></span>
-        <button class="ghost" id="clear">Прибрати всі вирізи</button>
-        <button class="ghost" id="restore">Повернути знайдені паузи</button>
+  <div class="stage">
+    <div class="viewer">
+      <div class="screen"><video id="v" playsinline preload="auto"></video><button class="bigplay" id="bigplay">▶</button></div>
+      <div class="timebar">
+        <button class="play" id="play" title="Пробіл">▶</button>
+        <span class="t" id="time"></span>
+        <span class="grow"></span>
+        <button class="zoom" id="zoomOut" title="Віддалити">−</button>
+        <button class="zoom" id="zoomIn" title="Наблизити">+</button>
       </div>
-      <div class="cuts" id="list"></div>
+      <div class="track" id="track"><canvas id="tl"></canvas><div class="head"></div></div>
+      <div class="hintline" id="hint"></div>
+      <div class="tools">
+        <button id="split" title="S"><span class="i">✂️</span><span>Розрізати</span></button>
+        <button id="del" title="Delete" disabled><span class="i">🗑</span><span>Видалити</span></button>
+        <span class="sep"></span>
+        <button id="slips"><span class="i">🤐</span><span>Прибрати «е-е»</span></button>
+        <button id="pauses"><span class="i">⏩</span><span>Прибрати паузи</span></button>
+        <button id="textBtn"><span class="i">💬</span><span>Текст</span></button>
+        <span class="sep"></span>
+        <button id="undo" disabled title="⌘Z"><span class="i">↶</span><span>Скасувати</span></button>
+        <button id="redo" disabled title="⌘⇧Z"><span class="i">↷</span><span>Повторити</span></button>
+      </div>
     </div>
-  </main>
+    <aside class="drawer" id="drawer" hidden>
+      <div class="dh"><b>Текст розмови</b><button id="closeText" title="Закрити">✕</button></div>
+      <div class="body" id="text"></div>
+    </aside>
+  </div>
+
+  <button class="pink" id="cutSel">✂ Вирізати виділене</button>
+  <div class="pop" id="pop"><span id="popText"></span><br><button class="pink" id="popRestore">↩ Повернути</button></div>
+
+  <div id="help" hidden>
+    <div class="card">
+      <h2>Як монтувати</h2>
+      <ol>
+        <li><b>Гортайте стрічку</b> під відео пальцем, мишею чи коліщатком — біла лінія показує, де ви. «+» і «−» змінюють масштаб.</li>
+        <li><b>Розріжте й видаліть.</b> «Розрізати» ріже під білою лінією. Торкніться шматка — він виділиться рамкою, «Видалити» прибере його. Краї рамки можна тягнути, щоб підрізати.</li>
+        <li><b>Автоматично:</b> «Прибрати «е-е»» і «Прибрати паузи» вирізають усе знайдене одним натиском. «Текст» — уся розмова: клацніть слово, щоб перейти, виділіть фразу, щоб вирізати.</li>
+        <li><b>Готово?</b> «Змонтувати» дасть відео з інтро, обкладинку й субтитри. Місця вирізів позначені ✂ під стрічкою — торкніться, щоб повернути. Помилилися — «Скасувати».</li>
+      </ol>
+      <button class="pink" id="helpOk">Зрозуміло</button>
+    </div>
+  </div>
 
   <script type="module">
-    import WaveSurfer from "https://unpkg.com/wavesurfer.js@7.8.6/dist/wavesurfer.esm.js";
-    import Regions from "https://unpkg.com/wavesurfer.js@7.8.6/dist/plugins/regions.esm.js";
-    import Timeline from "https://unpkg.com/wavesurfer.js@7.8.6/dist/plugins/timeline.esm.js";
-
     const $ = (id) => document.getElementById(id);
     const id = new URLSearchParams(location.search).get("id");
     const fmt = (t) => {
-      t = Math.round(t * 10) / 10; // round first, so 59.96 s shows as 1:00.0, not 0:60.0
-      const h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), s = (t % 60).toFixed(1).padStart(4, "0");
+      t = Math.max(0, Math.floor(t));
+      const h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), s = String(t % 60).padStart(2, "0");
       return (h ? h + ":" + String(m).padStart(2, "0") : m) + ":" + s;
     };
-    const CUT = "rgba(232, 51, 109, 0.32)", SEL = "rgba(232, 51, 109, 0.6)";
+    const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 
     let job = await (await fetch(`/api/jobs/${id}`)).json();
+    const info = await (await fetch("/api/info")).json();
+    const D = job.source.duration;
     $("name").textContent = job.form?.title || "";
-    const peaks = await (await fetch(`/files/${id}/peaks.json`)).json();
+    const [peaks, words] = await Promise.all([
+      fetch(`/files/${id}/peaks.json`).then((r) => r.json()),
+      job.transcript ? fetch(`/files/${id}/transcript.json`).then((r) => r.json()) : Promise.resolve([]),
+    ]);
+    const thumbs = job.thumbs ? Object.assign(new Image(), { src: `/files/${id}/thumbs.jpg` }) : null;
     const video = $("v");
     video.src = `/files/${id}/proxy.mp4`;
+    const sugSlips = words.filter((x) => x.f).map((x) => [x.t0, x.t1]);
+    const sugPauses = job.suggestions || [];
+    $("slips").hidden = !sugSlips.length;
+    $("pauses").hidden = !sugPauses.length;
+    $("textBtn").hidden = !words.length;
 
-    const regions = Regions.create();
-    const ws = WaveSurfer.create({
-      container: "#wave", media: video, peaks: [peaks], duration: job.source.duration,
-      height: 110, waveColor: "#16224A", progressColor: "#2F5BEA", cursorColor: "#E8336D", cursorWidth: 2,
-      minPxPerSec: 20, normalize: true, plugins: [regions, Timeline.create({ height: 18, style: { fontSize: "11px", color: "#6b6762" } })],
-    });
-    regions.enableDragSelection({ color: CUT });
-
-    let selected = null;
-    const cuts = () => regions.getRegions().map((r) => [+r.start.toFixed(2), +r.end.toFixed(2)]).sort((a, b) => a[0] - b[0]);
-    function add([start, end]) {
-      return regions.addRegion({ start, end, color: CUT, drag: false, resize: true });
+    // ---- Edit state in source seconds: cuts (removed) and splits (scissor marks), with undo. ----
+    let cuts = [], splits = [], sel = null; // sel: index of the selected clip
+    const past = [], future = [];
+    const normalize = (list) => {
+      const s = list.map(([a, b]) => [Math.max(0, Math.min(a, b)), Math.min(D, Math.max(a, b))]).filter(([a, b]) => b - a >= 0.05).sort((x, y) => x[0] - y[0]);
+      const out = [];
+      for (const [a, b] of s) {
+        const last = out[out.length - 1];
+        if (last && a <= last[1] + 0.02) last[1] = Math.max(last[1], b);
+        else out.push([a, b]);
+      }
+      return out.map(([a, b]) => [+a.toFixed(2), +b.toFixed(2)]);
+    };
+    const subtract = (list, [a, b]) => list.flatMap(([x, y]) => (b <= x || a >= y ? [[x, y]] : [[x, a], [b, y]].filter(([p, q]) => q - p > 0.01)));
+    const cutAt = (t) => cuts.find(([a, b]) => t >= a && t < b);
+    const isCut = (a, b) => !!cutAt((a + b) / 2);
+    function commit(nextCuts, nextSplits = splits) {
+      past.push({ cuts, splits });
+      future.length = 0;
+      apply(normalize(nextCuts), nextSplits);
     }
-    function select(r) {
-      if (selected) selected.setOptions({ color: CUT });
-      selected = r;
-      if (r) r.setOptions({ color: SEL });
-      $("del").disabled = !r;
-      renderList();
+    function apply(c, s) {
+      cuts = c;
+      splits = [...new Set(s.map((t) => +t.toFixed(2)))].filter((t) => !cutAt(t) && t > 0.05 && t < D - 0.05).sort((a, b) => a - b);
+      sel = null;
+      layout();
+      changed();
     }
+    const undo = () => { if (past.length) { future.push({ cuts, splits }); const p = past.pop(); apply(p.cuts, p.splits); } };
+    const redo = () => { if (future.length) { past.push({ cuts, splits }); const f = future.pop(); apply(f.cuts, f.splits); } };
 
+    // ---- What is kept, laid out as clips on the output timeline. ----
+    let clips = [], outD = D; // [{ a, b, o }]: source start and end, o = start on the output timeline
+    function layout() {
+      const kept = [];
+      let t = 0;
+      for (const [a, b] of cuts) { if (a > t) kept.push([t, a]); t = b; }
+      if (t < D) kept.push([t, D]);
+      clips = [];
+      let o = 0;
+      for (const [a, b] of kept) {
+        const marks = [a, ...splits.filter((s) => s > a && s < b), b];
+        for (let i = 0; i < marks.length - 1; i++) { clips.push({ a: marks[i], b: marks[i + 1], o }); o += marks[i + 1] - marks[i]; }
+      }
+      outD = o;
+    }
+    const len = (c) => c.b - c.a;
+    const toSource = (T) => {
+      for (const c of clips) if (T < c.o + len(c)) return c.a + Math.max(0, T - c.o);
+      return clips.length ? clips[clips.length - 1].b : 0;
+    };
+    const toOutput = (s) => {
+      for (const c of clips) if (s < c.b) return c.o + Math.max(0, s - c.a);
+      return outD;
+    };
+
+    // ---- Saving. ----
     let saveTimer;
     function changed() {
-      renderList();
+      $("undo").disabled = !past.length;
+      $("redo").disabled = !future.length;
       $("saved").textContent = "Зберігаю…";
       clearTimeout(saveTimer);
-      saveTimer = setTimeout(async () => {
-        await fetch(`/api/jobs/${id}/cuts`, { method: "PUT", body: JSON.stringify(cuts()) });
-        $("saved").textContent = "Збережено";
-      }, 600);
+      saveTimer = setTimeout(save, 500);
+      const openSlips = sugSlips.filter(([a, b]) => !isCut(a, b)).length, openPauses = sugPauses.filter(([a, b]) => !isCut(a, b)).length;
+      $("slips").lastChild.textContent = openSlips ? `Прибрати «е-е» (${openSlips})` : "«е-е» прибрано";
+      $("pauses").lastChild.textContent = openPauses ? `Прибрати паузи (${openPauses})` : "Паузи прибрано";
+      $("slips").disabled = !openSlips;
+      $("pauses").disabled = !openPauses;
+      markWords();
+      draw();
     }
-    function renderList() {
-      const list = cuts();
-      const removed = list.reduce((s, [a, b]) => s + b - a, 0);
-      $("total").textContent = `${list.length} вирізів, ${fmt(removed)} з ${fmt(job.source.duration)} · після монтажу ≈ ${fmt(job.source.duration - removed + 5)} з інтро`;
-      $("list").innerHTML = list.map(([a, b]) => `<div data-a="${a}" class="${selected && Math.abs(selected.start - a) < 0.01 ? "sel" : ""}"><span>${fmt(a)} → ${fmt(b)}</span><span class="hint">${(b - a).toFixed(1)} с</span></div>`).join("");
+    async function save() {
+      await fetch(`/api/jobs/${id}/cuts`, { method: "PUT", body: JSON.stringify({ cuts, splits }) });
+      $("saved").textContent = `Збережено · ${fmt(outD + 5)} з інтро`;
     }
 
-    ws.on("ready", () => {
-      (job.cuts || []).forEach(add);
-      regions.on("region-created", (r) => { r.setOptions({ color: CUT }); select(r); changed(); });
-      regions.on("region-updated", changed);
-      regions.on("region-clicked", (r, e) => { e.stopPropagation(); select(r); video.currentTime = Math.max(0, r.start - 2); });
-      renderList();
-    });
-    $("zoom").addEventListener("input", (e) => ws.zoom(+e.target.value));
+    // ---- Timeline: a fixed playhead in the middle; frames and sound move under it. ----
+    let T = 0, pps = 40; // output time under the playhead; pixels per second
+    const cv = $("tl"), track = $("track");
+    const Y_TH = 18, H_TH = 64, Y_WV = Y_TH + H_TH + 4, H_WV = 30, H_CLIP = H_TH + 4 + H_WV;
+    const clipX = (c) => track.clientWidth / 2 + (c.o - T) * pps;
+    function draw() {
+      const r = devicePixelRatio || 1, W = track.clientWidth, H = track.clientHeight;
+      if (cv.width !== Math.round(W * r) || cv.height !== Math.round(H * r)) { cv.width = Math.round(W * r); cv.height = Math.round(H * r); }
+      const c = cv.getContext("2d");
+      c.setTransform(r, 0, 0, r, 0, 0);
+      c.clearRect(0, 0, W, H);
+      const x0 = W / 2 - T * pps;
+      // Ruler.
+      c.fillStyle = "#6b6b74"; c.font = "11px Manrope";
+      const step = [1, 2, 5, 10, 30, 60, 120, 300, 600].find((s) => s * pps >= 70) || 600;
+      for (let s = Math.max(0, Math.floor((T - W / 2 / pps) / step) * step); s <= Math.min(outD, T + W / 2 / pps); s += step) {
+        const x = x0 + s * pps;
+        c.fillRect(x, 2, 1, 6);
+        c.fillText(fmt(s), x + 3, 11);
+      }
+      const tw = H_TH * 16 / 9;
+      clips.forEach((cl, i) => {
+        const left = x0 + cl.o * pps, w = len(cl) * pps;
+        if (left > W || left + w < 0) return;
+        c.save();
+        c.beginPath();
+        c.roundRect(left + 1, Y_TH, Math.max(1, w - 2), H_CLIP, 8);
+        c.clip();
+        c.fillStyle = "#26262c";
+        c.fillRect(left, Y_TH, w, H_CLIP);
+        if (thumbs?.complete && job.thumbs) {
+          const { every, cols, w: sw, h: sh, count } = job.thumbs;
+          for (let x = left + Math.max(0, Math.floor(-left / tw)) * tw; x < Math.min(W, left + w); x += tw) {
+            const s = cl.a + (x - left + tw / 2) / pps;
+            const k = Math.min(count - 1, Math.max(0, Math.floor(s / every)));
+            c.drawImage(thumbs, (k % cols) * sw, Math.floor(k / cols) * sh, sw, sh, x, Y_TH, tw, H_TH);
+          }
+        }
+        c.fillStyle = "#7a8cff";
+        for (let x = Math.max(left, 0); x < Math.min(W, left + w); x += 2) {
+          const h = Math.max(1, (peaks[Math.floor((cl.a + (x - left) / pps) * 100)] || 0) * H_WV);
+          c.fillRect(x, Y_WV + (H_WV - h) / 2, 1.5, h);
+        }
+        // Slips and pauses still in: yellow along the bottom of the clip.
+        c.fillStyle = "#ffc400";
+        for (const [a, b] of [...sugSlips, ...sugPauses]) {
+          if (b <= cl.a || a >= cl.b || isCut(a, b)) continue;
+          c.fillRect(left + (Math.max(a, cl.a) - cl.a) * pps, Y_TH + H_CLIP - 4, Math.max(2, (Math.min(b, cl.b) - Math.max(a, cl.a)) * pps), 4);
+        }
+        c.restore();
+        if (i === sel) {
+          c.strokeStyle = "#fff"; c.lineWidth = 3;
+          c.beginPath(); c.roundRect(left + 1, Y_TH - 1, w - 2, H_CLIP + 2, 8); c.stroke();
+          c.fillStyle = "#fff";
+          c.beginPath(); c.roundRect(left - 7, Y_TH + 22, 12, 52, 4); c.roundRect(left + w - 5, Y_TH + 22, 12, 52, 4); c.fill();
+          c.fillStyle = "#121214"; c.fillRect(left - 2, Y_TH + 38, 2, 20); c.fillRect(left + w, Y_TH + 38, 2, 20);
+        }
+      });
+      // Joins where something was cut: a red line and scissors under the strip.
+      c.font = "14px sans-serif"; c.textAlign = "center";
+      for (const cut of cuts) {
+        const x = x0 + toOutput(cut[0]) * pps;
+        if (x < -10 || x > W + 10) continue;
+        c.fillStyle = "#E8336D"; c.fillRect(x - 1, Y_TH - 3, 2, H_CLIP + 6);
+        c.fillText("✂", x, Y_TH + H_CLIP + 18);
+      }
+      c.textAlign = "start";
+      $("time").innerHTML = `${fmt(T)} <span>/ ${fmt(outD)}</span>`;
+      $("hint").textContent = sel != null
+        ? `Шматок ${fmt(clips[sel].o)}–${fmt(clips[sel].o + len(clips[sel]))} (${len(clips[sel]).toFixed(1)} с): «Видалити» або тягніть краї рамки`
+        : video.paused ? "Гортайте стрічку; «Розрізати» ріже під білою лінією; торкніться шматка, щоб виділити" : "";
+      $("del").disabled = sel == null;
+    }
+    addEventListener("resize", draw);
+    if (thumbs) thumbs.onload = draw;
 
-    // Preview without cuts: playback jumps over every red region.
-    video.addEventListener("timeupdate", () => {
-      $("time").textContent = `${fmt(video.currentTime)} / ${fmt(job.source.duration)}`;
-      if (!$("skip").checked || video.paused) return;
-      const r = regions.getRegions().find((r) => video.currentTime >= r.start && video.currentTime < r.end - 0.05);
-      if (r) video.currentTime = r.end;
+    // Drag scrubs; a tap selects the clip under it; the handles of a selected clip trim it.
+    let drag = null;
+    track.addEventListener("pointerdown", (e) => {
+      track.setPointerCapture(e.pointerId);
+      const cl = sel != null ? clips[sel] : null;
+      let handle = null;
+      if (cl && e.offsetY > Y_TH && e.offsetY < Y_TH + H_CLIP) {
+        const left = clipX(cl), right = left + len(cl) * pps;
+        if (Math.abs(e.offsetX - left) < 14) handle = "a";
+        else if (Math.abs(e.offsetX - right) < 14) handle = "b";
+      }
+      drag = { x0: e.offsetX, T0: T, moved: false, handle, clip: cl && { ...cl }, dx: 0 };
+      video.pause();
     });
+    track.addEventListener("pointermove", (e) => {
+      if (!drag) return;
+      drag.dx = e.offsetX - drag.x0;
+      if (Math.abs(drag.dx) > 3) drag.moved = true;
+      if (drag.handle) return drawTrim();
+      seekOutput(Math.min(outD, Math.max(0, drag.T0 - drag.dx / pps)));
+    });
+    track.addEventListener("pointerup", (e) => {
+      if (!drag) return;
+      const d = drag;
+      drag = null;
+      if (d.handle && d.moved) return trim(d.clip, d.handle, d.dx / pps);
+      if (d.moved) return;
+      if (e.offsetY > Y_TH + H_CLIP) {
+        const near = cuts.find((cut) => Math.abs(track.clientWidth / 2 + (toOutput(cut[0]) - T) * pps - e.offsetX) < 14);
+        if (near) return askRestore(near, e.clientX, e.clientY);
+      }
+      const t = T + (e.offsetX - track.clientWidth / 2) / pps;
+      const k = clips.findIndex((c) => t >= c.o && t < c.o + len(c));
+      sel = k === sel || k < 0 || e.offsetY < Y_TH || e.offsetY > Y_TH + H_CLIP ? null : k;
+      draw();
+    });
+    function drawTrim() {
+      draw();
+      const c = cv.getContext("2d"), cl = drag.clip, left = clipX(cl), x = drag.handle === "a" ? left : left + len(cl) * pps;
+      c.fillStyle = "rgba(232, 51, 109, .5)";
+      c.fillRect(Math.min(x, x + drag.dx), Y_TH, Math.abs(drag.dx), H_CLIP);
+    }
+    /** Moving an edge inward cuts that part; moving it outward brings back what was cut there. */
+    function trim(cl, edge, ds) {
+      if (edge === "a") {
+        const a2 = Math.min(cl.b - 0.1, Math.max(0, cl.a + ds));
+        commit(a2 > cl.a ? [...cuts, [cl.a, a2]] : subtract(cuts, [a2, cl.a]));
+      } else {
+        const b2 = Math.max(cl.a + 0.1, Math.min(D, cl.b + ds));
+        commit(b2 < cl.b ? [...cuts, [b2, cl.b]] : subtract(cuts, [cl.b, b2]));
+      }
+    }
+    track.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      if (e.ctrlKey || e.metaKey) return setZoom(pps * Math.exp(-e.deltaY / 200)); // trackpad pinch
+      video.pause();
+      seekOutput(Math.min(outD, Math.max(0, T + (Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY) / pps)));
+    }, { passive: false });
+    const setZoom = (z) => { pps = Math.max(1, Math.min(400, z)); draw(); };
+    $("zoomIn").addEventListener("click", () => setZoom(pps * 1.6));
+    $("zoomOut").addEventListener("click", () => setZoom(pps / 1.6));
+
+    function askRestore(cut, x, y) {
+      const p = $("pop");
+      $("popText").textContent = `Тут вирізано ${(cut[1] - cut[0]).toFixed(1)} с`;
+      p.style.display = "block";
+      p.style.left = Math.max(8, Math.min(innerWidth - 200, x - 60)) + "px";
+      p.style.top = Math.max(8, y - 110) + "px";
+      $("popRestore").onclick = () => { p.style.display = "none"; commit(cuts.filter((c) => c !== cut)); };
+    }
+    document.addEventListener("pointerdown", (e) => { if (!e.target.closest("#pop, #track")) $("pop").style.display = "none"; });
+
+    // ---- Player: plays the source and jumps over every cut, so it shows the result. ----
+    function seekOutput(t) {
+      T = t;
+      video.currentTime = toSource(t);
+      draw();
+      highlightWord(video.currentTime);
+    }
     const toggle = () => (video.paused ? video.play() : video.pause());
-    video.addEventListener("play", () => ($("play").firstChild.textContent = "❚❚ "));
-    video.addEventListener("pause", () => ($("play").firstChild.textContent = "▶︎ "));
-    $("play").addEventListener("click", toggle);
+    ["play", "bigplay"].forEach((b) => $(b).addEventListener("click", toggle));
+    video.addEventListener("click", toggle);
+    video.addEventListener("play", () => { $("play").textContent = "❚❚"; $("bigplay").hidden = true; sel = null; requestAnimationFrame(loop); });
+    video.addEventListener("pause", () => { $("play").textContent = "▶"; $("bigplay").hidden = false; draw(); });
+    function loop() {
+      if (video.paused) return;
+      const s = video.currentTime, c = cutAt(s);
+      if (c) video.currentTime = Math.min(D, c[1] + 0.01);
+      else T = toOutput(s);
+      if (T >= outD - 0.05) video.pause();
+      draw();
+      highlightWord(s);
+      requestAnimationFrame(loop);
+    }
 
-    let markIn = null;
-    const doIn = () => { markIn = video.currentTime; $("markIn").textContent = `Початок: ${fmt(markIn)}`; };
-    const doOut = () => {
-      if (markIn == null || video.currentTime <= markIn) return;
-      select(add([markIn, video.currentTime]));
-      markIn = null;
-      $("markIn").innerHTML = "Початок вирізу <kbd>I</kbd>";
-      changed();
-    };
-    const doDel = () => { if (!selected) return; selected.remove(); selected = null; $("del").disabled = true; changed(); };
-    $("markIn").addEventListener("click", doIn);
-    $("markOut").addEventListener("click", doOut);
-    $("del").addEventListener("click", doDel);
-    $("list").addEventListener("click", (e) => {
-      const row = e.target.closest("[data-a]");
-      if (!row) return;
-      const r = regions.getRegions().find((r) => Math.abs(r.start - +row.dataset.a) < 0.01);
-      select(r);
-      video.currentTime = Math.max(0, r.start - 2);
+    // ---- Tools. ----
+    $("split").addEventListener("click", () => {
+      const s = toSource(T);
+      if (clips.some((c) => Math.abs(c.a - s) < 0.1 || Math.abs(c.b - s) < 0.1)) return;
+      commit(cuts, [...splits, s]);
+      sel = clips.findIndex((c) => s >= c.a && s < c.b);
+      draw();
     });
-    $("clear").addEventListener("click", () => { if (confirm("Прибрати всі вирізи?")) { regions.clearRegions(); select(null); changed(); } });
-    $("restore").addEventListener("click", () => {
-      const have = cuts();
-      (job.suggestions || []).filter(([a]) => !have.some(([x, y]) => a >= x && a < y)).forEach(add);
-      changed();
+    $("del").addEventListener("click", () => {
+      if (sel == null) return;
+      const cl = clips[sel];
+      commit([...cuts, [cl.a, cl.b]]);
+      seekOutput(Math.min(cl.o, outD));
     });
+    $("slips").addEventListener("click", () => commit([...cuts, ...sugSlips]));
+    $("pauses").addEventListener("click", () => commit([...cuts, ...sugPauses]));
+    $("undo").addEventListener("click", undo);
+    $("redo").addEventListener("click", redo);
+    const showText = (on) => { $("drawer").hidden = !on; $("textBtn").classList.toggle("on", on); requestAnimationFrame(draw); };
+    $("textBtn").addEventListener("click", () => showText($("drawer").hidden));
+    $("closeText").addEventListener("click", () => showText(false));
     document.addEventListener("keydown", (e) => {
-      if (e.target.matches("input")) return;
+      if (e.target.matches("input, textarea")) return;
+      const mod = e.metaKey || e.ctrlKey;
+      if (mod && e.code === "KeyZ") { e.preventDefault(); return e.shiftKey ? redo() : undo(); }
+      if (mod) return;
       if (e.code === "Space") { e.preventDefault(); toggle(); }
-      else if (e.code === "KeyI") doIn();
-      else if (e.code === "KeyO") doOut();
-      else if (e.code === "Delete" || e.code === "Backspace") doDel();
-      else if (e.code === "ArrowLeft") video.currentTime = Math.max(0, video.currentTime - 5);
-      else if (e.code === "ArrowRight") video.currentTime += 5;
+      else if (e.code === "KeyS") $("split").click();
+      else if (e.code === "Delete" || e.code === "Backspace") { e.preventDefault(); $("del").click(); }
+      else if (e.code === "ArrowLeft") seekOutput(Math.max(0, T - 5));
+      else if (e.code === "ArrowRight") seekOutput(Math.min(outD, T + 5));
+      else if (e.code === "Escape") { sel = null; draw(); }
     });
 
-    // Rendering: start, then follow progress until the files are ready.
+    // ---- Text: every word with its time; click to go there, select a phrase to cut it. ----
+    if (words.length) {
+      let html = "", last = -Infinity;
+      words.forEach((x, i) => {
+        if (x.t0 - last > 1.5) html += `${html ? "</p>" : ""}<p><span class="ts">${fmt(x.t0)}</span>`;
+        html += `<span class="w${x.f ? " fill" : ""}" data-i="${i}">${esc(x.w)}</span> `;
+        last = x.t1;
+      });
+      $("text").innerHTML = html + "</p>";
+    }
+    function markWords() {
+      document.querySelectorAll(".w").forEach((el) => {
+        const x = words[+el.dataset.i];
+        el.classList.toggle("cut", isCut(x.t0, x.t1));
+      });
+    }
+    let lastWord = -1, textScrolledAt = 0;
+    $("text").addEventListener("wheel", () => (textScrolledAt = Date.now()), { passive: true });
+    function highlightWord(s) {
+      let lo = 0, hi = words.length - 1, i = -1;
+      while (lo <= hi) { const m = (lo + hi) >> 1; if (words[m].t0 <= s) { i = m; lo = m + 1; } else hi = m - 1; }
+      if (i === lastWord) return;
+      document.querySelector(".w.cur")?.classList.remove("cur");
+      const el = document.querySelector(`.w[data-i="${i}"]`);
+      el?.classList.add("cur");
+      if (el && !$("drawer").hidden && Date.now() - textScrolledAt > 4000) el.scrollIntoView({ block: "center", behavior: "smooth" });
+      lastWord = i;
+    }
+    $("text").addEventListener("click", (e) => {
+      const el = e.target.closest(".w");
+      if (!el || !getSelection().isCollapsed) return;
+      const x = words[+el.dataset.i];
+      if (x.f) return commit(isCut(x.t0, x.t1) ? subtract(cuts, [x.t0, x.t1]) : [...cuts, [x.t0, x.t1]]);
+      const c = cutAt(x.t0);
+      video.pause();
+      seekOutput(toOutput(c ? c[1] : x.t0));
+    });
+    function selectedWords() {
+      const s = getSelection();
+      if (s.isCollapsed || !s.rangeCount) return null;
+      const r = s.getRangeAt(0);
+      const els = [...document.querySelectorAll(".w")].filter((el) => r.intersectsNode(el));
+      return els.length ? [+els[0].dataset.i, +els[els.length - 1].dataset.i] : null;
+    }
+    document.addEventListener("selectionchange", () => {
+      const sw = selectedWords(), b = $("cutSel");
+      if (!sw) { b.style.display = "none"; return; }
+      const rect = getSelection().getRangeAt(0).getBoundingClientRect();
+      b.style.display = "inline-flex";
+      b.style.left = Math.max(8, Math.min(innerWidth - 220, rect.left)) + "px";
+      b.style.top = Math.max(8, rect.top - 52) + "px";
+    });
+    $("cutSel").addEventListener("mousedown", (e) => e.preventDefault());
+    $("cutSel").addEventListener("click", () => {
+      const r = selectedWords();
+      if (!r) return;
+      commit([...cuts, [words[r[0]].t0, words[r[1]].t1]]);
+      getSelection().removeAllRanges();
+      $("cutSel").style.display = "none";
+    });
+
+    // ---- Help on the first visit. ----
+    let seen = false;
+    try { seen = localStorage.getItem("studio-help-2") === "1"; } catch {}
+    $("help").hidden = seen;
+    $("helpOk").addEventListener("click", () => { $("help").hidden = true; try { localStorage.setItem("studio-help-2", "1"); } catch {} });
+    $("helpBtn").addEventListener("click", () => ($("help").hidden = false));
+
+    // ---- Export. The tab title shows progress; a notification comes when the tab is in the background. ----
+    const titleBase = document.title;
+    let wasBusy = false;
     function showState() {
-      const busy = job.status === "rendering";
+      const busy = job.status === "rendering" || job.status === "preparing";
       $("busy").hidden = !busy && job.status !== "error";
       $("busyMsg").textContent = busy ? `${job.message || "Монтаж"} · ${Math.round((job.progress || 0) * 100)}%` : job.status === "error" ? "Помилка: " + job.message : "";
       $("busy").querySelector("i").style.width = (job.progress || 0) * 100 + "%";
@@ -169,16 +523,31 @@
       $("done").hidden = job.status !== "done";
       $("dlVideo").href = `/files/${id}/final.mp4?dl`;
       $("dlCover").href = `/files/${id}/cover.jpg?dl`;
+      $("dlSrt").href = `/files/${id}/subtitles.srt`;
+      $("dlSrt").hidden = !job.transcript;
       $("watch").href = `/files/${id}/final.mp4?${job.renderedAt}`;
+      document.title = busy ? `(${Math.round((job.progress || 0) * 100)}%) ${job.message || "Монтаж"} · ${titleBase}` : job.status === "done" && wasBusy ? `✓ Готово · ${titleBase}` : titleBase;
+      if (wasBusy && !busy && !info.local && document.hidden && "Notification" in window && Notification.permission === "granted") {
+        new Notification("Pro Studio", { body: job.status === "done" ? `«${job.form?.title}» змонтовано.` : "Монтаж не вдався.", icon: "/julia/7.jpg" });
+      }
+      wasBusy = busy;
       if (busy) setTimeout(async () => { job = await (await fetch(`/api/jobs/${id}`)).json(); showState(); }, 2000);
     }
     $("render").addEventListener("click", async () => {
+      if (!info.local && "Notification" in window && Notification.permission === "default") Notification.requestPermission();
       clearTimeout(saveTimer);
-      await fetch(`/api/jobs/${id}/cuts`, { method: "PUT", body: JSON.stringify(cuts()) });
+      await save();
       await fetch(`/api/jobs/${id}/render`, { method: "POST" });
       job = await (await fetch(`/api/jobs/${id}`)).json();
       showState();
     });
+
+    cuts = normalize(job.cuts || []);
+    splits = job.splits || [];
+    layout();
+    pps = Math.max(4, Math.min(60, track.clientWidth / Math.min(outD, 60)));
+    changed();
+    $("saved").textContent = `${fmt(outD + 5)} з інтро`;
     showState();
   </script>
 </body>

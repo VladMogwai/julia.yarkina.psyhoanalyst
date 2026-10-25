@@ -8,11 +8,12 @@ import { createServer } from "node:http";
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { spawn, execFile as execFileCb } from "node:child_process";
 import { promisify } from "node:util";
-import { createReadStream, createWriteStream, existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import { createReadStream, createWriteStream, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { ASSETS, buildSpec, renderCover, renderIntro } from "../make/lib.mjs";
 import { SECONDS } from "../make/intro.mjs";
+import { canTranscribe, subtitles, transcribe } from "./transcribe.mjs";
 
 const execFile = promisify(execFileCb);
 const here = dirname(fileURLToPath(import.meta.url));
@@ -37,6 +38,16 @@ const session = () => {
   const exp = String(Date.now() + 30 * 24 * 3600e3);
   return `${exp}.${sign(exp)}`;
 };
+const downloadToken = () => {
+  const exp = String(Date.now() + 24 * 3600e3);
+  return `${exp}.${sign("download:" + exp)}`;
+};
+function validToken(t) {
+  const [exp, mac] = String(t || "").split(".");
+  const good = Buffer.from(sign("download:" + exp));
+  return mac?.length === good.length && timingSafeEqual(Buffer.from(mac), good) && +exp > Date.now();
+}
+
 function authed(req) {
   if (LOCAL) return true;
   const m = /(?:^|;\s*)studio=([^;]+)/.exec(req.headers.cookie || "");
@@ -55,6 +66,13 @@ function save(job) {
 }
 const update = (id, patch) => save({ ...load(id), ...patch });
 const validId = (id) => /^[a-z0-9-]+$/.test(id) && existsSync(join(jobDir(id), "job.json"));
+
+/** In the Mac app, a macOS notification (the browser may be minimised). */
+function notify(text) {
+  if (!LOCAL) return;
+  const q = (x) => JSON.stringify(String(x)); // AppleScript strings take the same escaping as JSON
+  spawn("osascript", ["-e", `display notification ${q(text)} with title "Pro Studio" sound name "Glass"`]).on("error", () => {});
+}
 
 /** Runs ffmpeg, reporting progress (0–1) from its -progress output against a known duration. */
 function ffmpeg(args, duration, onProgress) {
@@ -105,6 +123,13 @@ async function prepare(id) {
     }
     writeFileSync(join(dir, "peaks.json"), JSON.stringify(peaks));
 
+    // Frames for the timeline: one picture of up to 600 thumbnails, 10 per row.
+    step("Кадри для таймлайну");
+    const every = Math.max(2, Math.ceil(info.duration / 600));
+    const count = Math.max(1, Math.ceil(info.duration / every));
+    await execFile("ffmpeg", ["-loglevel", "error", "-y", "-i", join(dir, "proxy.mp4"), "-vf", `fps=1/${every},scale=160:90:force_original_aspect_ratio=decrease,pad=160:90:(ow-iw)/2:(oh-ih)/2,tile=10x${Math.ceil(count / 10)}`, "-frames:v", "1", "-q:v", "5", join(dir, "thumbs.jpg")]);
+    update(id, { thumbs: { every, count, cols: 10, w: 160, h: 90 } });
+
     step("Пошук пауз");
     const { stderr } = await execFile("ffmpeg", ["-i", src, "-vn", "-af", "silencedetect=noise=-35dB:d=0.8", "-f", "null", "-"], { maxBuffer: 64 << 20 });
     const suggestions = [];
@@ -112,9 +137,20 @@ async function prepare(id) {
       const [a, b] = [+m[1] + 0.15, +m[2] - 0.15]; // keep 0.3 s of the pause so speech does not run together
       if (b - a > 0.3) suggestions.push([+a.toFixed(2), +b.toFixed(2)]);
     }
-    update(id, { status: "ready", message: "", progress: 1, suggestions, cuts: load(id).cuts ?? suggestions });
+    update(id, { suggestions });
+
+    if (canTranscribe(ASSETS)) {
+      step("Розпізнавання мови");
+      const words = await transcribe(src, dir, ASSETS, peaks, (p) => step("Розпізнавання мови", p));
+      writeFileSync(join(dir, "transcript.json"), JSON.stringify(words));
+      update(id, { transcript: true, fillers: words.filter((x) => x.f).length });
+    }
+    // Nothing is cut until someone decides to: pauses and slips are only suggestions.
+    update(id, { status: "ready", message: "", progress: 1, cuts: load(id).cuts ?? [] });
+    notify(`«${load(id).form?.title || "Відео"}» готове до монтажу.`);
   } catch (e) {
     update(id, { status: "error", message: String(e.message || e) });
+    notify("Не вдалося підготувати відео.");
   }
 }
 
@@ -164,8 +200,10 @@ async function render(id) {
       "-c:v", "h264_videotoolbox", "-b:v", String(Math.max(4e6, Math.min(bitrate, 20e6))), "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", join(dir, "final.mp4")],
       total, (p) => step("Монтаж", p));
     update(id, { status: "done", message: "", progress: 1, renderedAt: Date.now() });
+    notify(`«${job.form?.title || "Відео"}» змонтовано: відео й обкладинка готові.`);
   } catch (e) {
     update(id, { status: "error", message: String(e.message || e) });
+    notify("Монтаж не вдався.");
   }
 }
 
@@ -184,7 +222,7 @@ function sendFile(req, res, file, download) {
   const size = statSync(file).size;
   const headers = { "Content-Type": TYPES[extname(file)] || "application/octet-stream", "Accept-Ranges": "bytes", "Cache-Control": "no-cache" };
   // filename* carries the Cyrillic name; filename is the plain fallback.
-  if (download) headers["Content-Disposition"] = `attachment; filename="${{ ".jpg": "cover.jpg", ".zip": "Pro-Studio.zip" }[extname(file)] ?? "video.mp4"}"; filename*=UTF-8''${encodeURIComponent(download)}`;
+  if (download) headers["Content-Disposition"] = `attachment; filename="${{ ".jpg": "cover.jpg", ".pkg": "Pro-Studio.pkg" }[extname(file)] ?? "video.mp4"}"; filename*=UTF-8''${encodeURIComponent(download)}`;
   const m = /bytes=(\d*)-(\d*)/.exec(req.headers.range || "");
   if (m) {
     const start = m[1] ? +m[1] : size - +m[2];
@@ -201,6 +239,10 @@ const server = createServer(async (req, res) => {
   const path = url.pathname;
   try {
     if (path === "/login" && req.method === "GET") return sendFile(req, res, join(PUBLIC, "login.html"));
+    // The install command downloads with a 24-hour token instead of the login cookie (Terminal has no cookie).
+    if (path === "/download/Pro-Studio.pkg" && !LOCAL && validToken(url.searchParams.get("t"))) {
+      return sendFile(req, res, join(here, "app/dist/Pro-Studio.pkg"), "Pro-Studio.pkg");
+    }
     if (path === "/style.css") return sendFile(req, res, join(PUBLIC, "style.css"));
     if (path === "/api/login" && req.method === "POST") {
       const { password } = JSON.parse(String(await readBody(req)) || "{}");
@@ -226,9 +268,17 @@ const server = createServer(async (req, res) => {
       res.setHeader("Set-Cookie", "studio=; Path=/; Max-Age=0");
       return json(res, 200, { ok: true });
     }
-    const appZip = join(here, "app/dist/Pro-Studio.zip");
-    if (path === "/api/info") return json(res, 200, { local: LOCAL, app: !LOCAL && existsSync(appZip) });
-    if (path === "/download/Pro-Studio.zip" && !LOCAL) return sendFile(req, res, appZip, "Pro-Studio.zip");
+    const appPkg = join(here, "app/dist/Pro-Studio.pkg");
+    if (path === "/api/info") return json(res, 200, { local: LOCAL, app: !LOCAL && existsSync(appPkg) });
+    if (path === "/download/Pro-Studio.pkg" && !LOCAL) return sendFile(req, res, appPkg, "Pro-Studio.pkg");
+    // One Terminal command: curl leaves no "downloaded from the internet" mark, so macOS does not block the unsigned app.
+    if (path === "/api/install-command" && !LOCAL) {
+      const origin = `${req.headers["x-forwarded-proto"] || "http"}://${req.headers.host}`;
+      const link = `${origin}/download/Pro-Studio.pkg?t=${downloadToken()}`;
+      return json(res, 200, {
+        command: `curl -fL --progress-bar "${link}" -o /tmp/Pro-Studio.pkg && sudo installer -pkg /tmp/Pro-Studio.pkg -target / && rm /tmp/Pro-Studio.pkg && open "/Applications/Pro Studio.app"`,
+      });
+    }
     if (path === "/api/reveal" && req.method === "POST" && LOCAL) {
       spawn("open", [join(DATA, "jobs")]);
       return json(res, 200, { ok: true });
@@ -267,12 +317,47 @@ const server = createServer(async (req, res) => {
         await new Promise((resolve, reject) => req.pipe(createWriteStream(file, { flags: "a" })).on("finish", resolve).on("error", reject));
         return json(res, 200, { size: statSync(file).size });
       }
+      if (action === "upload" && req.method === "DELETE") {
+        const name = url.searchParams.get("name");
+        if (!["guest", "guest2", "guest3"].includes(name)) return json(res, 400, { error: "bad name" });
+        rmSync(join(jobDir(id), name), { force: true });
+        return json(res, 200, { ok: true });
+      }
+      // Cover preview while the form is being filled in.
+      if (action === "preview" && req.method === "POST") {
+        const job = load(id);
+        const guests = ["guest", "guest2", "guest3"].map((n) => join(jobDir(id), n)).filter(existsSync);
+        try {
+          const spec = await buildSpec({ ...job.form, guests: job.form.kind === "int" ? guests : [] }, join(jobDir(id), "work"));
+          await renderCover(spec, join(jobDir(id), "preview.jpg"));
+          return json(res, 200, { ok: true });
+        } catch (e) {
+          return json(res, 200, { error: String(e.message || e) });
+        }
+      }
       if (action === "prepare" && req.method === "POST") {
         update(id, { status: "preparing", message: "", progress: 0 });
         prepare(id);
         return json(res, 200, { ok: true });
       }
-      if (action === "cuts" && req.method === "PUT") return json(res, 200, update(id, { cuts: JSON.parse(String(await readBody(req))) }));
+      // Body: { cuts: [[a, b]…], splits: [t…] } (an array alone is taken as cuts).
+      if (action === "cuts" && req.method === "PUT") {
+        const body = JSON.parse(String(await readBody(req)));
+        return json(res, 200, update(id, Array.isArray(body) ? { cuts: body } : { cuts: body.cuts, splits: body.splits }));
+      }
+      if (action === "transcribe" && req.method === "POST") {
+        const job = load(id);
+        if (!canTranscribe(ASSETS)) return json(res, 400, { error: "no speech model" });
+        update(id, { status: "preparing", message: "Розпізнавання мови", progress: 0 });
+        const peaks = JSON.parse(readFileSync(join(jobDir(id), "peaks.json"), "utf8"));
+        transcribe(join(jobDir(id), "video"), jobDir(id), ASSETS, peaks, (p) => update(id, { progress: p }))
+          .then((words) => {
+            writeFileSync(join(jobDir(id), "transcript.json"), JSON.stringify(words));
+            update(id, { status: job.status === "done" ? "done" : "ready", message: "", progress: 1, transcript: true, fillers: words.filter((x) => x.f).length });
+          })
+          .catch((e) => update(id, { status: "error", message: String(e.message || e) }));
+        return json(res, 200, { ok: true });
+      }
       if (action === "render" && req.method === "POST") {
         if (load(id).status === "rendering") return json(res, 409, { error: "already rendering" });
         update(id, { status: "rendering", message: "", progress: 0 });
@@ -280,7 +365,15 @@ const server = createServer(async (req, res) => {
         return json(res, 200, { ok: true });
       }
     }
-    const f = /^\/files\/([a-z0-9-]+)\/(proxy\.mp4|peaks\.json|cover\.jpg|final\.mp4|intro\.mp4|guest)$/.exec(path);
+    const srt = /^\/files\/([a-z0-9-]+)\/subtitles\.srt$/.exec(path);
+    if (srt && validId(srt[1]) && existsSync(join(jobDir(srt[1]), "transcript.json"))) {
+      const job = load(srt[1]);
+      const words = JSON.parse(readFileSync(join(jobDir(srt[1]), "transcript.json"), "utf8"));
+      const name = (job.form?.title || "video").replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-|-$/g, "") || "video";
+      res.writeHead(200, { "Content-Type": "application/x-subrip; charset=utf-8", "Content-Disposition": `attachment; filename="subtitles.srt"; filename*=UTF-8''${encodeURIComponent(name + ".srt")}` });
+      return res.end(subtitles(words, job.cuts || [], SECONDS));
+    }
+    const f = /^\/files\/([a-z0-9-]+)\/(proxy\.mp4|peaks\.json|cover\.jpg|final\.mp4|intro\.mp4|guest|guest2|guest3|thumbs\.jpg|transcript\.json|preview\.jpg)$/.exec(path);
     if (f && validId(f[1])) {
       const job = load(f[1]);
       const base = (job.form?.title || "video").replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-|-$/g, "").slice(0, 60) || "video";
