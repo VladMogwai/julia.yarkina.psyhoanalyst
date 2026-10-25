@@ -6,48 +6,60 @@
   <title>Монтаж · Pro психоаналіз</title>
   <link rel="stylesheet" href="/style.css">
   <style>
-    /* A dark, full-height editor in the manner of mobile video apps: preview, time, timeline with a fixed playhead, tools. */
-    :root { --bg: #121214; --panel: #1c1c20; --line2: #2c2c32; --txt: #f2f2f2; --dim: #9a9aa3; }
+    /* Laid out like InShot: preview, a play row, a row of tools, the frame strip with a fixed playhead at the bottom. */
+    :root { --bg: #121212; --panel: #1d1d1f; --line2: #2e2e32; --txt: #f4f4f4; --dim: #8e8e93; --sel: rgba(232, 51, 109, .38); }
     html, body { height: 100%; }
     body { background: var(--bg); color: var(--txt); display: flex; flex-direction: column; overflow: hidden; }
-    .top { display: flex; align-items: center; gap: 12px; padding: 10px 16px; }
-    .top a.back { color: var(--txt); text-decoration: none; font-size: 26px; line-height: 1; padding: 4px 8px; }
-    .top .title { flex: 1; min-width: 0; font: 700 18px Oswald; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .top .saved { color: var(--dim); font-size: 13px; white-space: nowrap; }
-    .top .help { background: transparent; border: 1px solid var(--line2); color: var(--txt); width: 36px; height: 36px; padding: 0; justify-content: center; }
-    .top .export { background: var(--pink); }
+    svg.ic { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+    .flat { background: transparent; color: var(--txt); padding: 6px; border-radius: 10px; }
+    .flat:hover:not(:disabled) { background: #26262a; }
+
+    .top { display: flex; align-items: center; gap: 10px; padding: 10px 14px; }
+    .top a.back { color: var(--txt); display: flex; padding: 6px; }
+    .top .title { flex: 1; min-width: 0; color: var(--dim); font: 700 14px Manrope; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .top .saved { color: var(--dim); font-size: 12px; white-space: nowrap; }
+    .top .export { background: var(--pink); font: 800 14px Manrope; text-transform: uppercase; letter-spacing: .5px; padding: 10px 18px; }
+
+    .banner { padding: 10px 16px; background: var(--panel); display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .banner .bar { flex: 1; min-width: 160px; background: var(--line2); margin: 0; }
+    .banner .btn { padding: 8px 12px; }
+    .banner .btn.ghost { color: var(--txt); border-color: var(--line2); }
 
     .stage { flex: 1; min-height: 0; display: flex; }
     .viewer { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-    .screen { flex: 1; min-height: 120px; display: flex; align-items: center; justify-content: center; background: #000; position: relative; }
-    .screen video { max-width: 100%; max-height: 100%; display: block; }
-    .screen .bigplay { position: absolute; width: 64px; height: 64px; border-radius: 50%; background: rgba(0, 0, 0, .45); color: #fff; font-size: 26px; justify-content: center; padding: 0; }
-    .timebar { display: flex; align-items: center; gap: 12px; padding: 10px 16px; font: 700 15px Manrope; }
-    .timebar .play { width: 40px; height: 40px; border-radius: 50%; background: var(--txt); color: var(--bg); justify-content: center; padding: 0; font-size: 16px; }
-    .timebar .t { font-variant-numeric: tabular-nums; }
-    .timebar .t span { color: var(--dim); }
-    .timebar .grow { flex: 1; }
-    .timebar .zoom { background: transparent; border: 1px solid var(--line2); color: var(--txt); width: 34px; height: 34px; padding: 0; justify-content: center; }
+    .screen { flex: 1; min-height: 120px; display: flex; align-items: center; justify-content: center; padding: 6px 16px; }
+    .screen video { max-width: 100%; max-height: 100%; display: block; border-radius: 14px; background: #000; cursor: pointer; }
 
-    .track { position: relative; height: 150px; touch-action: none; cursor: grab; user-select: none; }
+    .ctrl { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 6px 14px; }
+    .ctrl .l, .ctrl .r { display: flex; gap: 6px; align-items: center; }
+    .ctrl .r { justify-content: flex-end; }
+    .ctrl .play { background: transparent; color: var(--txt); padding: 8px; }
+    .ctrl .play svg { width: 26px; height: 26px; fill: currentColor; stroke: none; }
+
+    .tools { display: flex; flex-wrap: nowrap; margin: 0; justify-content: center; gap: 2px; overflow-x: auto; padding: 4px 8px 6px; scrollbar-width: none; }
+    .tools button { flex: none; flex-direction: column; gap: 6px; min-width: 72px; padding: 8px 4px; border-radius: 12px; background: transparent; color: var(--txt); }
+    .tools button span { font: 800 10.5px Manrope; letter-spacing: .4px; text-transform: uppercase; color: var(--dim); white-space: nowrap; }
+    .tools button:hover:not(:disabled) { background: #222226; }
+    .tools button.on, .tools button.on span { color: var(--pink); }
+    .tools button:disabled { opacity: .3; }
+    .tools .sep { width: 1px; background: var(--line2); margin: 12px 6px; flex: none; }
+
+    .context { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 46px; padding: 4px 14px; font: 700 13px Manrope; color: var(--dim); text-align: center; }
+    .context b { color: var(--txt); font-variant-numeric: tabular-nums; }
+    .context button { padding: 8px 14px; font-size: 13px; }
+    .context .ghost { color: var(--txt); border-color: var(--line2); }
+
+    .track { position: relative; height: 128px; touch-action: none; cursor: grab; user-select: none; }
     .track:active { cursor: grabbing; }
     .track canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
-    .track .head { position: absolute; left: 50%; top: 16px; bottom: 26px; width: 2px; margin-left: -1px; background: #fff; border-radius: 2px; box-shadow: 0 0 6px rgba(0,0,0,.6); pointer-events: none; }
-    .track .head::before { content: ""; position: absolute; top: -5px; left: -5px; width: 12px; height: 12px; border-radius: 50%; background: #fff; }
-    .hintline { color: var(--dim); font-size: 13px; padding: 0 16px 6px; min-height: 1.4em; }
+    .track .head { position: absolute; left: 50%; top: 14px; height: 92px; width: 2px; margin-left: -1px; background: #fff; border-radius: 2px; box-shadow: 0 0 4px rgba(0,0,0,.8); pointer-events: none; }
+    .times { display: grid; grid-template-columns: 1fr auto 1fr; padding: 0 14px calc(12px + env(safe-area-inset-bottom)); font: 700 12px Manrope; color: var(--dim); font-variant-numeric: tabular-nums; }
+    .times #now { color: var(--txt); }
+    .times #total { text-align: right; }
 
-    .tools { display: flex; gap: 4px; overflow-x: auto; padding: 8px 10px calc(10px + env(safe-area-inset-bottom)); background: var(--panel); border-top: 1px solid var(--line2); }
-    .tools button { flex: none; flex-direction: column; gap: 4px; min-width: 76px; padding: 8px 6px; border-radius: 12px; background: transparent; color: var(--txt); font: 700 12px Manrope; }
-    .tools button .i { font-size: 22px; line-height: 1; }
-    .tools button:hover:not(:disabled) { background: #26262c; }
-    .tools button.on { color: var(--pink); }
-    .tools button:disabled { opacity: .35; }
-    .tools .sep { width: 1px; background: var(--line2); margin: 6px 4px; flex: none; }
-
-    .drawer { width: 380px; flex: none; background: var(--panel); border-left: 1px solid var(--line2); display: flex; flex-direction: column; min-height: 0; }
+    .drawer { width: 380px; flex: none; background: var(--panel); display: flex; flex-direction: column; min-height: 0; }
     .drawer .dh { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--line2); }
-    .drawer .dh b { flex: 1; font: 700 16px Oswald; text-transform: uppercase; }
-    .drawer .dh button { background: transparent; color: var(--txt); padding: 4px 8px; }
+    .drawer .dh b { flex: 1; font: 800 13px Manrope; text-transform: uppercase; letter-spacing: .5px; }
     .drawer .body { flex: 1; overflow: auto; padding: 14px; font-size: 16px; line-height: 1.75; }
     .drawer p { margin: 0 0 12px; }
     .drawer .ts { display: block; font: 700 12px Manrope; color: var(--dim); }
@@ -57,30 +69,48 @@
     .w.fill { background: rgba(255, 196, 0, .22); color: #ffd860; font-weight: 700; padding: 1px 4px; }
     .w.cut { color: #5d5d66; text-decoration: line-through; background: transparent; }
     @media (max-width: 900px) {
-      .drawer { position: fixed; left: 0; right: 0; bottom: 0; width: auto; height: 55vh; border-left: 0; border-top: 1px solid var(--line2); border-radius: 16px 16px 0 0; z-index: 30; }
+      .drawer { position: fixed; left: 0; right: 0; bottom: 0; width: auto; height: 55vh; border-radius: 16px 16px 0 0; z-index: 30; }
+      .tools { justify-content: flex-start; }
+      .top .saved, .top .title { display: none; }
+      .top .back { margin-right: auto; }
     }
 
-    .banner { padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--line2); display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-    .banner .bar { flex: 1; min-width: 160px; background: var(--line2); margin: 0; }
-    .banner .btn { padding: 8px 12px; }
-    .banner .btn.ghost { color: var(--txt); border-color: var(--line2); }
-
     #cutSel { position: fixed; z-index: 40; display: none; }
-    .pop { position: fixed; z-index: 40; background: #fff; color: var(--ink); border-radius: 12px; padding: 10px 12px; box-shadow: 0 8px 30px rgba(0,0,0,.4); font-size: 14px; display: none; }
+    .pop { position: fixed; z-index: 40; background: #2a2a2e; color: var(--txt); border-radius: 12px; padding: 10px 12px; box-shadow: 0 8px 30px rgba(0,0,0,.5); font-size: 14px; display: none; }
     .pop button { margin-top: 8px; }
-    #help { position: fixed; inset: 0; background: rgba(0, 0, 0, .6); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 16px; }
+    #help { position: fixed; inset: 0; background: rgba(0, 0, 0, .7); z-index: 50; display: flex; align-items: center; justify-content: center; padding: 16px; }
     #help .card { max-width: 560px; margin: 0; color: var(--ink); }
     #help ol { padding-left: 22px; line-height: 1.6; }
     #help li { margin-bottom: 10px; }
   </style>
 </head>
 <body>
+  <svg width="0" height="0" style="position:absolute">
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="M19 12H5M11 6l-6 6 6 6"/></symbol>
+    <symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5V14M12 17.5v.01"/></symbol>
+    <symbol id="i-undo" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></symbol>
+    <symbol id="i-redo" viewBox="0 0 24 24"><path d="m15 14 5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h3"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15l12.5-7.5z"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24"><rect x="6" y="4.5" width="4" height="15" rx="1"/><rect x="14" y="4.5" width="4" height="15" rx="1"/></symbol>
+    <symbol id="i-zin" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m20 20-4.5-4.5M8 10.5h5M10.5 8v5"/></symbol>
+    <symbol id="i-zout" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m20 20-4.5-4.5M8 10.5h5"/></symbol>
+    <symbol id="i-start" viewBox="0 0 24 24"><path d="M9 4H6v16h3"/><path d="M11 12h9M17 9l3 3-3 3"/></symbol>
+    <symbol id="i-end" viewBox="0 0 24 24"><path d="M15 4h3v16h-3"/><path d="M13 12H4M7 9l-3 3 3 3"/></symbol>
+    <symbol id="i-cut" viewBox="0 0 24 24"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4 8.1 15.9M14.5 14.5 20 20M8.1 8.1 12 12"/></symbol>
+    <symbol id="i-split" viewBox="0 0 24 24"><rect x="3" y="6" width="6.5" height="12" rx="1.5"/><rect x="14.5" y="6" width="6.5" height="12" rx="1.5"/><path d="M12 3v18"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v5M14 11v5"/></symbol>
+    <symbol id="i-ee" viewBox="0 0 24 24"><path d="M3 12h1.5M7 9v6M10.5 6v12M14 9v6M17.5 11v2M20.5 12h.5"/></symbol>
+    <symbol id="i-pause2" viewBox="0 0 24 24"><path d="M4 6l7 6-7 6zM13 6l7 6-7 6z"/></symbol>
+    <symbol id="i-text" viewBox="0 0 24 24"><path d="M5 7V4h14v3M12 4v16M9 20h6"/></symbol>
+    <symbol id="i-cover" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 8"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+  </svg>
+
   <div class="top">
-    <a class="back" href="/" title="Усі відео">‹</a>
+    <a class="back" href="/" title="Усі відео"><svg class="ic"><use href="#i-back"/></svg></a>
     <div class="title" id="name"></div>
     <span class="saved" id="saved"></span>
-    <a class="btn ghost" id="coverLink" style="color:var(--txt);border-color:var(--line2)">Оформлення</a>
-    <button class="help" id="helpBtn" title="Як це працює">?</button>
+    <button class="flat" id="helpBtn" title="Як це працює"><svg class="ic"><use href="#i-help"/></svg></button>
     <button class="export" id="render">Змонтувати</button>
   </div>
   <div class="banner" id="busy" hidden><span id="busyMsg"></span><div class="bar"><i></i></div></div>
@@ -91,30 +121,37 @@
 
   <div class="stage">
     <div class="viewer">
-      <div class="screen"><video id="v" playsinline preload="auto"></video><button class="bigplay" id="bigplay">▶</button></div>
-      <div class="timebar">
-        <button class="play" id="play" title="Пробіл">▶</button>
-        <span class="t" id="time"></span>
-        <span class="grow"></span>
-        <button class="zoom" id="zoomOut" title="Віддалити">−</button>
-        <button class="zoom" id="zoomIn" title="Наблизити">+</button>
+      <div class="screen"><video id="v" playsinline preload="auto"></video></div>
+      <div class="ctrl">
+        <div class="l">
+          <button class="flat" id="undo" disabled title="Скасувати (⌘Z)"><svg class="ic"><use href="#i-undo"/></svg></button>
+          <button class="flat" id="redo" disabled title="Повторити (⌘⇧Z)"><svg class="ic"><use href="#i-redo"/></svg></button>
+        </div>
+        <button class="play" id="play" title="Пробіл"><svg class="ic"><use href="#i-play"/></svg></button>
+        <div class="r">
+          <button class="flat" id="zoomOut" title="Віддалити"><svg class="ic"><use href="#i-zout"/></svg></button>
+          <button class="flat" id="zoomIn" title="Наблизити"><svg class="ic"><use href="#i-zin"/></svg></button>
+        </div>
       </div>
-      <div class="track" id="track"><canvas id="tl"></canvas><div class="head"></div></div>
-      <div class="hintline" id="hint"></div>
       <div class="tools">
-        <button id="split" title="S"><span class="i">✂️</span><span>Розрізати</span></button>
-        <button id="del" title="Delete" disabled><span class="i">🗑</span><span>Видалити</span></button>
+        <button id="markA" title="I"><svg class="ic"><use href="#i-start"/></svg><span>Початок</span></button>
+        <button id="markB" title="O"><svg class="ic"><use href="#i-end"/></svg><span>Кінець</span></button>
+        <button id="cutRange" title="X" disabled><svg class="ic"><use href="#i-cut"/></svg><span>Вирізати</span></button>
         <span class="sep"></span>
-        <button id="slips"><span class="i">🤐</span><span>Прибрати «е-е»</span></button>
-        <button id="pauses"><span class="i">⏩</span><span>Прибрати паузи</span></button>
-        <button id="textBtn"><span class="i">💬</span><span>Текст</span></button>
+        <button id="split" title="S"><svg class="ic"><use href="#i-split"/></svg><span>Розділити</span></button>
+        <button id="del" title="Delete" disabled><svg class="ic"><use href="#i-trash"/></svg><span>Видалити</span></button>
         <span class="sep"></span>
-        <button id="undo" disabled title="⌘Z"><span class="i">↶</span><span>Скасувати</span></button>
-        <button id="redo" disabled title="⌘⇧Z"><span class="i">↷</span><span>Повторити</span></button>
+        <button id="slips"><svg class="ic"><use href="#i-ee"/></svg><span>«Е-е»</span></button>
+        <button id="pauses"><svg class="ic"><use href="#i-pause2"/></svg><span>Паузи</span></button>
+        <button id="textBtn"><svg class="ic"><use href="#i-text"/></svg><span>Текст</span></button>
+        <button id="coverBtn"><svg class="ic"><use href="#i-cover"/></svg><span>Обкладинка</span></button>
       </div>
+      <div class="context" id="context"></div>
+      <div class="track" id="track"><canvas id="tl"></canvas><div class="head"></div></div>
+      <div class="times"><span></span><span id="now"></span><span id="total"></span></div>
     </div>
     <aside class="drawer" id="drawer" hidden>
-      <div class="dh"><b>Текст розмови</b><button id="closeText" title="Закрити">✕</button></div>
+      <div class="dh"><b>Текст розмови</b><button class="flat" id="closeText" title="Закрити"><svg class="ic"><use href="#i-x"/></svg></button></div>
       <div class="body" id="text"></div>
     </aside>
   </div>
@@ -124,12 +161,13 @@
 
   <div id="help" hidden>
     <div class="card">
-      <h2>Як монтувати</h2>
+      <h2>Як вирізати шматок</h2>
       <ol>
-        <li><b>Гортайте стрічку</b> під відео пальцем, мишею чи коліщатком — біла лінія показує, де ви. «+» і «−» змінюють масштаб.</li>
-        <li><b>Розріжте й видаліть.</b> «Розрізати» ріже під білою лінією. Торкніться шматка — він виділиться рамкою, «Видалити» прибере його. Краї рамки можна тягнути, щоб підрізати.</li>
-        <li><b>Автоматично:</b> «Прибрати «е-е»» і «Прибрати паузи» вирізають усе знайдене одним натиском. «Текст» — уся розмова: клацніть слово, щоб перейти, виділіть фразу, щоб вирізати.</li>
-        <li><b>Готово?</b> «Змонтувати» дасть відео з інтро, обкладинку й субтитри. Місця вирізів позначені ✂ під стрічкою — торкніться, щоб повернути. Помилилися — «Скасувати».</li>
+        <li><b>Гортайте стрічку</b> внизу пальцем, мишею чи коліщатком. Біла лінія — це місце, яке видно у відео.</li>
+        <li>Дійдіть до місця, звідки різати, і натисніть <b>«Початок»</b>.</li>
+        <li>Гортайте далі — шматок підсвічується рожевим. Дійдіть до кінця і натисніть <b>«Кінець»</b>. Краї рожевого шматка можна підтягнути.</li>
+        <li>Натисніть <b>«Вирізати»</b>. Місце вирізу позначене ✂ на стрічці — торкніться, щоб повернути. Помилилися — стрілка «назад» угорі ліворуч.</li>
+        <li><b>«Е-е»</b> і <b>«Паузи»</b> прибирають усе знайдене одним натиском. <b>«Змонтувати»</b> дасть відео з інтро, обкладинку й субтитри.</li>
       </ol>
       <button class="pink" id="helpOk">Зрозуміло</button>
     </div>
@@ -143,13 +181,14 @@
       const h = Math.floor(t / 3600), m = Math.floor((t % 3600) / 60), s = String(t % 60).padStart(2, "0");
       return (h ? h + ":" + String(m).padStart(2, "0") : m) + ":" + s;
     };
+    const fmt1 = (t) => fmt(t) + "." + Math.floor((Math.max(0, t) % 1) * 10);
     const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 
     let job = await (await fetch(`/api/jobs/${id}`)).json();
     const info = await (await fetch("/api/info")).json();
     const D = job.source.duration;
     $("name").textContent = job.form?.title || "";
-    $("coverLink").href = `/?id=${id}`;
+    $("coverBtn").addEventListener("click", () => (location.href = `/?id=${id}`));
     const [peaks, words] = await Promise.all([
       fetch(`/files/${id}/peaks.json`).then((r) => r.json()),
       job.transcript ? fetch(`/files/${id}/transcript.json`).then((r) => r.json()) : Promise.resolve([]),
@@ -163,8 +202,9 @@
     $("pauses").hidden = !sugPauses.length;
     $("textBtn").hidden = !words.length;
 
-    // ---- Edit state in source seconds: cuts (removed) and splits (scissor marks), with undo. ----
+    // ---- Edit state in source seconds: cuts (removed) and splits (dividers), with undo. ----
     let cuts = [], splits = [], sel = null; // sel: index of the selected clip
+    let range = null; // { a, b } in output seconds; b is null while the end follows the playhead
     const past = [], future = [];
     const normalize = (list) => {
       const s = list.map(([a, b]) => [Math.max(0, Math.min(a, b)), Math.min(D, Math.max(a, b))]).filter(([a, b]) => b - a >= 0.05).sort((x, y) => x[0] - y[0]);
@@ -188,6 +228,7 @@
       cuts = c;
       splits = [...new Set(s.map((t) => +t.toFixed(2)))].filter((t) => !cutAt(t) && t > 0.05 && t < D - 0.05).sort((a, b) => a - b);
       sel = null;
+      range = null;
       layout();
       changed();
     }
@@ -228,47 +269,52 @@
       clearTimeout(saveTimer);
       saveTimer = setTimeout(save, 500);
       const openSlips = sugSlips.filter(([a, b]) => !isCut(a, b)).length, openPauses = sugPauses.filter(([a, b]) => !isCut(a, b)).length;
-      $("slips").lastChild.textContent = openSlips ? `Прибрати «е-е» (${openSlips})` : "«е-е» прибрано";
-      $("pauses").lastChild.textContent = openPauses ? `Прибрати паузи (${openPauses})` : "Паузи прибрано";
+      $("slips").lastChild.textContent = openSlips ? `«Е-е» · ${openSlips}` : "«Е-е» ✓";
+      $("pauses").lastChild.textContent = openPauses ? `Паузи · ${openPauses}` : "Паузи ✓";
+      $("slips").title = openSlips ? `Прибрати всі «е-е» (${openSlips})` : "Усі «е-е» прибрано";
+      $("pauses").title = openPauses ? `Прибрати довгі паузи (${openPauses})` : "Паузи прибрано";
       $("slips").disabled = !openSlips;
       $("pauses").disabled = !openPauses;
       markWords();
       draw();
     }
+    addEventListener("pagehide", () => saveTimer && save()); // leaving right after an edit still keeps it
     async function save() {
-      await fetch(`/api/jobs/${id}/cuts`, { method: "PUT", body: JSON.stringify({ cuts, splits }) });
+      clearTimeout(saveTimer);
+      saveTimer = null;
+      await fetch(`/api/jobs/${id}/cuts`, { method: "PUT", body: JSON.stringify({ cuts, splits }), keepalive: true });
       $("saved").textContent = `Збережено · ${fmt(outD + 5)} з інтро`;
     }
 
     // ---- Timeline: a fixed playhead in the middle; frames and sound move under it. ----
     let T = 0, pps = 40; // output time under the playhead; pixels per second
     const cv = $("tl"), track = $("track");
-    const Y_TH = 18, H_TH = 64, Y_WV = Y_TH + H_TH + 4, H_WV = 30, H_CLIP = H_TH + 4 + H_WV;
-    const clipX = (c) => track.clientWidth / 2 + (c.o - T) * pps;
+    const Y_TH = 18, H_TH = 58, Y_WV = Y_TH + H_TH + 2, H_WV = 18, H_CLIP = H_TH + 2 + H_WV, Y_JOIN = Y_TH + H_CLIP + 14;
+    const xOf = (t) => track.clientWidth / 2 + (t - T) * pps;
+    const rangeAB = () => range && [Math.min(range.a, range.b ?? T), Math.max(range.a, range.b ?? T)];
     function draw() {
       const r = devicePixelRatio || 1, W = track.clientWidth, H = track.clientHeight;
       if (cv.width !== Math.round(W * r) || cv.height !== Math.round(H * r)) { cv.width = Math.round(W * r); cv.height = Math.round(H * r); }
       const c = cv.getContext("2d");
       c.setTransform(r, 0, 0, r, 0, 0);
       c.clearRect(0, 0, W, H);
-      const x0 = W / 2 - T * pps;
-      // Ruler.
-      c.fillStyle = "#6b6b74"; c.font = "11px Manrope";
-      const step = [1, 2, 5, 10, 30, 60, 120, 300, 600].find((s) => s * pps >= 70) || 600;
+      // Ruler: dots between second marks, like InShot.
+      c.fillStyle = "#5c5c62"; c.font = "700 10px Manrope";
+      const step = [1, 2, 5, 10, 30, 60, 120, 300, 600].find((s) => s * pps >= 80) || 600;
       for (let s = Math.max(0, Math.floor((T - W / 2 / pps) / step) * step); s <= Math.min(outD, T + W / 2 / pps); s += step) {
-        const x = x0 + s * pps;
-        c.fillRect(x, 2, 1, 6);
-        c.fillText(fmt(s), x + 3, 11);
+        const x = xOf(s);
+        c.fillText(fmt(s), x - 8, 10);
+        for (let k = 1; k < 4; k++) c.fillRect(x + (step * pps * k) / 4 - 1, 6, 2, 2);
       }
       const tw = H_TH * 16 / 9;
       clips.forEach((cl, i) => {
-        const left = x0 + cl.o * pps, w = len(cl) * pps;
+        const left = xOf(cl.o), w = len(cl) * pps;
         if (left > W || left + w < 0) return;
         c.save();
         c.beginPath();
-        c.roundRect(left + 1, Y_TH, Math.max(1, w - 2), H_CLIP, 8);
+        c.roundRect(left + 1, Y_TH, Math.max(1, w - 2), H_CLIP, 6);
         c.clip();
-        c.fillStyle = "#26262c";
+        c.fillStyle = "#2a2a2e";
         c.fillRect(left, Y_TH, w, H_CLIP);
         if (thumbs?.complete && job.thumbs) {
           const { every, cols, w: sw, h: sh, count } = job.thumbs;
@@ -278,7 +324,9 @@
             c.drawImage(thumbs, (k % cols) * sw, Math.floor(k / cols) * sh, sw, sh, x, Y_TH, tw, H_TH);
           }
         }
-        c.fillStyle = "#7a8cff";
+        c.fillStyle = "#1a1a1d";
+        c.fillRect(left, Y_WV - 2, w, H_WV + 2);
+        c.fillStyle = "#6f7bff";
         for (let x = Math.max(left, 0); x < Math.min(W, left + w); x += 2) {
           const h = Math.max(1, (peaks[Math.floor((cl.a + (x - left) / pps) * 100)] || 0) * H_WV);
           c.fillRect(x, Y_WV + (H_WV - h) / 2, 1.5, h);
@@ -287,74 +335,172 @@
         c.fillStyle = "#ffc400";
         for (const [a, b] of [...sugSlips, ...sugPauses]) {
           if (b <= cl.a || a >= cl.b || isCut(a, b)) continue;
-          c.fillRect(left + (Math.max(a, cl.a) - cl.a) * pps, Y_TH + H_CLIP - 4, Math.max(2, (Math.min(b, cl.b) - Math.max(a, cl.a)) * pps), 4);
+          c.fillRect(left + (Math.max(a, cl.a) - cl.a) * pps, Y_TH + H_CLIP - 3, Math.max(2, (Math.min(b, cl.b) - Math.max(a, cl.a)) * pps), 3);
         }
         c.restore();
         if (i === sel) {
-          c.strokeStyle = "#fff"; c.lineWidth = 3;
-          c.beginPath(); c.roundRect(left + 1, Y_TH - 1, w - 2, H_CLIP + 2, 8); c.stroke();
-          c.fillStyle = "#fff";
-          c.beginPath(); c.roundRect(left - 7, Y_TH + 22, 12, 52, 4); c.roundRect(left + w - 5, Y_TH + 22, 12, 52, 4); c.fill();
-          c.fillStyle = "#121214"; c.fillRect(left - 2, Y_TH + 38, 2, 20); c.fillRect(left + w, Y_TH + 38, 2, 20);
+          c.strokeStyle = "#fff"; c.lineWidth = 2.5;
+          c.beginPath(); c.roundRect(left + 1, Y_TH - 1, w - 2, H_CLIP + 2, 6); c.stroke();
+          handle(c, left - 13, "#fff", "#121212", "‹");
+          handle(c, left + w - 1, "#fff", "#121212", "›");
+          badge(c, left + w - 6, `${len(cl).toFixed(1)} с`);
         }
       });
-      // Joins where something was cut: a red line and scissors under the strip.
-      c.font = "14px sans-serif"; c.textAlign = "center";
-      for (const cut of cuts) {
-        const x = x0 + toOutput(cut[0]) * pps;
-        if (x < -10 || x > W + 10) continue;
-        c.fillStyle = "#E8336D"; c.fillRect(x - 1, Y_TH - 3, 2, H_CLIP + 6);
-        c.fillText("✂", x, Y_TH + H_CLIP + 18);
+      // The pink range being marked for cutting, with handles to adjust its ends.
+      if (range) {
+        const [a, b] = rangeAB(), xa = xOf(a), xb = xOf(b);
+        c.fillStyle = "rgba(232, 51, 109, .42)";
+        c.fillRect(xa, Y_TH - 2, xb - xa, H_CLIP + 4);
+        c.strokeStyle = "#E8336D"; c.lineWidth = 2;
+        c.strokeRect(xa, Y_TH - 2, xb - xa, H_CLIP + 4);
+        handle(c, xa - 13, "#E8336D", "#fff", "[");
+        if (range.b != null) handle(c, xb - 1, "#E8336D", "#fff", "]");
+        if (xb - xa > 46) badge(c, xb - 6, `${(b - a).toFixed(1)} с`);
       }
-      c.textAlign = "start";
-      $("time").innerHTML = `${fmt(T)} <span>/ ${fmt(outD)}</span>`;
-      $("hint").textContent = sel != null
-        ? `Шматок ${fmt(clips[sel].o)}–${fmt(clips[sel].o + len(clips[sel]))} (${len(clips[sel]).toFixed(1)} с): «Видалити» або тягніть краї рамки`
-        : video.paused ? "Гортайте стрічку; «Розрізати» ріже під білою лінією; торкніться шматка, щоб виділити" : "";
-      $("del").disabled = sel == null;
+      // Joins where something was cut: a round ✂ button under the strip, tap to bring the piece back.
+      c.textAlign = "center"; c.textBaseline = "middle"; c.font = "13px sans-serif";
+      for (const cut of cuts) {
+        const x = xOf(toOutput(cut[0]));
+        if (x < -12 || x > W + 12) continue;
+        c.fillStyle = "#E8336D"; c.fillRect(x - 1, Y_TH, 2, H_CLIP);
+        c.fillStyle = "#fff"; c.beginPath(); c.arc(x, Y_JOIN, 10, 0, 7); c.fill();
+        c.fillStyle = "#E8336D"; c.fillText("✂", x, Y_JOIN + 1);
+      }
+      c.textAlign = "start"; c.textBaseline = "alphabetic";
+      $("now").textContent = fmt1(T);
+      $("total").textContent = `всього ${fmt(outD)}`;
+      context();
+    }
+    function handle(c, x, bg, fg, mark) {
+      c.fillStyle = bg;
+      c.beginPath(); c.roundRect(x, Y_TH - 2, 14, H_CLIP + 4, 4); c.fill();
+      c.fillStyle = fg; c.font = "800 14px Manrope"; c.textAlign = "center"; c.textBaseline = "middle";
+      c.fillText(mark, x + 7, Y_TH + H_CLIP / 2);
+      c.textAlign = "start"; c.textBaseline = "alphabetic";
+    }
+    function badge(c, right, s) {
+      c.font = "800 10px Manrope";
+      const w = c.measureText(s).width + 8;
+      c.fillStyle = "rgba(0,0,0,.65)";
+      c.beginPath(); c.roundRect(right - w, Y_TH + 3, w, 15, 3); c.fill();
+      c.fillStyle = "#fff"; c.fillText(s, right - w + 4, Y_TH + 14);
     }
     addEventListener("resize", draw);
     if (thumbs) thumbs.onload = draw;
 
-    // Drag scrubs; a tap selects the clip under it; the handles of a selected clip trim it.
+    // The line above the strip says what is going on and offers the next step.
+    let shown = "";
+    function context() {
+      let html;
+      $("cutRange").disabled = !range;
+      $("markA").classList.toggle("on", !!range);
+      $("markB").classList.toggle("on", range?.b != null);
+      $("del").disabled = sel == null || clips.length < 2;
+      if (range) {
+        const [a, b] = rangeAB();
+        const part = `<b>${fmt1(a)}</b> → <b>${fmt1(b)}</b> · ${(b - a).toFixed(1)} с`;
+        html = range.b == null
+          ? `${part}<span>Гортайте до кінця шматка і натисніть «Кінець»</span><button class="ghost" data-act="clear">Скасувати</button>`
+          : `${part}<button class="ghost" data-act="clear">Скасувати</button><button class="pink" data-act="cut">✂ Вирізати</button>`;
+      } else if (sel != null) {
+        const cl = clips[sel];
+        html = `Шматок <b>${fmt1(cl.o)} → ${fmt1(cl.o + len(cl))}</b> · ${len(cl).toFixed(1)} с` +
+          (clips.length > 1 ? `<button class="pink" data-act="del">Видалити шматок</button>` : "") + `<button class="ghost" data-act="unsel">Готово</button>`;
+      } else {
+        html = video.paused ? "Щоб вирізати: «Початок» → гортайте → «Кінець» → «Вирізати»" : "";
+      }
+      if (html !== shown) $("context").innerHTML = shown = html;
+    }
+    $("context").addEventListener("click", (e) => {
+      const act = e.target.closest("[data-act]")?.dataset.act;
+      if (act === "clear") { range = null; draw(); }
+      else if (act === "cut") cutRange();
+      else if (act === "del") $("del").click();
+      else if (act === "unsel") { sel = null; draw(); }
+    });
+
+    // ---- Two-point cut. ----
+    function markA() {
+      video.pause();
+      sel = null;
+      range = range?.b != null && range.b > T + 0.1 ? { a: T, b: range.b } : { a: T, b: null };
+      draw();
+    }
+    function markB() {
+      video.pause();
+      if (!range) range = { a: T, b: null }; // no start yet: this point starts the range
+      else if (Math.abs(T - range.a) < 0.1) return;
+      else range = { a: Math.min(range.a, T), b: Math.max(range.a, T) };
+      draw();
+    }
+    function cutRange() {
+      if (!range) return;
+      const [a, b] = rangeAB();
+      if (b - a < 0.1) return;
+      const from = toSource(a), to = b >= outD - 0.01 ? D : toSource(b);
+      commit([...cuts, [from, to]]);
+      seekOutput(Math.min(a, outD));
+    }
+    $("markA").addEventListener("click", markA);
+    $("markB").addEventListener("click", markB);
+    $("cutRange").addEventListener("click", cutRange);
+
+    // Drag scrubs; the ends of the pink range and of a selected clip can be dragged; a tap selects a clip or opens a ✂.
     let drag = null;
     track.addEventListener("pointerdown", (e) => {
       track.setPointerCapture(e.pointerId);
-      const cl = sel != null ? clips[sel] : null;
-      let handle = null;
-      if (cl && e.offsetY > Y_TH && e.offsetY < Y_TH + H_CLIP) {
-        const left = clipX(cl), right = left + len(cl) * pps;
-        if (Math.abs(e.offsetX - left) < 14) handle = "a";
-        else if (Math.abs(e.offsetX - right) < 14) handle = "b";
+      const inStrip = e.offsetY > Y_TH - 4 && e.offsetY < Y_TH + H_CLIP + 4;
+      let what = null;
+      if (range && inStrip) {
+        const [a, b] = rangeAB();
+        if (e.offsetX > xOf(a) - 16 && e.offsetX < xOf(a) + 6) what = { kind: "ra", t: a };
+        else if (range.b != null && e.offsetX > xOf(b) - 6 && e.offsetX < xOf(b) + 16) what = { kind: "rb", t: b };
       }
-      drag = { x0: e.offsetX, T0: T, moved: false, handle, clip: cl && { ...cl }, dx: 0 };
+      const cl = sel != null ? clips[sel] : null;
+      if (!what && cl && inStrip) {
+        const left = xOf(cl.o), right = left + len(cl) * pps;
+        if (e.offsetX > left - 16 && e.offsetX < left + 6) what = { kind: "a", clip: { ...cl } };
+        else if (e.offsetX > right - 6 && e.offsetX < right + 16) what = { kind: "b", clip: { ...cl } };
+      }
+      drag = { x0: e.offsetX, T0: T, moved: false, what, dx: 0 };
       video.pause();
     });
     track.addEventListener("pointermove", (e) => {
       if (!drag) return;
       drag.dx = e.offsetX - drag.x0;
       if (Math.abs(drag.dx) > 3) drag.moved = true;
-      if (drag.handle) return drawTrim();
+      const w = drag.what;
+      if (w?.kind === "ra" || w?.kind === "rb") {
+        const t = Math.min(outD, Math.max(0, w.t + drag.dx / pps));
+        const [a, b] = rangeAB();
+        range = w.kind === "ra" ? { a: Math.min(t, b - 0.1), b: range.b == null ? null : b } : { a, b: Math.max(t, a + 0.1) };
+        video.currentTime = toSource(t); // show the frame at the edge being moved
+        return draw();
+      }
+      if (w) return drawTrim();
       seekOutput(Math.min(outD, Math.max(0, drag.T0 - drag.dx / pps)));
     });
     track.addEventListener("pointerup", (e) => {
       if (!drag) return;
       const d = drag;
       drag = null;
-      if (d.handle && d.moved) return trim(d.clip, d.handle, d.dx / pps);
+      if (d.what?.kind === "ra" || d.what?.kind === "rb") return;
+      if (d.what && d.moved) return trim(d.what.clip, d.what.kind, d.dx / pps);
       if (d.moved) return;
-      if (e.offsetY > Y_TH + H_CLIP) {
-        const near = cuts.find((cut) => Math.abs(track.clientWidth / 2 + (toOutput(cut[0]) - T) * pps - e.offsetX) < 14);
+      if (e.offsetY > Y_TH + H_CLIP + 2) {
+        const near = cuts.find((cut) => Math.abs(xOf(toOutput(cut[0])) - e.offsetX) < 14);
         if (near) return askRestore(near, e.clientX, e.clientY);
+        return;
       }
+      if (range) return; // while marking, taps on the strip do nothing surprising
       const t = T + (e.offsetX - track.clientWidth / 2) / pps;
       const k = clips.findIndex((c) => t >= c.o && t < c.o + len(c));
-      sel = k === sel || k < 0 || e.offsetY < Y_TH || e.offsetY > Y_TH + H_CLIP ? null : k;
+      sel = k === sel || k < 0 || e.offsetY < Y_TH ? null : k;
       draw();
     });
     function drawTrim() {
       draw();
-      const c = cv.getContext("2d"), cl = drag.clip, left = clipX(cl), x = drag.handle === "a" ? left : left + len(cl) * pps;
+      const c = cv.getContext("2d"), cl = drag.what.clip, left = xOf(cl.o), x = drag.what.kind === "a" ? left : left + len(cl) * pps;
       c.fillStyle = "rgba(232, 51, 109, .5)";
       c.fillRect(Math.min(x, x + drag.dx), Y_TH, Math.abs(drag.dx), H_CLIP);
     }
@@ -396,10 +542,11 @@
       highlightWord(video.currentTime);
     }
     const toggle = () => (video.paused ? video.play() : video.pause());
-    ["play", "bigplay"].forEach((b) => $(b).addEventListener("click", toggle));
+    $("play").addEventListener("click", toggle);
     video.addEventListener("click", toggle);
-    video.addEventListener("play", () => { $("play").textContent = "❚❚"; $("bigplay").hidden = true; sel = null; requestAnimationFrame(loop); });
-    video.addEventListener("pause", () => { $("play").textContent = "▶"; $("bigplay").hidden = false; draw(); });
+    const playIcon = (on) => $("play").querySelector("use").setAttribute("href", on ? "#i-pause" : "#i-play");
+    video.addEventListener("play", () => { playIcon(true); sel = null; requestAnimationFrame(loop); });
+    video.addEventListener("pause", () => { playIcon(false); draw(); });
     function loop() {
       if (video.paused) return;
       const s = video.currentTime, c = cutAt(s);
@@ -411,16 +558,14 @@
       requestAnimationFrame(loop);
     }
 
-    // ---- Tools. ----
+    // ---- Other tools. ----
     $("split").addEventListener("click", () => {
       const s = toSource(T);
       if (clips.some((c) => Math.abs(c.a - s) < 0.1 || Math.abs(c.b - s) < 0.1)) return;
       commit(cuts, [...splits, s]);
-      sel = clips.findIndex((c) => s >= c.a && s < c.b);
-      draw();
     });
     $("del").addEventListener("click", () => {
-      if (sel == null) return;
+      if (sel == null || clips.length < 2) return;
       const cl = clips[sel];
       commit([...cuts, [cl.a, cl.b]]);
       seekOutput(Math.min(cl.o, outD));
@@ -438,11 +583,14 @@
       if (mod && e.code === "KeyZ") { e.preventDefault(); return e.shiftKey ? redo() : undo(); }
       if (mod) return;
       if (e.code === "Space") { e.preventDefault(); toggle(); }
+      else if (e.code === "KeyI") markA();
+      else if (e.code === "KeyO") markB();
+      else if (e.code === "KeyX" || (e.code === "Enter" && range)) cutRange();
       else if (e.code === "KeyS") $("split").click();
-      else if (e.code === "Delete" || e.code === "Backspace") { e.preventDefault(); $("del").click(); }
-      else if (e.code === "ArrowLeft") seekOutput(Math.max(0, T - 5));
-      else if (e.code === "ArrowRight") seekOutput(Math.min(outD, T + 5));
-      else if (e.code === "Escape") { sel = null; draw(); }
+      else if (e.code === "Delete" || e.code === "Backspace") { e.preventDefault(); range ? cutRange() : $("del").click(); }
+      else if (e.code === "ArrowLeft") seekOutput(Math.max(0, T - (e.shiftKey ? 0.1 : 5)));
+      else if (e.code === "ArrowRight") seekOutput(Math.min(outD, T + (e.shiftKey ? 0.1 : 5)));
+      else if (e.code === "Escape") { sel = null; range = null; draw(); }
     });
 
     // ---- Text: every word with its time; click to go there, select a phrase to cut it. ----
@@ -508,9 +656,9 @@
 
     // ---- Help on the first visit. ----
     let seen = false;
-    try { seen = localStorage.getItem("studio-help-2") === "1"; } catch {}
+    try { seen = localStorage.getItem("studio-help-3") === "1"; } catch {}
     $("help").hidden = seen;
-    $("helpOk").addEventListener("click", () => { $("help").hidden = true; try { localStorage.setItem("studio-help-2", "1"); } catch {} });
+    $("helpOk").addEventListener("click", () => { $("help").hidden = true; try { localStorage.setItem("studio-help-3", "1"); } catch {} });
     $("helpBtn").addEventListener("click", () => ($("help").hidden = false));
 
     // ---- Export. The tab title shows progress; a notification comes when the tab is in the background. ----
