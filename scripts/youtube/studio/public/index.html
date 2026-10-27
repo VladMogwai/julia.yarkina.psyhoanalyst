@@ -279,12 +279,18 @@
       changed();
     });
 
-    let previewTimer, previewRun = 0;
+    // One preview at a time: two at once write the same file, and the older one could end up on screen.
+    let previewTimer, previewBusy = false, previewAgain = false;
     function changed() {
       if (!job) return;
       clearTimeout(previewTimer);
-      previewTimer = setTimeout(async () => {
-        const run = ++previewRun, f = form();
+      previewTimer = setTimeout(drawPreview, 700);
+    }
+    async function drawPreview() {
+      if (previewBusy) return (previewAgain = true);
+      previewBusy = true;
+      try {
+        const f = form();
         await fetch(`/api/jobs/${job.id}/form`, { method: "PUT", body: JSON.stringify(f) });
         if (!f.title) {
           $("prevMsg").textContent = "Введіть заголовок.";
@@ -293,13 +299,19 @@
         $("prev").classList.add("loading");
         $("prevMsg").textContent = "Малюю обкладинку…";
         const r = await (await fetch(`/api/jobs/${job.id}/preview`, { method: "POST" })).json();
-        if (run !== previewRun) return;
+        if (previewAgain) return; // the form changed meanwhile: the next drawing shows it
         $("prev").classList.remove("loading");
         $("prevMsg").textContent = r.error ? "Не вдалося: " + r.error
           : f.kind === "int" && !guests.length ? "Фото гостя ще немає — на обкладинці буде лише Юлія. Додайте фото в «Учасники»."
           : r.noFace?.length ? `На фото гостя ${r.noFace.join(", ")} не знайдено обличчя — його поставлено по центру. Краще взяти фото, де обличчя видно анфас.` : "";
         if (!r.error) $("prev").innerHTML = `<img src="/files/${job.id}/preview.jpg?${Date.now()}" alt="" style="width:100%;height:100%;object-fit:cover">`;
-      }, 700);
+      } finally {
+        previewBusy = false;
+        if (previewAgain) {
+          previewAgain = false;
+          drawPreview();
+        }
+      }
     }
     $("kind").addEventListener("change", () => { syncKind(); changed(); });
     ["title", "label"].forEach((x) => $(x).addEventListener("input", changed));

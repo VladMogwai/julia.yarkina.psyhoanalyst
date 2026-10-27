@@ -27,7 +27,19 @@
 
     .stage { flex: 1; min-height: 0; display: flex; }
     .viewer { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-    .screen { flex: 1; min-height: 120px; display: flex; align-items: center; justify-content: center; padding: 6px 16px; }
+    .screen { flex: 1; min-height: 120px; display: flex; align-items: center; justify-content: center; padding: 6px 16px; position: relative; }
+    #layer { position: absolute; pointer-events: none; overflow: hidden; border-radius: 14px; }
+    #layer .ov { pointer-events: auto; cursor: move; touch-action: none; user-select: none; }
+    #layer .ov.sel { outline: 2px dashed #fff; outline-offset: 5px; }
+    .ovpanel { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 10px; padding: 6px 14px; }
+    .ovpanel textarea { flex: 1 1 260px; max-width: 420px; min-height: 40px; background: #26262a; color: var(--txt); border: 1px solid var(--line2); border-radius: 10px; padding: 8px 10px; font: 700 15px Manrope; resize: vertical; }
+    .ovpanel .sw { display: flex; gap: 6px; }
+    .ovpanel .sw button { width: 26px; height: 26px; padding: 0; border-radius: 50%; border: 2px solid #555; }
+    .ovpanel .sw button.on { border-color: #fff; box-shadow: 0 0 0 2px var(--pink); }
+    .ovpanel label { display: flex; align-items: center; gap: 8px; color: var(--dim); font: 700 12px Manrope; text-transform: uppercase; }
+    .ovpanel button { padding: 8px 14px; font-size: 13px; }
+    .ovpanel .ghost { color: var(--txt); border-color: var(--line2); }
+    .ovpanel .ghost.on { border-color: var(--pink); color: var(--pink); }
     .screen video { max-width: 100%; max-height: 100%; display: block; border-radius: 14px; background: #000; cursor: pointer; }
 
     .ctrl { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 6px 14px; }
@@ -89,6 +101,9 @@
     <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v5M14 11v5"/></symbol>
     <symbol id="i-ee" viewBox="0 0 24 24"><path d="M3 12h1.5M7 9v6M10.5 6v12M14 9v6M17.5 11v2M20.5 12h.5"/></symbol>
     <symbol id="i-pause2" viewBox="0 0 24 24"><path d="M4 6l7 6-7 6zM13 6l7 6-7 6z"/></symbol>
+    <symbol id="i-clean" viewBox="0 0 24 24"><path d="M4 20 14 10M14 10l2-6 1.5 4.5L22 10l-6 2zM5 5l1 2 2 1-2 1-1 2-1-2-2-1 2-1z"/></symbol>
+    <symbol id="i-text" viewBox="0 0 24 24"><path d="M5 7V4h14v3M12 4v16M9 20h6"/></symbol>
+    <symbol id="i-photo" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><circle cx="12" cy="12" r="3.5"/><path d="M17 8.5h.01"/></symbol>
     <symbol id="i-cover" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 8"/></symbol>
   </svg>
 
@@ -107,7 +122,7 @@
 
   <div class="stage">
     <div class="viewer">
-      <div class="screen"><video id="v" playsinline preload="auto"></video></div>
+      <div class="screen"><video id="v" playsinline preload="auto"></video><div id="layer"></div></div>
       <div class="ctrl">
         <div class="l">
           <button class="flat" id="undo" disabled title="Скасувати (⌘Z)"><svg class="ic"><use href="#i-undo"/></svg></button>
@@ -127,11 +142,24 @@
         <button id="split" title="S"><svg class="ic"><use href="#i-split"/></svg><span>Розділити</span></button>
         <button id="del" title="Delete" disabled><svg class="ic"><use href="#i-trash"/></svg><span>Видалити</span></button>
         <span class="sep"></span>
+        <button id="cleanAll"><svg class="ic"><use href="#i-clean"/></svg><span>Прибрати все</span></button>
         <button id="slips"><svg class="ic"><use href="#i-ee"/></svg><span>«Е-е»</span></button>
         <button id="pauses"><svg class="ic"><use href="#i-pause2"/></svg><span>Паузи</span></button>
+        <span class="sep"></span>
+        <button id="addText"><svg class="ic"><use href="#i-text"/></svg><span>Текст</span></button>
+        <button id="addPhoto"><svg class="ic"><use href="#i-photo"/></svg><span>Фото</span></button>
+        <input type="file" id="photoFile" accept="image/jpeg,image/png,image/webp" hidden>
         <button id="coverBtn"><svg class="ic"><use href="#i-cover"/></svg><span>Обкладинка</span></button>
       </div>
       <div class="context" id="context"></div>
+      <div class="ovpanel" id="ovPanel" hidden>
+        <textarea id="ovText" rows="1" placeholder="Ваш текст"></textarea>
+        <div class="sw" id="ovColors"></div>
+        <button class="ghost" id="ovPlate">Плашка</button>
+        <label>Розмір <input type="range" id="ovSize" min="0" max="1" step="0.01"></label>
+        <button class="ghost" id="ovDel">Видалити</button>
+        <button class="pink" id="ovDone">Готово</button>
+      </div>
       <div class="track" id="track"><canvas id="tl"></canvas><div class="head"></div></div>
       <div class="times"><span></span><span id="now"></span><span id="total"></span></div>
     </div>
@@ -141,20 +169,22 @@
 
   <div id="help" hidden>
     <div class="card">
-      <h2>Як вирізати шматок</h2>
+      <h2>Як монтувати</h2>
       <ol>
         <li><b>Гортайте стрічку</b> внизу пальцем, мишею чи коліщатком. Біла лінія — це місце, яке видно у відео.</li>
         <li>Дійдіть до місця, звідки різати, і натисніть <b>«Початок»</b>.</li>
         <li>Гортайте далі — шматок підсвічується рожевим. Дійдіть до кінця і натисніть <b>«Кінець»</b>. Краї рожевого шматка можна підтягнути.</li>
         <li>Натисніть <b>«Вирізати»</b>. Місце вирізу позначене ✂ на стрічці — торкніться, щоб повернути. Помилилися — стрілка «назад» угорі ліворуч.</li>
         <li>Над кадрами — <b>текст розмови</b> (фіолетові фрази), <b>«е-е»</b> (рожеві) і <b>паузи</b> (коралові). Торкніться будь-якого — він виділиться, лишиться натиснути «Вирізати».</li>
-        <li>Кнопки <b>«Е-е»</b> і <b>«Паузи»</b> прибирають усе знайдене одним натиском. <b>«Змонтувати»</b> дасть відео з інтро, обкладинку й субтитри.</li>
+        <li><b>«Прибрати все»</b> одним натиском вирізає всі паузи й «е-е» разом (або окремо — кнопки «Е-е» і «Паузи»).</li>
+        <li><b>«Текст»</b> і <b>«Фото»</b> додають напис чи картинку поверх відео з того місця, де біла лінія. Тягніть їх прямо на відео; на стрічці вгорі — синій чи зелений блок: краї змінюють, скільки він видно, середина — коли з'являється. <b>«Змонтувати»</b> дасть відео з інтро, обкладинку й субтитри.</li>
       </ol>
       <button class="pink" id="helpOk">Зрозуміло</button>
     </div>
   </div>
 
   <script type="module">
+    import { COLORS, overlayHtml } from "/static/overlay.mjs";
     const $ = (id) => document.getElementById(id);
     const id = new URLSearchParams(location.search).get("id");
     const fmt = (t) => {
@@ -181,12 +211,15 @@
     const sugPauses = job.suggestions || [];
     $("slips").hidden = !sugSlips.length;
     $("pauses").hidden = !sugPauses.length;
+    $("cleanAll").hidden = !sugSlips.length && !sugPauses.length;
 
     // ---- Edit state in source seconds: cuts (removed) and splits (dividers), with undo. ----
     let cuts = [], splits = [], sel = null; // sel: index of the selected clip
     let range = null; // { a, b } in output seconds; b is null while the end follows the playhead
     let picked = null; // the phrase, «е-е» or pause the range was taken from
+    let overlays = job.overlays || [], ovSel = null; // text and photos over the video (see overlay.mjs)
     const past = [], future = [];
+    const snap = () => ({ cuts, splits, overlays: structuredClone(overlays) });
     const normalize = (list) => {
       const s = list.map(([a, b]) => [Math.max(0, Math.min(a, b)), Math.min(D, Math.max(a, b))]).filter(([a, b]) => b - a >= 0.05).sort((x, y) => x[0] - y[0]);
       const out = [];
@@ -201,20 +234,27 @@
     const cutAt = (t) => cuts.find(([a, b]) => t >= a && t < b);
     const isCut = (a, b) => !!cutAt((a + b) / 2);
     function commit(nextCuts, nextSplits = splits) {
-      past.push({ cuts, splits });
+      past.push(snap());
       future.length = 0;
       apply(normalize(nextCuts), nextSplits);
     }
-    function apply(c, s) {
+    /** Call before changing an overlay, once per gesture, so it can be undone. */
+    function ovEdit() {
+      past.push(snap());
+      future.length = 0;
+    }
+    function apply(c, s, ov = overlays) {
       cuts = c;
+      overlays = ov;
+      if (ovSel && !overlays.includes(ovSel)) selectOv(overlays.find((o) => o.id === ovSel.id) || null);
       splits = [...new Set(s.map((t) => +t.toFixed(2)))].filter((t) => !cutAt(t) && t > 0.05 && t < D - 0.05).sort((a, b) => a - b);
       sel = null;
       range = picked = null;
       layout();
       changed();
     }
-    const undo = () => { if (past.length) { future.push({ cuts, splits }); const p = past.pop(); apply(p.cuts, p.splits); } };
-    const redo = () => { if (future.length) { past.push({ cuts, splits }); const f = future.pop(); apply(f.cuts, f.splits); } };
+    const undo = () => { if (past.length) { future.push(snap()); const p = past.pop(); apply(p.cuts, p.splits, p.overlays); } };
+    const redo = () => { if (future.length) { past.push(snap()); const f = future.pop(); apply(f.cuts, f.splits, f.overlays); } };
 
     // ---- What is kept, laid out as clips on the output timeline. ----
     let clips = [], outD = D; // [{ a, b, o }]: source start and end, o = start on the output timeline
@@ -256,6 +296,9 @@
       $("pauses").title = openPauses ? `Прибрати довгі паузи (${openPauses})` : "Паузи прибрано";
       $("slips").disabled = !openSlips;
       $("pauses").disabled = !openPauses;
+      $("cleanAll").lastChild.textContent = openSlips + openPauses ? `Прибрати все · ${openSlips + openPauses}` : "Прибрано ✓";
+      $("cleanAll").title = "Вирізати всі паузи й «е-е» одним натиском";
+      $("cleanAll").disabled = !(openSlips + openPauses);
       placeLanes();
       draw();
     }
@@ -263,7 +306,7 @@
     async function save() {
       clearTimeout(saveTimer);
       saveTimer = null;
-      await fetch(`/api/jobs/${id}/cuts`, { method: "PUT", body: JSON.stringify({ cuts, splits }), keepalive: true });
+      await fetch(`/api/jobs/${id}/cuts`, { method: "PUT", body: JSON.stringify({ cuts, splits, overlays }), keepalive: true });
       $("saved").textContent = `Збережено · ${fmt(outD + 5)} з інтро`;
     }
 
@@ -286,9 +329,23 @@
     const cv = $("tl"), track = $("track");
     const H_TH = 58, H_WV = 18, H_CLIP = H_TH + 2 + H_WV;
     let lanes = [], Y_TH, Y_WV, Y_JOIN;
+    const OV_LANE = { ov: true, h: 26, get items() { return overlays; } };
+    const ROW = 30; // overlays that overlap in time go on separate rows, like InShot's layers
+    const ovRows = new Map();
+    const ovColor = (o) => (o.type === "photo" ? "#2f9e7a" : "#3d7be0");
+    const ovLabel = (o) => (o.type === "photo" ? "Фото" : o.text.split("\n")[0] || "Текст");
     /** Only lanes with something left in them take room; the frames sit right under them. */
     function placeLanes() {
-      lanes = LANES.filter((l) => l.items.some((it) => !isCut(it.t0, it.t1)));
+      lanes = [...(overlays.length ? [OV_LANE] : []), ...LANES.filter((l) => l.items.some((it) => !isCut(it.t0, it.t1)))];
+      const ends = [];
+      ovRows.clear();
+      for (const o of [...overlays].sort((a, b) => a.t0 - b.t0)) {
+        let r = ends.findIndex((t) => t <= o.t0);
+        if (r < 0) r = ends.length;
+        ends[r] = o.t1;
+        ovRows.set(o, r);
+      }
+      OV_LANE.h = Math.max(1, ends.length) * ROW - 4;
       let y = 18;
       for (const l of lanes) { l.y = y; y += l.h + 6; }
       Y_TH = y + (lanes.length ? 4 : 0); Y_WV = Y_TH + H_TH + 2; Y_JOIN = Y_TH + H_CLIP + 14;
@@ -367,6 +424,7 @@
         c.fillStyle = "#E8336D"; c.fillText("✂", x, Y_JOIN + 1);
       }
       c.textAlign = "start"; c.textBaseline = "alphabetic";
+      renderLayer();
       $("now").textContent = fmt1(T);
       $("total").textContent = `всього ${fmt(outD)}`;
       context();
@@ -379,14 +437,15 @@
         if (it.t1 < sMin || it.t0 > sMax) continue;
         const o0 = toOutput(it.t0), o1 = toOutput(it.t1);
         if (o1 - o0 < 0.02) continue;
-        const x = xOf(o0), w = Math.max(4, (o1 - o0) * pps), ym = l.y + l.h / 2;
+        const x = xOf(o0), w = Math.max(4, (o1 - o0) * pps), y = l.ov ? l.y + ovRows.get(it) * ROW : l.y, h = l.ov ? ROW - 4 : l.h, ym = y + h / 2;
         c.save();
-        c.fillStyle = l.color;
-        c.beginPath(); c.roundRect(x, l.y, w, l.h, 7); c.fill();
-        if (it === picked) { c.strokeStyle = "#fff"; c.lineWidth = 2.5; c.stroke(); }
+        c.fillStyle = l.ov ? ovColor(it) : l.color;
+        c.beginPath(); c.roundRect(x, y, w, h, 7); c.fill();
+        if (it === picked || it === ovSel) { c.strokeStyle = "#fff"; c.lineWidth = 2.5; c.stroke(); }
         c.clip();
-        c.fillStyle = "#26122a";
-        if (it.words) {
+        c.fillStyle = l.ov ? "#fff" : "#26122a";
+        if (l.ov) c.fillText(ovLabel(it), x + 8, ym);
+        else if (it.words) {
           let free = x + 7;
           for (const wd of it.words) {
             if (isCut(wd.t0, wd.t1)) continue;
@@ -405,11 +464,20 @@
       const l = lanes.find((l) => y >= l.y - 3 && y <= l.y + l.h + 3);
       const it = l?.items.find((it) => {
         const o0 = toOutput(it.t0), o1 = toOutput(it.t1);
+        if (l.ov && ovRows.get(it) !== Math.floor((y - l.y) / ROW)) return false;
         return o1 - o0 >= 0.02 && x >= xOf(o0) - 3 && x <= xOf(o0) + Math.max(4, (o1 - o0) * pps) + 3;
       });
       if (!it) return;
       video.pause();
       sel = null;
+      if (l.ov) {
+        range = picked = null;
+        selectOv(it);
+        const o0 = toOutput(it.t0), o1 = toOutput(it.t1);
+        if (T < o0 || T >= o1) seekOutput(Math.min(o0 + 0.05, o1 - 0.01)); // show it in the preview
+        return draw();
+      }
+      selectOv(null);
       picked = it;
       range = { a: toOutput(it.t0), b: toOutput(it.t1) };
       video.currentTime = it.t0;
@@ -440,7 +508,9 @@
       $("markA").classList.toggle("on", !!range);
       $("markB").classList.toggle("on", range?.b != null);
       $("del").disabled = sel == null || clips.length < 2;
-      if (range) {
+      if (ovSel) {
+        html = "Тягніть на відео, щоб посунути · на стрічці: краї блоку — скільки видно, середина — коли з'являється";
+      } else if (range) {
         const [a, b] = rangeAB();
         const what = picked && (picked.words ? `«${picked.words.map((x) => x.w).join(" ")}»` : `«${picked.label}»`);
         const part = (what ? `<span class="q" title="${esc(what)}">${esc(what)}</span>` : `<b>${fmt1(a)}</b> → <b>${fmt1(b)}</b>`) + ` · ${(b - a).toFixed(1)} с`;
@@ -502,6 +572,15 @@
         if (e.offsetX > xOf(a) - 16 && e.offsetX < xOf(a) + 6) what = { kind: "ra", t: a };
         else if (range.b != null && e.offsetX > xOf(b) - 6 && e.offsetX < xOf(b) + 16) what = { kind: "rb", t: b };
       }
+      const ovl = lanes.find((l) => l.ov);
+      if (!what && ovl && e.offsetY >= ovl.y - 3 && e.offsetY <= ovl.y + ovl.h + 3) {
+        const row = Math.floor((e.offsetY - ovl.y) / ROW);
+        const o = overlays.find((o) => { const x0 = xOf(toOutput(o.t0)), x1 = xOf(toOutput(o.t1)); return ovRows.get(o) === row && e.offsetX >= x0 - 8 && e.offsetX <= x1 + 8; });
+        if (o) {
+          const x0 = xOf(toOutput(o.t0)), x1 = xOf(toOutput(o.t1));
+          what = { kind: "ov", o, edge: Math.abs(e.offsetX - x0) < 10 ? "a" : Math.abs(e.offsetX - x1) < 10 ? "b" : "move", t0: o.t0, t1: o.t1 };
+        }
+      }
       const cl = sel != null ? clips[sel] : null;
       if (!what && cl && inStrip) {
         const left = xOf(cl.o), right = left + len(cl) * pps;
@@ -516,6 +595,15 @@
       drag.dx = e.offsetX - drag.x0;
       if (Math.abs(drag.dx) > 3) drag.moved = true;
       const w = drag.what;
+      if (w?.kind === "ov") {
+        if (!drag.moved) return;
+        if (!w.edited) { ovEdit(); w.edited = true; selectOv(w.o); }
+        const ds = drag.dx / pps, o = w.o, len0 = w.t1 - w.t0;
+        if (w.edge === "a") o.t0 = +Math.max(0, Math.min(w.t1 - 0.3, w.t0 + ds)).toFixed(2);
+        else if (w.edge === "b") o.t1 = +Math.min(D, Math.max(w.t0 + 0.3, w.t1 + ds)).toFixed(2);
+        else { o.t0 = +Math.max(0, Math.min(D - len0, w.t0 + ds)).toFixed(2); o.t1 = +(o.t0 + len0).toFixed(2); }
+        return draw();
+      }
       if (w?.kind === "ra" || w?.kind === "rb") {
         const t = Math.min(outD, Math.max(0, w.t + drag.dx / pps));
         const [a, b] = rangeAB();
@@ -531,6 +619,7 @@
       const d = drag;
       drag = null;
       if (d.what?.kind === "ra" || d.what?.kind === "rb") return;
+      if (d.what?.kind === "ov" && d.moved) return changed();
       if (d.what && d.moved) return trim(d.what.clip, d.what.kind, d.dx / pps);
       if (d.moved) return;
       if (e.offsetY > Y_TH + H_CLIP + 2) {
@@ -589,9 +678,9 @@
     }
     const toggle = () => (video.paused ? video.play() : video.pause());
     $("play").addEventListener("click", toggle);
-    video.addEventListener("click", toggle);
+    video.addEventListener("click", () => (ovSel ? (selectOv(null), draw()) : toggle()));
     const playIcon = (on) => $("play").querySelector("use").setAttribute("href", on ? "#i-pause" : "#i-play");
-    video.addEventListener("play", () => { playIcon(true); sel = null; requestAnimationFrame(loop); });
+    video.addEventListener("play", () => { playIcon(true); sel = null; selectOv(null); requestAnimationFrame(loop); });
     video.addEventListener("pause", () => { playIcon(false); draw(); });
     function loop() {
       if (video.paused) return;
@@ -617,6 +706,7 @@
     });
     $("slips").addEventListener("click", () => commit([...cuts, ...sugSlips]));
     $("pauses").addEventListener("click", () => commit([...cuts, ...sugPauses]));
+    $("cleanAll").addEventListener("click", () => commit([...cuts, ...sugSlips, ...sugPauses]));
     $("undo").addEventListener("click", undo);
     $("redo").addEventListener("click", redo);
     document.addEventListener("keydown", (e) => {
@@ -629,17 +719,139 @@
       else if (e.code === "KeyO") markB();
       else if (e.code === "KeyX" || (e.code === "Enter" && range)) cutRange();
       else if (e.code === "KeyS") $("split").click();
-      else if (e.code === "Delete" || e.code === "Backspace") { e.preventDefault(); range ? cutRange() : $("del").click(); }
+      else if (e.code === "Delete" || e.code === "Backspace") { e.preventDefault(); ovSel ? $("ovDel").click() : range ? cutRange() : $("del").click(); }
       else if (e.code === "ArrowLeft") seekOutput(Math.max(0, T - (e.shiftKey ? 0.1 : 5)));
       else if (e.code === "ArrowRight") seekOutput(Math.min(outD, T + (e.shiftKey ? 0.1 : 5)));
-      else if (e.code === "Escape") { sel = null; range = picked = null; draw(); }
+      else if (e.code === "Escape") { sel = null; range = picked = null; selectOv(null); draw(); }
+    });
+
+    // ---- Text and photos over the video, like InShot's text and stickers. ----
+    const layer = $("layer");
+    let layerKey = "";
+    /** Draws the overlays showing at the playhead (and the selected one) over the preview, sized to the picture. */
+    function renderLayer() {
+      const vw = video.offsetWidth, vh = video.offsetHeight, s = video.currentTime;
+      Object.assign(layer.style, { left: video.offsetLeft + "px", top: video.offsetTop + "px", width: vw + "px", height: vh + "px" });
+      const vis = overlays.filter((o) => o === ovSel || (s >= o.t0 && s < o.t1));
+      const key = JSON.stringify([vw, vh, ovSel?.id, vis.map(({ x, y, ...rest }) => rest)]); // moves alone do not rebuild
+      if (key !== layerKey) {
+        layerKey = key;
+        layer.innerHTML = vis.map((o) => overlayHtml(o, vw, `/files/${id}/${o.file}`, `class="ov${o === ovSel ? " sel" : ""}" data-id="${o.id}"`)).join("");
+      }
+      for (const el of layer.children) {
+        const o = overlays.find((x) => x.id === el.dataset.id);
+        el.style.left = o.x * 100 + "%";
+        el.style.top = o.y * 100 + "%";
+      }
+    }
+    video.addEventListener("loadedmetadata", draw);
+    function selectOv(o) {
+      ovSel = o;
+      $("ovPanel").hidden = !o;
+      if (!o) return;
+      const text = o.type === "text";
+      for (const el of [$("ovText"), $("ovColors"), $("ovPlate")]) el.hidden = !text;
+      if (text) {
+        $("ovText").value = o.text;
+        $("ovPlate").classList.toggle("on", !!o.plate);
+        $("ovColors").querySelectorAll("button").forEach((b) => b.classList.toggle("on", b.dataset.c === o.color));
+      }
+      $("ovSize").value = text ? (o.size - 0.025) / 0.095 : (o.w - 0.1) / 0.9;
+    }
+    $("ovColors").innerHTML = COLORS.map((c) => `<button data-c="${c}" style="background:${c}" title="Колір"></button>`).join("");
+    function addOverlay(o) {
+      ovEdit();
+      video.pause();
+      const t0 = +toSource(T).toFixed(2);
+      o = { id: Math.random().toString(36).slice(2, 10), t0, t1: +Math.min(D, t0 + 4).toFixed(2), x: 0.5, y: 0.5, ...o };
+      overlays.push(o);
+      sel = null;
+      range = picked = null;
+      selectOv(o);
+      changed();
+      return o;
+    }
+    $("addText").addEventListener("click", () => {
+      addOverlay({ type: "text", text: "Ваш текст", color: "#ffffff", plate: false, size: 0.06, y: 0.82 });
+      $("ovText").focus();
+      $("ovText").select();
+    });
+    $("addPhoto").addEventListener("click", () => $("photoFile").click());
+    $("photoFile").addEventListener("change", async () => {
+      const f = $("photoFile").files[0];
+      $("photoFile").value = "";
+      if (!f) return;
+      const file = `ov-${Math.random().toString(36).slice(2, 10)}.${{ "image/png": "png", "image/webp": "webp" }[f.type] || "jpg"}`;
+      $("saved").textContent = "Завантажую фото…";
+      const r = await fetch(`/api/jobs/${id}/upload?name=${file}&offset=0`, { method: "PUT", body: f });
+      if (!r.ok) return ($("saved").textContent = "Фото не завантажилось");
+      addOverlay({ type: "photo", file, w: 0.3, x: 0.75, y: 0.32 });
+    });
+    // Editing the selected overlay: the first change of each gesture goes into the undo history.
+    let typing = false;
+    $("ovText").addEventListener("focus", () => (typing = false));
+    $("ovText").addEventListener("input", () => {
+      if (!typing) { ovEdit(); typing = true; }
+      ovSel.text = $("ovText").value;
+      changed();
+    });
+    $("ovColors").addEventListener("click", (e) => {
+      const c = e.target.closest("button")?.dataset.c;
+      if (!c || !ovSel) return;
+      ovEdit();
+      ovSel.color = c;
+      selectOv(ovSel);
+      changed();
+    });
+    $("ovPlate").addEventListener("click", () => { ovEdit(); ovSel.plate = !ovSel.plate; selectOv(ovSel); changed(); });
+    $("ovSize").addEventListener("pointerdown", () => ovEdit());
+    $("ovSize").addEventListener("input", () => {
+      const v = +$("ovSize").value;
+      if (ovSel.type === "text") ovSel.size = +(0.025 + v * 0.095).toFixed(4);
+      else ovSel.w = +(0.1 + v * 0.9).toFixed(4);
+      changed();
+    });
+    $("ovDel").addEventListener("click", () => {
+      if (!ovSel) return;
+      ovEdit();
+      overlays = overlays.filter((o) => o !== ovSel);
+      selectOv(null);
+      changed();
+    });
+    $("ovDone").addEventListener("click", () => { selectOv(null); draw(); });
+    // Dragging an overlay on the picture moves it.
+    let ovDrag = null;
+    layer.addEventListener("pointerdown", (e) => {
+      const el = e.target.closest(".ov");
+      if (!el) return;
+      e.preventDefault();
+      const o = overlays.find((x) => x.id === el.dataset.id);
+      video.pause();
+      if (ovSel !== o) { sel = null; range = picked = null; selectOv(o); }
+      ovDrag = { o, x0: e.clientX, y0: e.clientY, ox: o.x, oy: o.y, moved: false };
+      draw();
+    });
+    addEventListener("pointermove", (e) => {
+      if (!ovDrag) return;
+      const dx = e.clientX - ovDrag.x0, dy = e.clientY - ovDrag.y0;
+      if (!ovDrag.moved && Math.hypot(dx, dy) < 3) return;
+      if (!ovDrag.moved) { ovEdit(); ovDrag.moved = true; }
+      const el = layer.querySelector(`[data-id="${ovDrag.o.id}"]`);
+      const hw = Math.min(0.5, el.offsetWidth / 2 / layer.clientWidth), hh = Math.min(0.5, el.offsetHeight / 2 / layer.clientHeight);
+      ovDrag.o.x = +Math.min(1 - hw, Math.max(hw, ovDrag.ox + dx / layer.clientWidth)).toFixed(4);
+      ovDrag.o.y = +Math.min(1 - hh, Math.max(hh, ovDrag.oy + dy / layer.clientHeight)).toFixed(4);
+      renderLayer();
+    });
+    addEventListener("pointerup", () => {
+      if (ovDrag?.moved) changed();
+      ovDrag = null;
     });
 
     // ---- Help on the first visit. ----
     let seen = false;
-    try { seen = localStorage.getItem("studio-help-4") === "1"; } catch {}
+    try { seen = localStorage.getItem("studio-help-5") === "1"; } catch {}
     $("help").hidden = seen;
-    $("helpOk").addEventListener("click", () => { $("help").hidden = true; try { localStorage.setItem("studio-help-4", "1"); } catch {} });
+    $("helpOk").addEventListener("click", () => { $("help").hidden = true; try { localStorage.setItem("studio-help-5", "1"); } catch {} });
     $("helpBtn").addEventListener("click", () => ($("help").hidden = false));
 
     // ---- Export. The tab title shows progress; a notification comes when the tab is in the background. ----

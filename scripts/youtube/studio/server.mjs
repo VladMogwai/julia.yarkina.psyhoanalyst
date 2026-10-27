@@ -10,13 +10,16 @@ import { spawn, execFile as execFileCb } from "node:child_process";
 import { promisify } from "node:util";
 import { createReadStream, createWriteStream, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, extname, join } from "node:path";
-import { fileURLToPath } from "node:url";
-import { ASSETS, buildSpec, renderCover, renderIntro } from "../make/lib.mjs";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { ASSETS, buildSpec, renderCover, renderIntro, renderLayers } from "../make/lib.mjs";
+import { FONTS } from "../make/cover.mjs";
 import { SECONDS } from "../make/intro.mjs";
 import { canTranscribe, subtitles, transcribe } from "./transcribe.mjs";
+import { overlayHtml } from "./public/overlay.mjs";
 
 const execFile = promisify(execFileCb);
 const here = dirname(fileURLToPath(import.meta.url));
+const OVERLAY_FILE = /^ov-[a-z0-9]{6,12}\.(?:jpg|png|webp)$/;
 // STUDIO_LOCAL=1 is the packaged app: it listens only on this computer, so no password is asked.
 const LOCAL = process.env.STUDIO_LOCAL === "1";
 const DATA = process.env.STUDIO_DATA || join(here, "../studio-data");
@@ -191,12 +194,35 @@ async function render(id) {
         : `anullsrc=r=48000:cl=stereo,atrim=0:${len}[a${i + 1}]`);
     });
     const n = keep.length + 1;
-    parts.push(`${Array.from({ length: n }, (_, i) => `[v${i}][a${i}]`).join("")}concat=n=${n}:v=1:a=1[v][a]`);
+    parts.push(`${Array.from({ length: n }, (_, i) => `[v${i}][a${i}]`).join("")}concat=n=${n}:v=1:a=1[vc][a]`);
+
+    // Text and photos: each a transparent full-frame picture, shown wherever its stretch of the source is kept.
+    const layers = [];
+    for (const o of job.overlays || []) {
+      const spans = [];
+      let at = SECONDS;
+      for (const [a, b] of keep) {
+        const x0 = Math.max(a, o.t0), x1 = Math.min(b, o.t1);
+        if (x1 - x0 > 0.02) spans.push([at + x0 - a, at + x1 - a]);
+        at += b - a;
+      }
+      if (spans.length) layers.push({ o, spans });
+    }
+    const pictures = layers.length ? await renderLayers(layers.map(({ o }) =>
+      `<html><head><meta charset="utf-8">${FONTS}<style>html,body{margin:0;width:${width}px;height:${height}px;background:transparent;position:relative;overflow:hidden}</style></head>` +
+      `<body>${overlayHtml(o, width, o.file && pathToFileURL(join(dir, o.file)).href)}<script>document.fonts.ready.then(() => (window.ready = true))</script></body></html>`), join(dir, "work", "layers"), width, height) : [];
+    let last = "vc";
+    layers.forEach(({ spans }, k) => {
+      const on = spans.map(([a, b]) => `between(t,${a.toFixed(3)},${b.toFixed(3)})`).join("+");
+      parts.push(`[${last}][${k + 2}:v]overlay=0:0:enable='${on}'[l${k}]`);
+      last = `l${k}`;
+    });
+    parts.push(`[${last}]format=yuv420p[v]`);
     const script = join(dir, "filter.txt");
     writeFileSync(script, parts.join(";\n"));
     const total = SECONDS + keep.reduce((s, [a, b]) => s + b - a, 0);
     step("Монтаж", 0);
-    await ffmpeg(["-i", join(dir, "intro.mp4"), "-i", join(dir, "video"), "-/filter_complex", script, "-map", "[v]", "-map", "[a]",
+    await ffmpeg(["-i", join(dir, "intro.mp4"), "-i", join(dir, "video"), ...pictures.flatMap((p) => ["-i", p]), "-/filter_complex", script, "-map", "[v]", "-map", "[a]",
       "-c:v", "h264_videotoolbox", "-b:v", String(Math.max(4e6, Math.min(bitrate, 20e6))), "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", join(dir, "final.mp4")],
       total, (p) => step("Монтаж", p));
     update(id, { status: "done", message: "", progress: 1, renderedAt: Date.now() });
@@ -208,7 +234,7 @@ async function render(id) {
 }
 
 // HTTP helpers.
-const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".mp4": "video/mp4", ".jpg": "image/jpeg", ".png": "image/png", ".svg": "image/svg+xml" };
+const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".mp4": "video/mp4", ".jpg": "image/jpeg", ".png": "image/png", ".svg": "image/svg+xml", ".mjs": "text/javascript", ".webp": "image/webp" };
 const json = (res, code, body) => res.writeHead(code, { "Content-Type": "application/json" }).end(JSON.stringify(body));
 const readBody = (req) => new Promise((resolve) => {
   const chunks = [];
@@ -309,10 +335,10 @@ const server = createServer(async (req, res) => {
         return json(res, 200, { ok: true });
       }
       if (action === "form" && req.method === "PUT") return json(res, 200, update(id, { form: { ...load(id).form, ...JSON.parse(String(await readBody(req))) } }));
-      // Chunked upload: PUT …/upload?name=video|guest|guest2|guest3&offset=N appends a chunk; a repeated chunk is ignored.
+      // Chunked upload: PUT …/upload?name=video|guest|guest2|guest3|ov-….jpg&offset=N appends a chunk; a repeated chunk is ignored.
       if (action === "upload" && req.method === "PUT") {
         const name = url.searchParams.get("name");
-        if (!["video", "guest", "guest2", "guest3"].includes(name)) return json(res, 400, { error: "bad name" });
+        if (!["video", "guest", "guest2", "guest3"].includes(name) && !OVERLAY_FILE.test(name)) return json(res, 400, { error: "bad name" });
         const file = join(jobDir(id), name);
         const have = existsSync(file) ? statSync(file).size : 0;
         const offset = +url.searchParams.get("offset");
@@ -325,7 +351,7 @@ const server = createServer(async (req, res) => {
       }
       if (action === "upload" && req.method === "DELETE") {
         const name = url.searchParams.get("name");
-        if (!["guest", "guest2", "guest3"].includes(name)) return json(res, 400, { error: "bad name" });
+        if (!["guest", "guest2", "guest3"].includes(name) && !OVERLAY_FILE.test(name)) return json(res, 400, { error: "bad name" });
         rmSync(join(jobDir(id), name), { force: true });
         return json(res, 200, { ok: true });
       }
@@ -347,10 +373,12 @@ const server = createServer(async (req, res) => {
         prepare(id);
         return json(res, 200, { ok: true });
       }
-      // Body: { cuts: [[a, b]…], splits: [t…] } (an array alone is taken as cuts).
+      // Body: { cuts: [[a, b]…], splits: [t…], overlays?: […] } (an array alone is taken as cuts).
       if (action === "cuts" && req.method === "PUT") {
         const body = JSON.parse(String(await readBody(req)));
-        return json(res, 200, update(id, Array.isArray(body) ? { cuts: body } : { cuts: body.cuts, splits: body.splits }));
+        if (Array.isArray(body)) return json(res, 200, update(id, { cuts: body }));
+        const overlays = (body.overlays ?? load(id).overlays ?? []).filter((o) => o.type === "text" || OVERLAY_FILE.test(o.file));
+        return json(res, 200, update(id, { cuts: body.cuts, splits: body.splits, overlays }));
       }
       if (action === "transcribe" && req.method === "POST") {
         const job = load(id);
@@ -380,7 +408,7 @@ const server = createServer(async (req, res) => {
       res.writeHead(200, { "Content-Type": "application/x-subrip; charset=utf-8", "Content-Disposition": `attachment; filename="subtitles.srt"; filename*=UTF-8''${encodeURIComponent(name + ".srt")}` });
       return res.end(subtitles(words, job.cuts || [], SECONDS));
     }
-    const f = /^\/files\/([a-z0-9-]+)\/(proxy\.mp4|peaks\.json|cover\.jpg|final\.mp4|intro\.mp4|guest|guest2|guest3|thumbs\.jpg|transcript\.json|preview\.jpg)$/.exec(path);
+    const f = /^\/files\/([a-z0-9-]+)\/(proxy\.mp4|peaks\.json|cover\.jpg|final\.mp4|intro\.mp4|guest|guest2|guest3|thumbs\.jpg|transcript\.json|preview\.jpg|ov-[a-z0-9]{6,12}\.(?:jpg|png|webp))$/.exec(path);
     if (f && validId(f[1])) {
       const job = load(f[1]);
       const base = (job.form?.title || "video").replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-|-$/g, "").slice(0, 60) || "video";

@@ -63,6 +63,28 @@ export async function buildSpec(o, workDir) {
   return spec;
 }
 
+/** Transparent PNGs of whole-frame pages (text and photos laid over the video); each page sets window.ready. */
+export async function renderLayers(pages, dir, width, height) {
+  mkdirSync(dir, { recursive: true });
+  const browser = await puppeteer.launch({ executablePath: CHROME, headless: true, args: ["--allow-file-access-from-files"] });
+  try {
+    const page = await browser.newPage();
+    await page.setViewport({ width, height });
+    const out = [];
+    for (const [i, html] of pages.entries()) {
+      const file = join(dir, `layer${i}.html`), png = join(dir, `layer${i}.png`);
+      writeFileSync(file, html);
+      await page.goto(pathToFileURL(file).href, { waitUntil: "networkidle0" });
+      await page.waitForFunction("window.ready === true");
+      await page.screenshot({ path: png, omitBackground: true });
+      out.push(png);
+    }
+    return out;
+  } finally {
+    await browser.close();
+  }
+}
+
 async function withPage(html, file, scale, fn) {
   writeFileSync(file, html);
   const browser = await puppeteer.launch({ executablePath: CHROME, headless: true, args: ["--allow-file-access-from-files"] });
