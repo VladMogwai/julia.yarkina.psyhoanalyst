@@ -94,6 +94,9 @@ mkdir -p "$R/app/scripts/youtube/studio"
 cp -R "$YT/studio/server.mjs" "$YT/studio/transcribe.mjs" "$YT/studio/public" "$R/app/scripts/youtube/studio/"
 PUPPETEER_V="$(node -p "require('$ROOT/node_modules/puppeteer-core/package.json').version")"
 echo '{"private":true,"type":"module"}' > "$R/app/package.json"
+# Build stamp: the app compares it with the website's newest build to offer an update.
+VERSION="$(date +%Y%m%d%H%M)"
+echo "$VERSION" > "$R/app/version.txt"
 npm install --prefix "$R/app" --omit=dev --no-audit --no-fund --silent "puppeteer-core@$PUPPETEER_V"
 
 # Julia's photos and the intro piano, played once here so the app needs no soundfont.
@@ -130,6 +133,7 @@ plist="$(mktemp -d)/component.plist"
 pkgbuild --analyze --root "$root" "$plist" >/dev/null
 plutil -replace 0.BundleIsRelocatable -bool NO "$plist"
 pkgbuild --root "$root" --component-plist "$plist" --install-location /Applications \
-  --identifier online.yarkina-psy.studio --version "$(date +%Y.%m.%d)" dist/Pro-Studio.pkg >/dev/null
+  --identifier online.yarkina-psy.studio --version "$VERSION" dist/Pro-Studio.pkg >/dev/null
+echo "$VERSION" > dist/version.txt
 rm -rf "$root"
 du -sh "$APP" dist/Pro-Studio.pkg

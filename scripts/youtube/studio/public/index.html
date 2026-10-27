@@ -49,6 +49,8 @@
     .crumb { animation: fall 1.2s linear infinite; }
     @keyframes fall { from { transform: translateY(0); opacity: 1; } to { transform: translateY(26px); opacity: 0; } }
     @media (prefers-reduced-motion: reduce) { .film, .blade, .head, .lid, .crumb { animation: none; } }
+    .update { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; padding: 14px 18px; border-radius: 14px; background: var(--navy); color: #fff; font-size: 15px; line-height: 1.45; }
+    .update span { flex: 1 1 320px; }
   </style>
 </head>
 <body>
@@ -85,6 +87,10 @@
   </template>
 
   <main>
+    <div class="update" id="update" hidden>
+      <span><b>Вийшла нова версія Pro Studio.</b> Відкрийте сторінку скачування й виконайте команду так само, як при встановленні. Відео нікуди не дінуться.</span>
+      <a class="btn pink" id="updateLink" target="_blank" rel="noopener">Оновити</a>
+    </div>
     <label class="drop card" id="drop">
       <input type="file" id="video" accept="video/*">
       <svg width="54" height="54" viewBox="0 0 24 24" fill="none" stroke="#E8336D" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 16V4"/><path d="m6 10 6-6 6 6"/><path d="M4 20h16"/></svg>
@@ -384,6 +390,16 @@
     $("logout").hidden = info.local;
     $("reveal").hidden = !info.local;
     $("getApp").hidden = !info.app;
+    // In the app: a banner while a newer build is on the website; once it is installed the banner is gone.
+    async function checkUpdate() {
+      const u = await fetch("/api/update").then((r) => r.json()).catch(() => null);
+      $("update").hidden = !u?.available;
+      if (u?.available) $("updateLink").href = u.url;
+    }
+    if (info.local) {
+      checkUpdate();
+      setInterval(checkUpdate, 15 * 60e3);
+    }
     $("reveal").addEventListener("click", () => fetch("/api/reveal", { method: "POST" }));
     $("logout").addEventListener("click", async () => {
       await fetch("/api/logout", { method: "POST" });

@@ -71,6 +71,13 @@ const update = (id, patch) => save({ ...load(id), ...patch });
 const validId = (id) => /^[a-z0-9-]+$/.test(id) && existsSync(join(jobDir(id), "job.json"));
 
 /** In the Mac app, a macOS notification (the browser may be minimised). */
+// Build stamps written by app/build.sh: the website offers its newest build, the app compares it with its own.
+const readVersion = (file) => (existsSync(file) ? readFileSync(file, "utf8").trim() : "");
+const OWN_VERSION = join(here, "../../../version.txt"); // in the app: Resources/app/version.txt
+const LATEST_VERSION = join(here, "app/dist/version.txt"); // on the website: next to the installer
+const UPDATES = process.env.STUDIO_UPDATES_URL || "https://studio.yarkina-psy.online/api/app-version";
+let latest = { at: 0, version: "" }, announced = "";
+
 function notify(text) {
   if (!LOCAL) return;
   const q = (x) => JSON.stringify(String(x)); // AppleScript strings take the same escaping as JSON
@@ -270,6 +277,7 @@ const server = createServer(async (req, res) => {
       return sendFile(req, res, join(here, "app/dist/Pro-Studio.pkg"), "Pro-Studio.pkg");
     }
     if (path === "/style.css") return sendFile(req, res, join(PUBLIC, "style.css"));
+    if (path === "/api/app-version" && !LOCAL) return json(res, 200, { version: readVersion(LATEST_VERSION) });
     if (path === "/api/login" && req.method === "POST") {
       const { password } = JSON.parse(String(await readBody(req)) || "{}");
       const ok = typeof password === "string" && password.length === PASSWORD.length && timingSafeEqual(Buffer.from(password), Buffer.from(PASSWORD));
@@ -302,8 +310,23 @@ const server = createServer(async (req, res) => {
       const origin = `${req.headers["x-forwarded-proto"] || "http"}://${req.headers.host}`;
       const link = `${origin}/download/Pro-Studio.pkg?t=${downloadToken()}`;
       return json(res, 200, {
-        command: `curl -fL --progress-bar "${link}" -o /tmp/Pro-Studio.pkg && sudo installer -pkg /tmp/Pro-Studio.pkg -target / && rm /tmp/Pro-Studio.pkg && open "/Applications/Pro Studio.app"`,
+        command: `curl -fL --progress-bar "${link}" -o /tmp/Pro-Studio.pkg && sudo installer -pkg /tmp/Pro-Studio.pkg -target / && rm /tmp/Pro-Studio.pkg && "/Applications/Pro Studio.app/Contents/Resources/stop.sh"; open "/Applications/Pro Studio.app"`,
       });
+    }
+    // In the app: is there a newer build on the website? Asked at most every 10 minutes; offline means no.
+    if (path === "/api/update" && LOCAL) {
+      if (Date.now() - latest.at > 10 * 60e3) {
+        let version = "";
+        try { version = (await (await fetch(UPDATES, { signal: AbortSignal.timeout(5000) })).json()).version || ""; } catch {}
+        latest = { at: Date.now(), version };
+      }
+      const current = readVersion(OWN_VERSION);
+      const available = !!current && latest.version > current;
+      if (available && announced !== latest.version) {
+        announced = latest.version;
+        notify("Вийшла нова версія Pro Studio. Оновіть її на сторінці скачування.");
+      }
+      return json(res, 200, { current, latest: latest.version, available, url: new URL("/download", UPDATES).href });
     }
     if (path === "/api/reveal" && req.method === "POST" && LOCAL) {
       spawn("open", [join(DATA, "jobs")]);
