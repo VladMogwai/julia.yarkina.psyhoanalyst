@@ -420,7 +420,8 @@
         return `<div class="card" data-k="${k}">
           <b>${name}</b>
           ${x.custom ? `<video src="/api/intro/${k}/video?${Date.now()}" controls preload="metadata"></video>`
-            : `<div class="std">Стандартне: анімація з обкладинкою відео<br>Музика: ${esc(x.music)}</div>`}
+            : `<div class="std">Стандартне: анімація з обкладинкою відео<br>Музика: ${esc(x.music)}</div>
+              ${x.music.startsWith("ноти") ? "" : `<audio src="/api/intro/${k}/sound" controls preload="none"></audio>`}`}
           <span class="muted">${x.custom ? `Своє інтро · ${x.seconds.toFixed(1)} с` : "5 с"}</span>
           <div class="row"><button class="pink" data-act="upload">${x.custom ? "Замінити" : "Поставити своє відео"}</button>
             ${x.custom ? `<button class="ghost" data-act="reset">Повернути стандартне</button>` : ""}</div>

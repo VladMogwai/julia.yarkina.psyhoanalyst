@@ -404,10 +404,18 @@ const server = createServer(async (req, res) => {
       }
       return json(res, 200, { current, latest: latest.version, available, url: new URL("/download", UPDATES).href });
     }
-    // Intros: GET /api/intro (both kinds), PUT/DELETE /api/intro/int|solo (body: the video), GET /api/intro/int|solo/video.
-    const intro = /^\/api\/intro(?:\/(int|solo)(\/video)?)?$/.exec(path);
+    // Intros: GET /api/intro (both kinds), PUT/DELETE /api/intro/int|solo (body: the video), GET /api/intro/int|solo/video,
+    // GET /api/intro/int|solo/sound (the track's piece as the standard intro plays it).
+    const intro = /^\/api\/intro(?:\/(int|solo)(?:\/(video|sound))?)?$/.exec(path);
     if (intro) {
-      const [, key, video] = intro;
+      const [, key, part] = intro;
+      const video = part === "video";
+      if (part === "sound") {
+        const track = introTrack(key === "int" ? "int" : "tema");
+        if (!track) return json(res, 404, { error: "no track" });
+        const { stdout } = await execFile("ffmpeg", ["-loglevel", "error", ...track.input, "-af", track.filter, "-ac", "2", "-c:a", "aac", "-b:a", "192k", "-f", "adts", "-"], { encoding: "buffer", maxBuffer: 16 << 20 });
+        return res.writeHead(200, { "Content-Type": "audio/aac", "Content-Length": stdout.length }).end(stdout);
+      }
       if (!key) {
         const about = async (k, kind) => {
           const f = introFile(k);
