@@ -51,9 +51,10 @@ Git-ignored (the repo is public): `client_secret.json`, `token.json`, `covers/` 
 Upload the original video; while it uploads and is prepared, choose the cover (type, guests' photos, title, colour) with a
 live preview. Preparation makes a light copy, timeline frames, finds pauses, and transcribes the speech with whisper.cpp
 (DTW word timings); "е-е" / "м-м" that whisper leaves out are found as sound without words and confirmed by hearing each
-piece again. The editor works like a phone video app: a fixed playhead over a strip of frames and sound, split, tap a clip
-and delete it or drag its edges, one-tap "remove all slips / pauses", the conversation text (click a word to go there,
-select a phrase to cut it), undo. "Змонтувати" gives the video with the intro in front, the cover and SRT subtitles. The
+piece again. The editor works like InShot: a fixed playhead over a strip of frames and sound, cut a stretch between a
+start and an end mark, lanes above the frames with the speech in phrases, slips and pauses (tap one to cut it), one-tap
+"remove all slips and pauses", text and photos over the picture, undo. "Змонтувати" gives the video with the intro in
+front, the cover and SRT subtitles. The
 Mac app shows a system notification when preparation or rendering finishes; the website a browser notification. Everything runs on this Mac:
 ffmpeg with the M1 hardware encoder, so an hour of video takes a few minutes.
 
@@ -85,6 +86,14 @@ cloudflared tunnel route dns yarkina-studio studio.yarkina-psy.online
 After that `start.sh` brings the site online too. It is reachable only while this Mac is on and `start.sh` runs. Another Mac
 can run the studio the same way (clone the repo, `npm install`, the tools above, copy `assets/` and the `.env.local` line, and
 copy `~/.cloudflared/` for the tunnel), but only one of them at a time: each keeps its videos on its own disk.
+
+### Intro music
+
+"Музика для інтро" on the studio's home page (website only, where the soundfont is) is a piano roll for the intro's
+5 seconds: several instruments, notes drawn with the mouse, and «Прослухати» plays the real sound with the intro animation.
+Variants are files in `make/music/*.json`, so they can also be edited by hand; an open editor picks such changes up by
+itself. `make/music/intro.json` is the music every new intro gets: «Поставити в інтро» copies a variant there. The Mac app
+plays the music it was built with, so rebuild it after changing the intro music.
 
 ### Mac app for others
 

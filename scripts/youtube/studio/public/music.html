@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Музика для інтро · Pro психоаналіз</title>
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    /* A piano roll for the 5-second intro: time across, pitch up and down, one colour per instrument. */
+    :root { --bg: #121212; --panel: #1d1d1f; --line2: #2e2e32; --txt: #f4f4f4; --dim: #8e8e93; }
+    html, body { height: 100%; }
+    body { background: var(--bg); color: var(--txt); display: flex; flex-direction: column; overflow: hidden; }
+    button, .btn { padding: 8px 14px; font-size: 13px; }
+    button.ghost, .btn.ghost { color: var(--txt); border-color: var(--line2); }
+    select, input[type="text"] { background: #26262a; color: var(--txt); border: 1px solid var(--line2); border-radius: 10px; padding: 7px 10px; font: 700 13px Manrope; }
+
+    .top { display: flex; align-items: center; gap: 10px; padding: 10px 14px; flex-wrap: wrap; }
+    .top a.back { color: var(--txt); text-decoration: none; font-size: 22px; padding: 2px 8px; }
+    .top h1 { font: 700 18px Oswald; text-transform: uppercase; margin: 0 6px 0 0; }
+    .top #title { width: 220px; }
+    .top .grow { flex: 1; }
+    .top .saved { color: var(--dim); font-size: 12px; }
+
+    .main { flex: 1; min-height: 0; display: flex; }
+    .side { width: 330px; flex: none; overflow: auto; padding: 0 14px 14px; display: flex; flex-direction: column; gap: 14px; }
+    .side video { width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 10px; display: block; }
+    .transport { display: flex; gap: 8px; align-items: center; }
+    .transport .play { background: var(--pink); }
+    .transport label { color: var(--dim); font: 700 12px Manrope; display: flex; gap: 6px; align-items: center; }
+    .block { background: var(--panel); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+    .block h3 { margin: 0; font: 800 11px Manrope; letter-spacing: .5px; text-transform: uppercase; color: var(--dim); }
+    .track { display: grid; grid-template-columns: 14px 1fr auto; gap: 6px 8px; align-items: center; padding: 8px; border-radius: 10px; border: 1px solid transparent; cursor: pointer; }
+    .track.on { border-color: var(--line2); background: #232327; }
+    .track .dot { width: 12px; height: 12px; border-radius: 50%; }
+    .track input[type="text"] { width: 100%; padding: 5px 8px; }
+    .track .x { background: transparent; color: var(--dim); padding: 4px 6px; }
+    .track .row2 { grid-column: 2 / 4; display: flex; gap: 8px; align-items: center; }
+    .track select { flex: 1; min-width: 0; }
+    .track .row3 { grid-column: 2 / 4; display: flex; gap: 8px; align-items: center; color: var(--dim); font: 700 11px Manrope; }
+    .track .row3 input[type="range"] { flex: 1; }
+    .field { display: flex; gap: 8px; align-items: center; color: var(--dim); font: 700 12px Manrope; }
+    .field input[type="range"] { flex: 1; }
+    .hint { color: var(--dim); font-size: 12.5px; line-height: 1.5; }
+    .guide { background: #1f2a44; border-radius: 12px; padding: 12px 14px; font-size: 13px; line-height: 1.5; }
+    .guide ol { margin: 6px 0 0; padding-left: 18px; }
+    .guide b { color: #fff; }
+    .track .solo { padding: 5px 8px; font-size: 12px; white-space: nowrap; }
+    .ro { background: #2a2333; border-radius: 10px; padding: 10px 12px; font-size: 13px; line-height: 1.45; }
+
+    .rollwrap { flex: 1; min-width: 0; display: flex; flex-direction: column; padding-right: 14px; }
+    #ruler { height: 38px; width: 100%; display: block; }
+    .scroll { flex: 1; min-height: 0; overflow-y: auto; border-radius: 10px; background: #18181b; }
+    #roll { display: block; width: 100%; touch-action: none; }
+    .foot { color: var(--dim); font-size: 12px; padding: 8px 0 12px; }
+  </style>
+</head>
+<body>
+  <div class="top">
+    <a class="back" href="/" title="До студії">‹</a>
+    <h1>Музика для інтро</h1>
+    <select id="variant" title="Варіант"></select>
+    <input type="text" id="title" placeholder="Назва варіанту">
+    <button class="ghost" id="newV">Новий</button>
+    <button class="ghost" id="copyV">Копія</button>
+    <button class="ghost" id="delV">Видалити</button>
+    <span class="grow"></span>
+    <span class="saved" id="saved"></span>
+    <button class="ghost" id="undo" title="⌘Z">↶</button>
+    <button class="ghost" id="redo" title="⌘⇧Z">↷</button>
+    <button class="pink" id="use">Поставити в інтро</button>
+  </div>
+
+  <div class="main">
+    <div class="side">
+      <div class="guide">
+        <b>Як це працює</b>
+        <ol>
+          <li>Угорі оберіть варіант музики.</li>
+          <li><b>▶ Прослухати</b> — звук разом з анімацією інтро.</li>
+          <li>Змініть інструмент чи гучність — зміна зазвучить одразу. «🎧 окремо» — послухати один інструмент. Ноти тягніть мишею в сітці праворуч.</li>
+          <li>Сподобалось — <b>«Поставити в інтро»</b>: нові відео будуть з цією музикою. Доти інтро не змінюється.</li>
+        </ol>
+      </div>
+      <video id="intro" muted playsinline preload="auto"></video>
+      <div class="transport">
+        <button class="play" id="play">▶ Прослухати</button>
+        <label><input type="checkbox" id="loop"> по колу</label>
+        <span class="saved" id="status"></span>
+      </div>
+      <div class="ro" id="readonly" hidden>Це музика, яка зараз в інтро. Щоб змінити — натисніть «Копія» і правте копію, потім «Поставити в інтро».</div>
+      <div class="block">
+        <h3>Інструменти</h3>
+        <div id="tracks"></div>
+        <button class="ghost" id="addTrack">+ Інструмент</button>
+      </div>
+      <div class="block">
+        <h3>Нота</h3>
+        <div class="field">Сітка
+          <select id="snap">
+            <option value="0.125">1/16 · 0,125 с</option>
+            <option value="0.25">1/8 · 0,25 с</option>
+            <option value="0.5">1/4 · 0,5 с</option>
+            <option value="0">вільно</option>
+          </select>
+        </div>
+        <div class="field">Сила удару <input type="range" id="vel" min="20" max="127"> <span id="velV"></span></div>
+        <button class="ghost" id="delNote">Видалити ноту</button>
+      </div>
+      <div class="hint">
+        Клік по сітці — нова нота (потягніть, щоб задати довжину). Тягніть ноту, щоб посунути; за правий край — щоб змінити довжину.
+        Подвійний клік або Delete — видалити. Клік по клавішах ліворуч — почути висоту. Пробіл — прослухати.
+        Кольорові лінії вгорі — моменти анімації.
+      </div>
+    </div>
+    <div class="rollwrap">
+      <canvas id="ruler"></canvas>
+      <div class="scroll" id="scroll"><canvas id="roll"></canvas></div>
+      <div class="foot" id="foot"></div>
+    </div>
+  </div>
+
+  <script type="module">
+    const $ = (id) => document.getElementById(id);
+    const LEN = 5; // seconds of music in the intro; it fades out over the last 0.3
+    const KEY = 54, RH = 14, HI = 96, LO = 36; // keyboard width, row height, top and bottom notes (C7…C2)
+    const COLORS = ["#E8336D", "#4c8bf5", "#2fbf8f", "#f5a524", "#a970ff", "#ff7a3d"];
+    const MARKS = [[0, "смуги", "#8e8e93"], [0.6, "заголовок", "#4c8bf5"], [1.1, "кола", "#2fbf8f"], [4.0, "шторка", "#f5a524"], [4.4, "логотип", "#E8336D"]];
+    // General MIDI instruments that suit a calm intro; all are in the GeneralUser GS soundfont.
+    const INSTRUMENTS = [[0, "Рояль"], [1, "Яскраве фортепіано"], [4, "Електропіано"], [8, "Челеста"], [9, "Дзвіночки"], [10, "Музична скринька"],
+      [11, "Вібрафон"], [12, "Маримба"], [14, "Дзвони"], [24, "Гітара (нейлон)"], [40, "Скрипка"], [42, "Віолончель"], [45, "Піцикато"], [46, "Арфа"],
+      [48, "Струнні"], [49, "Повільні струнні"], [52, "Хор «а-а»"], [54, "Синт-голос"], [68, "Гобой"], [71, "Кларнет"], [73, "Флейта"], [75, "Пан-флейта"],
+      [88, "Пад «Нью-ейдж»"], [89, "Теплий пад"], [91, "Хоровий пад"], [92, "Скляний пад"], [95, "Пад «Обрій»"]];
+    const NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+    const black = (p) => [1, 3, 6, 8, 10].includes(p % 12);
+    const r3 = (x) => Math.round(x * 1000) / 1000;
+    const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+
+    let name = null, music = null, mtime = 0, active = 0, sel = null; // sel: [track index, note] being edited
+    let readOnly = false, dirty = false, dragging = false;
+    const past = [], future = [];
+
+    // ---- Variants. ----
+    async function list() {
+      const all = await (await fetch("/api/music")).json();
+      $("variant").innerHTML = all.map((v) => `<option value="${v.name}">${v.name === "intro" ? "★ Зараз в інтро: " : ""}${esc(v.title)}</option>`).join("");
+      return all;
+    }
+    async function open(n) {
+      const r = await (await fetch(`/api/music/${n}`)).json();
+      name = n; music = r.music; mtime = r.mtime;
+      readOnly = n === "intro";
+      active = 0; sel = null; past.length = future.length = 0; audioFor = null;
+      $("variant").value = n;
+      $("title").value = music.title;
+      $("title").disabled = readOnly;
+      $("readonly").hidden = !readOnly;
+      $("delV").disabled = readOnly;
+      $("use").disabled = readOnly;
+      $("addTrack").disabled = readOnly;
+      try { localStorage.setItem("music-variant", n); } catch {}
+      tracksUi(); draw(); noteUi();
+    }
+    const newName = () => "v" + Date.now().toString(36);
+    async function create(m) {
+      const n = newName();
+      await fetch(`/api/music/${n}`, { method: "PUT", body: JSON.stringify(m) });
+      await list();
+      await open(n);
+    }
+    $("variant").addEventListener("change", async () => {
+      await open($("variant").value);
+      listen(); // switching variants plays the new one, so the difference is heard
+    });
+    $("newV").addEventListener("click", () => create({ title: "Новий варіант", tracks: [{ name: "Рояль", program: 0, volume: 100, notes: [] }] }));
+    $("copyV").addEventListener("click", () => create({ ...structuredClone(music), title: music.title + " (копія)" }));
+    $("delV").addEventListener("click", async () => {
+      if (readOnly || !confirm(`Видалити варіант «${music.title}»?`)) return;
+      await fetch(`/api/music/${name}`, { method: "DELETE" });
+      await list();
+      open("intro");
+    });
+    $("use").addEventListener("click", async () => {
+      if (readOnly || !confirm(`Поставити «${music.title}» в інтро? Нові змонтовані відео будуть з цією музикою.`)) return;
+      await save();
+      await fetch(`/api/music/${name}/use`, { method: "POST" });
+      await list();
+      $("variant").value = name;
+      $("saved").textContent = "Поставлено в інтро ✓";
+    });
+    $("title").addEventListener("input", () => { music.title = $("title").value; changed(false); });
+
+    // ---- Edits: every change is undoable and saved shortly after. ----
+    function before() {
+      past.push(JSON.stringify(music));
+      future.length = 0;
+    }
+    let saveTimer;
+    function changed(redraw = true) {
+      dirty = true;
+      $("saved").textContent = "Зберігаю…";
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(save, 400);
+      if (redraw) { tracksUi(); draw(); noteUi(); }
+    }
+    async function save() {
+      clearTimeout(saveTimer);
+      if (!dirty || readOnly) return;
+      dirty = false;
+      const r = await (await fetch(`/api/music/${name}`, { method: "PUT", body: JSON.stringify(music) })).json();
+      mtime = r.mtime;
+      $("saved").textContent = "Збережено";
+      const opt = $("variant").selectedOptions[0];
+      if (opt) opt.textContent = music.title;
+    }
+    function restore(json) {
+      music = JSON.parse(json);
+      active = Math.min(active, music.tracks.length - 1);
+      sel = null;
+      $("title").value = music.title;
+      changed();
+    }
+    const undo = () => { if (past.length) { future.push(JSON.stringify(music)); restore(past.pop()); } };
+    const redo = () => { if (future.length) { past.push(JSON.stringify(music)); restore(future.pop()); } };
+    $("undo").addEventListener("click", undo);
+    $("redo").addEventListener("click", redo);
+    /** With the pedal on, it is pressed anew at every note start, so chords ring without blurring into each other. */
+    const repedal = (t) => { if (t.pedal) t.pedal = [...new Set(t.notes.map((n) => n[0]))].sort((a, b) => a - b); };
+
+    // Changes made elsewhere (by hand in the file, or in another window) show up here by themselves.
+    setInterval(async () => {
+      if (!name || dirty || dragging || document.hidden) return;
+      const r = await (await fetch(`/api/music/${name}`)).json().catch(() => null);
+      if (!r || r.mtime <= mtime) return;
+      music = r.music; mtime = r.mtime; sel = null; audioFor = null;
+      active = Math.min(active, music.tracks.length - 1);
+      $("title").value = music.title;
+      tracksUi(); draw(); noteUi();
+      $("saved").textContent = "Оновлено зі змінами ззовні";
+    }, 2500);
+
+    // ---- Instruments. ----
+    function tracksUi() {
+      $("tracks").innerHTML = music.tracks.map((t, i) => `
+        <div class="track${i === active ? " on" : ""}" data-i="${i}">
+          <span class="dot" style="background:${COLORS[i % COLORS.length]}"></span>
+          <input type="text" data-f="name" value="${esc(t.name)}" ${readOnly ? "disabled" : ""}>
+          <button class="x" data-f="del" title="Прибрати інструмент" ${readOnly || music.tracks.length < 2 ? "disabled" : ""}>✕</button>
+          <div class="row2"><select data-f="program" ${readOnly ? "disabled" : ""}>${INSTRUMENTS.map(([p, n]) => `<option value="${p}" ${p === t.program ? "selected" : ""}>${n}</option>`).join("")}</select>
+            <button class="ghost solo" data-f="solo" title="Послухати лише цей інструмент">🎧 окремо</button></div>
+          <div class="row3" title="Відносно інших інструментів: загальна гучність завжди вирівнюється, як на YouTube">Гучність <input type="range" data-f="volume" min="0" max="127" value="${t.volume ?? 100}" ${readOnly ? "disabled" : ""}>
+            <label><input type="checkbox" data-f="pedal" ${t.pedal ? "checked" : ""} ${readOnly ? "disabled" : ""}> педаль</label></div>
+        </div>`).join("");
+    }
+    $("tracks").addEventListener("click", (e) => {
+      const row = e.target.closest(".track");
+      if (!row) return;
+      const i = +row.dataset.i;
+      if (e.target.dataset.f === "solo") {
+        const t = music.tracks[i];
+        return listen({ ...music, tracks: [t] }, `Лише «${t.name}»`);
+      }
+      if (e.target.dataset.f === "del") {
+        before();
+        music.tracks.splice(i, 1);
+        active = Math.min(active, music.tracks.length - 1);
+        sel = null;
+        return changed();
+      }
+      if (active !== i) { active = i; sel = null; tracksUi(); draw(); noteUi(); }
+    });
+    $("tracks").addEventListener("change", (e) => {
+      const f = e.target.dataset.f, t = music.tracks[+e.target.closest(".track").dataset.i];
+      if (!f || f === "name") return;
+      before();
+      if (f === "program") t.program = +e.target.value;
+      if (f === "volume") t.volume = +e.target.value;
+      if (f === "pedal") { t.pedal = e.target.checked ? [] : undefined; repedal(t); }
+      changed(false);
+      draw();
+      listen(); // hear the change straight away
+    });
+    $("tracks").addEventListener("input", (e) => {
+      if (e.target.dataset.f !== "name") return;
+      music.tracks[+e.target.closest(".track").dataset.i].name = e.target.value;
+      changed(false);
+    });
+    $("addTrack").addEventListener("click", () => {
+      if (readOnly) return;
+      before();
+      music.tracks.push({ name: "Струнні", program: 49, volume: 80, notes: [] });
+      active = music.tracks.length - 1;
+      sel = null;
+      changed();
+    });
+
+    // ---- The selected note. ----
+    function noteUi() {
+      const n = sel?.[1];
+      $("vel").disabled = $("delNote").disabled = !n || readOnly;
+      $("vel").value = n ? n[3] : 80;
+      $("velV").textContent = n ? n[3] : "";
+      const ns = music.tracks.reduce((s, t) => s + t.notes.length, 0);
+      $("foot").textContent = n
+        ? `${NAMES[n[2] % 12]}${Math.floor(n[2] / 12) - 1} · ${n[0].toFixed(2)}–${n[1].toFixed(2)} с · сила ${n[3]}`
+        : `${music.tracks.length} інстр. · ${ns} нот · після 4,7 с звук затихає, після 5 с не чути`;
+    }
+    let velEdit = false;
+    $("vel").addEventListener("pointerdown", () => { if (sel) { before(); velEdit = true; } });
+    $("vel").addEventListener("input", () => {
+      if (!sel) return;
+      if (!velEdit) before();
+      velEdit = true;
+      sel[1][3] = +$("vel").value;
+      changed(false); draw(); noteUi();
+    });
+    $("vel").addEventListener("change", () => (velEdit = false));
+    function deleteSel() {
+      if (!sel || readOnly) return;
+      before();
+      const t = music.tracks[sel[0]];
+      t.notes = t.notes.filter((n) => n !== sel[1]);
+      repedal(t);
+      sel = null;
+      changed();
+    }
+    $("delNote").addEventListener("click", deleteSel);
+
+    // ---- Drawing. ----
+    const roll = $("roll"), ruler = $("ruler"), scroll = $("scroll");
+    const W = () => roll.clientWidth;
+    const X = (t) => KEY + (t / LEN) * (W() - KEY);
+    const T = (x) => ((x - KEY) / (W() - KEY)) * LEN;
+    const Y = (p) => (HI - p) * RH;
+    const P = (y) => HI - Math.floor(y / RH);
+    const snap = (t) => { const s = +$("snap").value; return s ? Math.round(t / s) * s : t; };
+    let playT = null; // playhead while listening
+    function fit(cv, h) {
+      const r = devicePixelRatio || 1, w = cv.clientWidth;
+      if (cv.width !== Math.round(w * r) || cv.height !== Math.round(h * r)) { cv.width = Math.round(w * r); cv.height = Math.round(h * r); cv.style.height = h + "px"; }
+      const c = cv.getContext("2d");
+      c.setTransform(r, 0, 0, r, 0, 0);
+      return c;
+    }
+    function draw() {
+      if (!music) return;
+      const H = (HI - LO + 1) * RH, c = fit(roll, H), w = W();
+      c.clearRect(0, 0, w, H);
+      // Rows: black keys darker; keyboard at the left.
+      for (let p = HI; p >= LO; p--) {
+        c.fillStyle = black(p) ? "#141416" : "#1b1b1f";
+        c.fillRect(KEY, Y(p), w - KEY, RH);
+        c.fillStyle = black(p) ? "#2b2b30" : "#e9e9ec";
+        c.fillRect(0, Y(p), KEY - 4, RH - 1);
+        if (p % 12 === 0) {
+          c.fillStyle = "#555"; c.font = "700 10px Manrope"; c.fillText("C" + (p / 12 - 1), 6, Y(p) + RH - 3);
+          c.fillStyle = "#2e2e34"; c.fillRect(KEY, Y(p) + RH - 1, w - KEY, 1);
+        }
+      }
+      // Time grid: snap steps faint, beats (0.5 s) stronger, seconds strongest.
+      const s = +$("snap").value || 0.125;
+      for (let t = 0; t <= LEN + 1e-6; t += s) {
+        const sec = Math.abs(t - Math.round(t)) < 1e-6, beat = Math.abs(t * 2 - Math.round(t * 2)) < 1e-6;
+        c.fillStyle = sec ? "#3a3a42" : beat ? "#2a2a30" : "#212126";
+        c.fillRect(X(t), 0, 1, H);
+      }
+      c.fillStyle = "rgba(0,0,0,.35)";
+      c.fillRect(X(LEN - 0.3), 0, X(LEN) - X(LEN - 0.3), H);
+      for (const [t, , col] of MARKS) { c.fillStyle = col + "55"; c.fillRect(X(t), 0, 2, H); }
+      // Notes: other instruments faint, the one being edited bright; brighter = struck harder.
+      const order = music.tracks.map((_, i) => i).filter((i) => i !== active).concat(active);
+      for (const i of order) {
+        const t = music.tracks[i], col = COLORS[i % COLORS.length];
+        for (const n of t.notes) {
+          const x0 = X(n[0]), x1 = X(n[1]), y = Y(n[2]);
+          c.globalAlpha = (i === active ? 1 : 0.3) * (0.45 + (n[3] / 127) * 0.55);
+          c.fillStyle = col;
+          c.beginPath(); c.roundRect(x0 + 0.5, y + 1, Math.max(3, x1 - x0 - 1), RH - 2, 3); c.fill();
+          c.globalAlpha = 1;
+          if (sel?.[1] === n) { c.strokeStyle = "#fff"; c.lineWidth = 2; c.stroke(); }
+        }
+      }
+      if (playT != null) { c.fillStyle = "#fff"; c.fillRect(X(playT) - 1, 0, 2, H); }
+
+      // Ruler with the animation's moments.
+      const rc = fit(ruler, 38);
+      rc.clearRect(0, 0, w, 38);
+      rc.font = "700 10px Manrope";
+      for (let t = 0; t <= LEN; t += 0.5) {
+        rc.fillStyle = t % 1 ? "#555" : "#aaa";
+        rc.fillRect(X(t), 26, 1, t % 1 ? 5 : 12);
+        if (!(t % 1)) rc.fillText(`${t} с`, X(t) + 3, 36);
+      }
+      for (const [t, label, col] of MARKS) {
+        rc.fillStyle = col; rc.fillRect(X(t), 2, 2, 22);
+        rc.fillText(label, X(t) + 5, 14);
+      }
+      if (playT != null) { rc.fillStyle = "#fff"; rc.fillRect(X(playT) - 1, 0, 2, 38); }
+    }
+    addEventListener("resize", draw);
+
+    // ---- Mouse on the roll. ----
+    const ac = new AudioContext();
+    /** A quick tone so pitches can be heard while placing notes (the real instruments play in «Прослухати»). */
+    function tone(p, v = 80) {
+      if (ac.state === "suspended") ac.resume();
+      const o = ac.createOscillator(), g = ac.createGain(), t0 = ac.currentTime;
+      o.type = "triangle";
+      o.frequency.value = 440 * 2 ** ((p - 69) / 12);
+      g.gain.setValueAtTime((0.25 * v) / 127, t0);
+      g.gain.exponentialRampToValueAtTime(0.001, t0 + 0.6);
+      o.connect(g).connect(ac.destination);
+      o.start(); o.stop(t0 + 0.6);
+    }
+    let drag = null;
+    let lastLen = 0.5;
+    function hit(x, y) {
+      const p = P(y);
+      const order = [active, ...music.tracks.map((_, i) => i).filter((i) => i !== active)];
+      for (const i of order) for (const n of music.tracks[i].notes) if (n[2] === p && x >= X(n[0]) - 1 && x <= X(n[1]) + 1) return [i, n];
+      return null;
+    }
+    roll.addEventListener("pointerdown", (e) => {
+      const x = e.offsetX, y = e.offsetY, p = P(y);
+      if (x < KEY) return tone(p);
+      if (readOnly) return;
+      roll.setPointerCapture(e.pointerId);
+      const h = hit(x, y);
+      if (h) {
+        if (h[0] !== active) { active = h[0]; tracksUi(); }
+        sel = h;
+        const n = h[1];
+        drag = { mode: X(n[1]) - x < 7 ? "len" : "move", x0: x, y0: y, orig: [...n], saved: JSON.stringify(music), moved: false };
+        tone(n[2], n[3]);
+      } else {
+        const t = music.tracks[active], a = r3(Math.max(0, Math.min(LEN - 0.05, snap(T(x)))));
+        const vel = sel?.[1][3] ?? 80;
+        before();
+        const n = [a, r3(Math.min(LEN + 0.6, a + lastLen)), p, vel];
+        t.notes.push(n);
+        t.notes.sort((u, v) => u[0] - v[0]);
+        sel = [active, n];
+        drag = { mode: "len", x0: X(a + lastLen), cx: x, y0: y, orig: [...n], saved: null, moved: false };
+        tone(p, vel);
+        repedal(t);
+        changed();
+      }
+      dragging = true;
+      draw(); noteUi();
+    });
+    roll.addEventListener("pointermove", (e) => {
+      if (!drag) {
+        if (!readOnly) { const h = hit(e.offsetX, e.offsetY); roll.style.cursor = e.offsetX < KEY ? "pointer" : h ? (X(h[1][1]) - e.offsetX < 7 ? "ew-resize" : "grab") : "crosshair"; }
+        return;
+      }
+      const n = sel[1], dt = T(e.offsetX) - T(drag.x0), dp = Math.round((drag.y0 - e.offsetY) / RH);
+      if (!drag.moved && Math.abs(e.offsetX - (drag.cx ?? drag.x0)) < 3 && dp === 0) return;
+      if (!drag.moved && drag.saved) { past.push(drag.saved); future.length = 0; }
+      drag.moved = true;
+      const [a0, b0, p0] = drag.orig;
+      if (drag.mode === "move") {
+        const len = b0 - a0, a = r3(Math.max(0, Math.min(LEN - 0.05, snap(a0 + dt))));
+        const p = Math.max(LO, Math.min(HI, p0 + dp));
+        if (p !== n[2]) tone(p, n[3]);
+        n[0] = a; n[1] = r3(a + len); n[2] = p;
+      } else {
+        n[1] = r3(Math.max(n[0] + 0.05, Math.min(LEN + 0.6, snap(b0 + dt) || n[0] + 0.05)));
+      }
+      draw(); noteUi();
+    });
+    addEventListener("pointerup", () => {
+      if (!drag) return;
+      const d = drag;
+      drag = null;
+      dragging = false;
+      if (!d.moved) return;
+      const t = music.tracks[sel[0]];
+      t.notes.sort((u, v) => u[0] - v[0]);
+      lastLen = r3(sel[1][1] - sel[1][0]);
+      repedal(t);
+      changed();
+    });
+    roll.addEventListener("dblclick", (e) => {
+      const h = hit(e.offsetX, e.offsetY);
+      if (h) { sel = h; deleteSel(); }
+    });
+    $("snap").addEventListener("change", draw);
+
+    // ---- Listening: the real instruments, rendered on the studio's Mac exactly as in the intro, with the animation. ----
+    const audio = new Audio(), video = $("intro");
+    video.src = "/api/music/intro.mp4";
+    let audioFor = null; // the music the current sound was made from
+    const toggle = () => (audio.paused ? listen() : stop());
+    let lastPlayed = [], listenRun = 0;
+    async function listen(what = music, label = "") {
+      stop();
+      lastPlayed = [what, label];
+      const run = ++listenRun, now = JSON.stringify(what);
+      if (audioFor !== now) {
+        $("status").textContent = "Готую звук…";
+        const r = await fetch("/api/music/render", { method: "POST", body: now }).catch(() => null);
+        if (run !== listenRun) return; // a newer change asked for its own sound meanwhile
+        if (!r?.ok) return ($("status").textContent = "Не вийшло зробити звук");
+        const blob = await r.blob();
+        if (run !== listenRun) return;
+        if (audio.src) URL.revokeObjectURL(audio.src);
+        audio.src = URL.createObjectURL(blob);
+        audioFor = now;
+      }
+      $("status").textContent = label;
+      audio.currentTime = 0;
+      video.currentTime = 0;
+      await audio.play();
+      video.play().catch(() => {});
+      $("play").textContent = "■ Стоп";
+      requestAnimationFrame(tick);
+    }
+    function stop() {
+      audio.pause(); video.pause();
+      playT = null;
+      $("status").textContent = "";
+      $("play").textContent = "▶ Прослухати";
+      draw();
+    }
+    function tick() {
+      if (audio.paused) return;
+      playT = audio.currentTime;
+      draw();
+      requestAnimationFrame(tick);
+    }
+    audio.addEventListener("ended", () => ($("loop").checked ? listen(...lastPlayed) : stop()));
+    $("play").addEventListener("click", toggle);
+    document.addEventListener("keydown", (e) => {
+      if (e.target.matches("input, select, textarea")) return;
+      const mod = e.metaKey || e.ctrlKey;
+      if (mod && e.code === "KeyZ") { e.preventDefault(); return e.shiftKey ? redo() : undo(); }
+      if (e.code === "Space") {
+        e.preventDefault();
+        document.activeElement.blur(); // a focused button would also take the space and press itself
+        toggle();
+      }
+      if (e.code === "Delete" || e.code === "Backspace") { e.preventDefault(); deleteSel(); }
+    });
+    addEventListener("pagehide", () => dirty && save());
+
+    // ---- Start: the last variant worked on, else the newest one. ----
+    const all = await list();
+    let last = null;
+    try { last = localStorage.getItem("music-variant"); } catch {}
+    await open(all.some((v) => v.name === last) ? last : (all.find((v) => v.name !== "intro") || all[0]).name);
+    scroll.scrollTop = Y(79) - 40; // around the middle of the piano
+  </script>
+</body>
+</html>

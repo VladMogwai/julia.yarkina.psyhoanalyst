@@ -1,5 +1,5 @@
 // Cover and intro rendering, shared by make.mjs (command line) and the studio server.
-import { execFile as execFileCb, execFileSync } from "node:child_process";
+import { execFile as execFileCb } from "node:child_process";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { promisify } from "node:util";
@@ -104,6 +104,21 @@ export async function renderCover(spec, out) {
   return out;
 }
 
+// The music as it sounds in the intro: cut at the end of the intro, faded out, at YouTube loudness.
+const MUSIC_AF = `atrim=0:${SECONDS},afade=t=out:st=${SECONDS - 0.3}:d=0.3,loudnorm=I=-16:TP=-1.5:LRA=11,aresample=48000`;
+const playMidi = (mid, wav) => execFile("fluidsynth", ["-ni", "-q", "-r", "48000", "-g", "0.6", "-F", wav, join(ASSETS, "GeneralUser-GS.sf2"), mid]);
+
+/** A music file (see piano.mjs) played as it will sound in the intro, as WAV; for the studio's music editor. */
+export async function renderMusic(music, out) {
+  const mid = out.replace(/\.\w+$/, ".mid"), raw = out.replace(/\.\w+$/, "-raw.wav");
+  writeMidi(mid, music);
+  await playMidi(mid, raw);
+  await execFile("ffmpeg", ["-loglevel", "error", "-y", "-i", raw, "-af", MUSIC_AF, "-ac", "2", out]);
+  rmSync(mid, { force: true });
+  rmSync(raw, { force: true });
+  return out;
+}
+
 /**
  * The 5-second intro as MP4 with piano. width/fps follow the video it goes in front of (16:9 is assumed for the picture;
  * the studio pads other shapes). Audio is 48 kHz stereo AAC, silent if the soundfont is missing.
@@ -131,10 +146,10 @@ export async function renderIntro(spec, out, { width = 1920, fps = 30, onProgres
       const mid = join(frames, "piano.mid");
       wav = join(frames, "piano.wav");
       writeMidi(mid);
-      execFileSync("fluidsynth", ["-ni", "-q", "-r", "48000", "-g", "0.6", "-F", wav, sf2, mid]);
+      await playMidi(mid, wav);
     }
     audio = ["-i", wav];
-    af = `atrim=0:${SECONDS},afade=t=out:st=${SECONDS - 0.3}:d=0.3,loudnorm=I=-16:TP=-1.5:LRA=11,aresample=48000`;
+    af = MUSIC_AF;
   }
   await execFile("ffmpeg", ["-loglevel", "error", "-y", ...video, ...audio, "-af", af, "-ac", "2",
     "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "18", "-r", String(fps), "-c:a", "aac", "-b:a", "192k", "-t", String(SECONDS), out]);

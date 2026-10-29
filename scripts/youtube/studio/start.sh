@@ -4,9 +4,13 @@
 set -euo pipefail
 cd "$(dirname "$0")/../../.."
 
-caffeinate -is node --env-file=.env.local scripts/youtube/studio/server.mjs &
+# If the server ever stops, it starts again a second later, so the site does not stay down (stopping it also reloads the code).
+(while true; do
+  caffeinate -is node --env-file=.env.local scripts/youtube/studio/server.mjs || true # a crash must not end the loop (set -e)
+  sleep 1
+done) &
 SERVER=$!
-trap 'kill $SERVER 2>/dev/null' EXIT
+trap 'kill $SERVER 2>/dev/null; pkill -f "node --env-file=.env.local scripts/youtube/studio/server.mjs"' EXIT
 
 if cloudflared tunnel info yarkina-studio >/dev/null 2>&1; then
   cloudflared tunnel run --url http://localhost:3300 yarkina-studio

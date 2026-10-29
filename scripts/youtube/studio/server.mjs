@@ -11,7 +11,8 @@ import { promisify } from "node:util";
 import { createReadStream, createWriteStream, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, extname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { ASSETS, buildSpec, renderCover, renderIntro, renderLayers } from "../make/lib.mjs";
+import { ASSETS, buildSpec, renderCover, renderIntro, renderLayers, renderMusic } from "../make/lib.mjs";
+import { MUSIC_DIR } from "../make/piano.mjs";
 import { FONTS } from "../make/cover.mjs";
 import { SECONDS } from "../make/intro.mjs";
 import { canTranscribe, subtitles, transcribe } from "./transcribe.mjs";
@@ -240,6 +241,56 @@ async function render(id) {
   }
 }
 
+// ---- Intro music: variants are files in make/music (in the repo, so they can be edited by hand too); intro.json is used. ----
+const musicFile = (name) => join(MUSIC_DIR, `${name}.json`);
+async function musicApi(req, res, path) {
+  // The intro animation, to watch while listening: the newest one rendered.
+  if (path === "/api/music/intro.mp4") {
+    const withIntro = readdirSync(join(DATA, "jobs")).map((id) => join(jobDir(id), "intro.mp4")).filter(existsSync);
+    withIntro.sort((a, b) => statSync(b).mtimeMs - statSync(a).mtimeMs);
+    return withIntro.length ? sendFile(req, res, withIntro[0]) : json(res, 404, { error: "no intro yet" });
+  }
+  if (path === "/api/music/render" && req.method === "POST") {
+    // Its own files: the editor may ask again before the previous sound is ready.
+    const out = join(DATA, `music-preview-${randomBytes(4).toString("hex")}.wav`);
+    try {
+      await renderMusic(JSON.parse(String(await readBody(req))), out);
+      return res.writeHead(200, { "Content-Type": "audio/wav" }).end(readFileSync(out));
+    } finally {
+      rmSync(out, { force: true });
+    }
+  }
+  if (path === "/api/music" && req.method === "GET") {
+    const list = readdirSync(MUSIC_DIR).filter((f) => f.endsWith(".json")).map((f) => {
+      const name = f.slice(0, -5);
+      return { name, title: JSON.parse(readFileSync(musicFile(name), "utf8")).title, mtime: statSync(musicFile(name)).mtimeMs };
+    });
+    return json(res, 200, list.sort((a, b) => (a.name === "intro" ? -1 : b.name === "intro" ? 1 : b.mtime - a.mtime)));
+  }
+  const m = /^\/api\/music\/([a-z0-9-]{1,40})(\/use)?$/.exec(path);
+  if (!m) return json(res, 404, { error: "not found" });
+  const [, name, use] = m, file = musicFile(name);
+  if (req.method === "GET") return existsSync(file) ? json(res, 200, { music: JSON.parse(readFileSync(file, "utf8")), mtime: statSync(file).mtimeMs }) : json(res, 404, { error: "not found" });
+  // The intro's own file changes only by putting a variant in: new intros then get that music.
+  if (name === "intro") return json(res, 400, { error: "intro is changed with /use" });
+  if (use && req.method === "POST") {
+    writeFileSync(musicFile("intro"), readFileSync(file));
+    return json(res, 200, { ok: true });
+  }
+  if (req.method === "PUT") {
+    const music = JSON.parse(String(await readBody(req)));
+    if (!Array.isArray(music.tracks)) return json(res, 400, { error: "bad music" });
+    // One note per line, so the files stay easy to read and edit by hand.
+    writeFileSync(file, JSON.stringify(music, null, 1).replace(/\[\n\s+([-\d.,\s]+?)\n\s+\]/g, (_, x) => `[${x.replace(/\s+/g, "")}]`) + "\n");
+    return json(res, 200, { mtime: statSync(file).mtimeMs });
+  }
+  if (req.method === "DELETE") {
+    rmSync(file, { force: true });
+    return json(res, 200, { ok: true });
+  }
+  json(res, 405, { error: "method" });
+}
+
 // HTTP helpers.
 const TYPES = { ".html": "text/html; charset=utf-8", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".mp4": "video/mp4", ".jpg": "image/jpeg", ".png": "image/png", ".svg": "image/svg+xml", ".mjs": "text/javascript", ".webp": "image/webp" };
 const json = (res, code, body) => res.writeHead(code, { "Content-Type": "application/json" }).end(JSON.stringify(body));
@@ -303,7 +354,11 @@ const server = createServer(async (req, res) => {
       return json(res, 200, { ok: true });
     }
     const appPkg = join(here, "app/dist/Pro-Studio.pkg");
-    if (path === "/api/info") return json(res, 200, { local: LOCAL, app: !LOCAL && existsSync(appPkg) });
+    // The intro music editor works where the soundfont is: on the website's Mac, not in the app.
+    const music = !LOCAL && existsSync(join(ASSETS, "GeneralUser-GS.sf2"));
+    if (path === "/api/info") return json(res, 200, { local: LOCAL, app: !LOCAL && existsSync(appPkg), music });
+    if (music && path === "/music") return sendFile(req, res, join(PUBLIC, "music.html"));
+    if (music && path.startsWith("/api/music")) return await musicApi(req, res, path);
     if (path === "/download/Pro-Studio.pkg" && !LOCAL) return sendFile(req, res, appPkg, "Pro-Studio.pkg");
     // One Terminal command: curl leaves no "downloaded from the internet" mark, so macOS does not block the unsigned app.
     if (path === "/api/install-command" && !LOCAL) {

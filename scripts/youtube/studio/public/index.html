@@ -57,6 +57,7 @@
   <header>
     <h1><b>Pro</b> психоаналіз · студія</h1>
     <div style="display:flex;gap:8px">
+      <a class="btn ghost" id="musicLink" href="/music" hidden>Музика для інтро</a>
       <a class="btn ghost" id="getApp" href="/download" hidden>Скачати програму для Mac</a>
       <button class="ghost" id="reveal" hidden>Папка з відео</button>
       <button class="ghost" id="logout" hidden>Вийти</button>
@@ -390,6 +391,7 @@
     $("logout").hidden = info.local;
     $("reveal").hidden = !info.local;
     $("getApp").hidden = !info.app;
+    $("musicLink").hidden = !info.music;
     // In the app: a banner while a newer build is on the website; once it is installed the banner is gone.
     async function checkUpdate() {
       const u = await fetch("/api/update").then((r) => r.json()).catch(() => null);
