@@ -1,0 +1,21 @@
+{
+ "about": "Intro music by video type: a piece of a track from assets/music/ (git-ignored, Pixabay licence), cut and faded as chosen by ear. Without the file the intro plays the notes of music/intro.json.",
+ "int": {
+  "title": "Jazzy Boom Bap Hip Hop (vibecroft)",
+  "file": "vibecroft-jazzy-boom-bap-hip-hop-507856.mp3",
+  "start": 145.78,
+  "filter": "loudnorm=I=-16:TP=-1.5:LRA=11,aresample=48000,afade=t=in:d=0.02,afade=t=out:st=3.4:d=1.6:curve=qsin"
+ },
+ "tema": {
+  "title": "Moving Forward (musicword)",
+  "file": "musicword-moving-forward-176683.mp3",
+  "start": 113.66,
+  "filter": "afade=t=in:d=0.02,afade=t=out:st=4.6:d=0.4,loudnorm=I=-16:TP=-1.5:LRA=11,aresample=48000"
+ },
+ "teor": {
+  "title": "Moving Forward (musicword)",
+  "file": "musicword-moving-forward-176683.mp3",
+  "start": 113.66,
+  "filter": "afade=t=in:d=0.02,afade=t=out:st=4.6:d=0.4,loudnorm=I=-16:TP=-1.5:LRA=11,aresample=48000"
+ }
+}

@@ -8,10 +8,10 @@ import { createServer } from "node:http";
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { spawn, execFile as execFileCb } from "node:child_process";
 import { promisify } from "node:util";
-import { createReadStream, createWriteStream, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { createReadStream, createWriteStream, existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, extname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { ASSETS, buildSpec, renderCover, renderIntro, renderLayers, renderMusic } from "../make/lib.mjs";
+import { ASSETS, buildSpec, introTrack, renderCover, renderIntro, renderLayers, renderMusic } from "../make/lib.mjs";
 import { MUSIC_DIR } from "../make/piano.mjs";
 import { FONTS } from "../make/cover.mjs";
 import { SECONDS } from "../make/intro.mjs";
@@ -107,6 +107,24 @@ async function probe(file) {
   return { width: v.width, height: v.height, fps: d ? n / d : 30, duration: +j.format.duration, bitrate: +j.format.bit_rate || 8e6, audio: j.streams.some((s) => s.codec_type === "audio") };
 }
 
+// ---- A ready-made intro (for example made in Blender) for interviews or for solo videos, used instead of the generated one. ----
+const INTRO_DIR = join(DATA, "intro");
+const introKey = (kind) => (kind === "int" ? "int" : "solo");
+const introFile = (key) => join(INTRO_DIR, `${key}.mp4`);
+/**
+ * The uploaded intro made ready to go in front: its own sound at YouTube loudness, or, when it has none, the music chosen
+ * for this kind of video, as long as the intro. Returns its length in seconds.
+ */
+async function fitIntro(file, kind, out) {
+  const p = await probe(file);
+  const track = introTrack(kind, p.duration);
+  const audio = p.audio ? [] : track ? track.input : ["-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo"];
+  const af = p.audio ? "loudnorm=I=-16:TP=-1.5:LRA=11,aresample=48000" : track ? `${track.filter},apad` : "anull";
+  await execFile("ffmpeg", ["-loglevel", "error", "-y", "-i", file, ...audio, "-map", "0:v:0", "-map", p.audio ? "0:a:0" : "1:a:0",
+    "-af", af, "-ac", "2", "-c:v", "libx264", "-pix_fmt", "yuv420p", "-crf", "18", "-c:a", "aac", "-b:a", "192k", "-t", String(p.duration), out]);
+  return p.duration;
+}
+
 /** Light copy for the editor, waveform peaks (100 a second) and long pauses suggested as cuts. */
 async function prepare(id) {
   const dir = jobDir(id);
@@ -179,7 +197,10 @@ async function render(id) {
     const { width, height, fps, duration, bitrate, audio } = job.source;
     const rate = Math.round(fps) || 30;
     step("Інтро");
-    await renderIntro(spec, join(dir, "intro.mp4"), { width: Math.min(1920, Math.round((height * 16) / 9 / 2) * 2), fps: rate, onProgress: (p) => step("Інтро", p) });
+    let introSeconds = SECONDS;
+    const custom = introFile(introKey(job.form.kind));
+    if (existsSync(custom)) introSeconds = await fitIntro(custom, job.form.kind, join(dir, "intro.mp4"));
+    else await renderIntro(spec, join(dir, "intro.mp4"), { width: Math.min(1920, Math.round((height * 16) / 9 / 2) * 2), fps: rate, onProgress: (p) => step("Інтро", p) });
 
     // Kept parts of the source = everything outside the cuts.
     const cuts = [...(job.cuts || [])].sort((a, b) => a[0] - b[0]);
@@ -208,7 +229,7 @@ async function render(id) {
     const layers = [];
     for (const o of job.overlays || []) {
       const spans = [];
-      let at = SECONDS;
+      let at = introSeconds;
       for (const [a, b] of keep) {
         const x0 = Math.max(a, o.t0), x1 = Math.min(b, o.t1);
         if (x1 - x0 > 0.02) spans.push([at + x0 - a, at + x1 - a]);
@@ -228,12 +249,12 @@ async function render(id) {
     parts.push(`[${last}]format=yuv420p[v]`);
     const script = join(dir, "filter.txt");
     writeFileSync(script, parts.join(";\n"));
-    const total = SECONDS + keep.reduce((s, [a, b]) => s + b - a, 0);
+    const total = introSeconds + keep.reduce((s, [a, b]) => s + b - a, 0);
     step("Монтаж", 0);
     await ffmpeg(["-i", join(dir, "intro.mp4"), "-i", join(dir, "video"), ...pictures.flatMap((p) => ["-i", p]), "-/filter_complex", script, "-map", "[v]", "-map", "[a]",
       "-c:v", "h264_videotoolbox", "-b:v", String(Math.max(4e6, Math.min(bitrate, 20e6))), "-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart", join(dir, "final.mp4")],
       total, (p) => step("Монтаж", p));
-    update(id, { status: "done", message: "", progress: 1, renderedAt: Date.now() });
+    update(id, { status: "done", message: "", progress: 1, renderedAt: Date.now(), introSeconds });
     notify(`«${job.form?.title || "Відео"}» змонтовано: відео й обкладинка готові.`);
   } catch (e) {
     update(id, { status: "error", message: String(e.message || e) });
@@ -383,6 +404,36 @@ const server = createServer(async (req, res) => {
       }
       return json(res, 200, { current, latest: latest.version, available, url: new URL("/download", UPDATES).href });
     }
+    // Intros: GET /api/intro (both kinds), PUT/DELETE /api/intro/int|solo (body: the video), GET /api/intro/int|solo/video.
+    const intro = /^\/api\/intro(?:\/(int|solo)(\/video)?)?$/.exec(path);
+    if (intro) {
+      const [, key, video] = intro;
+      if (!key) {
+        const about = async (k, kind) => {
+          const f = introFile(k);
+          return { custom: existsSync(f), seconds: existsSync(f) ? (await probe(f)).duration : SECONDS, music: introTrack(kind)?.title || "ноти з редактора музики" };
+        };
+        return json(res, 200, { int: await about("int", "int"), solo: await about("solo", "tema") });
+      }
+      const file = introFile(key);
+      if (video) return sendFile(req, res, file);
+      if (req.method === "PUT") {
+        mkdirSync(INTRO_DIR, { recursive: true });
+        const tmp = `${file}.new`;
+        await new Promise((resolve, reject) => req.pipe(createWriteStream(tmp)).on("finish", resolve).on("error", reject));
+        const p = await probe(tmp).catch(() => null);
+        if (!p || !(p.duration > 0.5 && p.duration <= 60)) {
+          rmSync(tmp, { force: true });
+          return json(res, 400, { error: "Це не схоже на відео до 60 секунд" });
+        }
+        renameSync(tmp, file);
+        return json(res, 200, { seconds: p.duration });
+      }
+      if (req.method === "DELETE") {
+        rmSync(file, { force: true });
+        return json(res, 200, { ok: true });
+      }
+    }
     if (path === "/api/reveal" && req.method === "POST" && LOCAL) {
       spawn("open", [join(DATA, "jobs")]);
       return json(res, 200, { ok: true });
@@ -484,7 +535,7 @@ const server = createServer(async (req, res) => {
       const words = JSON.parse(readFileSync(join(jobDir(srt[1]), "transcript.json"), "utf8"));
       const name = (job.form?.title || "video").replace(/[^\p{L}\p{N}]+/gu, "-").replace(/^-|-$/g, "") || "video";
       res.writeHead(200, { "Content-Type": "application/x-subrip; charset=utf-8", "Content-Disposition": `attachment; filename="subtitles.srt"; filename*=UTF-8''${encodeURIComponent(name + ".srt")}` });
-      return res.end(subtitles(words, job.cuts || [], SECONDS));
+      return res.end(subtitles(words, job.cuts || [], job.introSeconds ?? SECONDS));
     }
     const f = /^\/files\/([a-z0-9-]+)\/(proxy\.mp4|peaks\.json|cover\.jpg|final\.mp4|intro\.mp4|guest|guest2|guest3|thumbs\.jpg|transcript\.json|preview\.jpg|ov-[a-z0-9]{6,12}\.(?:jpg|png|webp))$/.exec(path);
     if (f && validId(f[1])) {

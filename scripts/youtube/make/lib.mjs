@@ -1,6 +1,6 @@
 // Cover and intro rendering, shared by make.mjs (command line) and the studio server.
 import { execFile as execFileCb } from "node:child_process";
-import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { promisify } from "node:util";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -120,8 +120,24 @@ export async function renderMusic(music, out) {
 }
 
 /**
- * The 5-second intro as MP4 with piano. width/fps follow the video it goes in front of (16:9 is assumed for the picture;
- * the studio pads other shapes). Audio is 48 kHz stereo AAC, silent if the soundfont is missing.
+ * The intro track for a kind of video (intro-music.json) as ffmpeg input arguments and filter, or null when its file is
+ * not on this computer. For the usual 5 seconds the filter is the one chosen by ear; for a ready-made intro of another
+ * length the piece runs that long and fades out smoothly over its last 1.6 seconds.
+ */
+export function introTrack(kind, seconds = SECONDS) {
+  const t = JSON.parse(readFileSync(join(here, "intro-music.json"), "utf8"))[kind];
+  const file = t && join(ASSETS, "music", t.file);
+  if (!t || !existsSync(file)) return null;
+  const fade = Math.min(1.6, seconds / 2);
+  const filter = Math.abs(seconds - SECONDS) < 0.05 ? t.filter
+    : `loudnorm=I=-16:TP=-1.5:LRA=11,aresample=48000,afade=t=in:d=0.02,afade=t=out:st=${(seconds - fade).toFixed(2)}:d=${fade}:curve=qsin`;
+  return { title: t.title, input: ["-ss", String(t.start), "-t", String(seconds), "-i", file], filter };
+}
+
+/**
+ * The 5-second intro as MP4 with music: the track chosen for this kind of video, else the notes of music/intro.json.
+ * width/fps follow the video it goes in front of (16:9 is assumed for the picture; the studio pads other shapes).
+ * Audio is 48 kHz stereo AAC, silent if neither the track nor the soundfont is there.
  */
 export async function renderIntro(spec, out, { width = 1920, fps = 30, onProgress } = {}) {
   const frames = out.replace(/\.\w+$/, "-frames");
@@ -140,7 +156,11 @@ export async function renderIntro(spec, out, { width = 1920, fps = 30, onProgres
   const ready = join(ASSETS, "piano.wav"); // the packaged app ships the piano already played
   let audio = ["-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo"];
   let af = `atrim=0:${SECONDS}`;
-  if (existsSync(ready) || existsSync(sf2)) {
+  const track = introTrack(spec.kind); // a chosen piece of a real track wins over the notes
+  if (track) {
+    audio = track.input;
+    af = track.filter;
+  } else if (existsSync(ready) || existsSync(sf2)) {
     let wav = ready;
     if (!existsSync(ready)) {
       const mid = join(frames, "piano.mid");

@@ -101,6 +101,10 @@ npm install --prefix "$R/app" --omit=dev --no-audit --no-fund --silent "puppetee
 
 # Julia's photos and the intro piano, played once here so the app needs no soundfont.
 cp "$YT"/assets/julia/*.jpg "$R/assets/julia/"
+# The intro tracks chosen per kind of video (make/intro-music.json), if they are on this Mac.
+mkdir -p "$R/assets/music"
+node -e 'for (const [k, t] of Object.entries(require(process.argv[1]))) if (t.file) console.log(t.file)' "$YT/make/intro-music.json" | sort -u |
+  while read -r f; do [ -f "$YT/assets/music/$f" ] && cp "$YT/assets/music/$f" "$R/assets/music/"; done
 node --input-type=module -e "import { writeMidi } from '$YT/make/piano.mjs'; writeMidi('$R/assets/piano.mid')"
 fluidsynth -ni -q -r 48000 -g 0.6 -F "$R/assets/piano.wav" "$YT/assets/GeneralUser-GS.sf2" "$R/assets/piano.mid"
 rm "$R/assets/piano.mid"

@@ -87,7 +87,16 @@ After that `start.sh` brings the site online too. It is reachable only while thi
 can run the studio the same way (clone the repo, `npm install`, the tools above, copy `assets/` and the `.env.local` line, and
 copy `~/.cloudflared/` for the tunnel), but only one of them at a time: each keeps its videos on its own disk.
 
-### Intro music
+### Intro: music and ready-made videos
+
+The generated intro plays a piece of a real track chosen per kind of video: `make/intro-music.json` says which file of
+`assets/music/` (git-ignored; Pixabay tracks may not be published as files), from which second and how it fades. Without
+the file the intro plays the notes below. Instead of the generated intro, the studio's home page («Інтро») takes a
+ready-made video (for example from Blender, MP4 or MOV up to 60 s) for interviews and for solo videos; it is stored in
+`studio-data/intro/`. Its own sound is evened out to YouTube loudness; a video without sound gets the track of its kind,
+cut to its length. Subtitles and text or photos over the video move by the intro's real length.
+
+### Intro music (notes)
 
 "Музика для інтро" on the studio's home page (website only, where the soundfont is) is a piano roll for the intro's
 5 seconds: several instruments, notes drawn with the mouse, and «Прослухати» plays the real sound with the intro animation.

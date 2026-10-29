@@ -45,6 +45,7 @@
     .guide ol { margin: 6px 0 0; padding-left: 18px; }
     .guide b { color: #fff; }
     .track .solo { padding: 5px 8px; font-size: 12px; white-space: nowrap; }
+    .track .solo.on { border-color: var(--pink); color: var(--pink); }
     .ro { background: #2a2333; border-radius: 10px; padding: 10px 12px; font-size: 13px; line-height: 1.45; }
 
     .rollwrap { flex: 1; min-width: 0; display: flex; flex-direction: column; padding-right: 14px; }
@@ -87,6 +88,7 @@
         <label><input type="checkbox" id="loop"> по колу</label>
         <span class="saved" id="status"></span>
       </div>
+      <div class="ro" id="tracksNote" hidden></div>
       <div class="ro" id="readonly" hidden>Це музика, яка зараз в інтро. Щоб змінити — натисніть «Копія» і правте копію, потім «Поставити в інтро».</div>
       <div class="block">
         <h3>Інструменти</h3>
@@ -122,15 +124,18 @@
   <script type="module">
     const $ = (id) => document.getElementById(id);
     const LEN = 5; // seconds of music in the intro; it fades out over the last 0.3
-    const KEY = 54, RH = 14, HI = 96, LO = 36; // keyboard width, row height, top and bottom notes (C7…C2)
+    const KEY = 54, RH = 14, HI = 96, LO = 24; // keyboard width, row height, top and bottom notes (C7…C1)
     const COLORS = ["#E8336D", "#4c8bf5", "#2fbf8f", "#f5a524", "#a970ff", "#ff7a3d"];
     const MARKS = [[0, "смуги", "#8e8e93"], [0.6, "заголовок", "#4c8bf5"], [1.1, "кола", "#2fbf8f"], [4.0, "шторка", "#f5a524"], [4.4, "логотип", "#E8336D"]];
     // General MIDI instruments that suit a calm intro; all are in the GeneralUser GS soundfont.
-    const INSTRUMENTS = [[0, "Рояль"], [1, "Яскраве фортепіано"], [4, "Електропіано"], [8, "Челеста"], [9, "Дзвіночки"], [10, "Музична скринька"],
-      [11, "Вібрафон"], [12, "Маримба"], [14, "Дзвони"], [24, "Гітара (нейлон)"], [40, "Скрипка"], [42, "Віолончель"], [45, "Піцикато"], [46, "Арфа"],
-      [48, "Струнні"], [49, "Повільні струнні"], [52, "Хор «а-а»"], [54, "Синт-голос"], [68, "Гобой"], [71, "Кларнет"], [73, "Флейта"], [75, "Пан-флейта"],
+    const INSTRUMENTS = [[0, "Рояль"], [1, "Яскраве фортепіано"], [4, "Електропіано"], [5, "Електропіано 2"], [8, "Челеста"], [9, "Дзвіночки"], [10, "Музична скринька"],
+      [11, "Вібрафон"], [12, "Маримба"], [14, "Дзвони"], [24, "Гітара (нейлон)"], [28, "Гітара (приглушена)"], [33, "Бас (пальцями)"], [35, "Безладовий бас"], [38, "Синт-бас"], [39, "Синт-бас 2"], [40, "Скрипка"], [42, "Віолончель"], [45, "Піцикато"], [46, "Арфа"],
+      [48, "Струнні"], [49, "Повільні струнні"], [50, "Синт-струнні"], [52, "Хор «а-а»"], [54, "Синт-голос"], [68, "Гобой"], [71, "Кларнет"], [73, "Флейта"], [75, "Пан-флейта"],
       [88, "Пад «Нью-ейдж»"], [89, "Теплий пад"], [91, "Хоровий пад"], [92, "Скляний пад"], [95, "Пад «Обрій»"]];
     const NAMES = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
+    // On a drum track each row is a drum of the General MIDI kit.
+    const DRUMS = { 35: "Бочка 2", 36: "Бочка", 37: "Обідок", 38: "Малий", 39: "Хлопок", 40: "Малий 2", 42: "Хет", 44: "Хет ногою",
+      46: "Відкр. хет", 49: "Тарілка", 51: "Райд", 53: "Дзвін райду", 54: "Бубон", 56: "Коубел", 69: "Кабаса", 70: "Маракас" };
     const black = (p) => [1, 3, 6, 8, 10].includes(p % 12);
     const r3 = (x) => Math.round(x * 1000) / 1000;
     const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
@@ -143,8 +148,10 @@
     async function list() {
       const all = await (await fetch("/api/music")).json();
       $("variant").innerHTML = all.map((v) => `<option value="${v.name}">${v.name === "intro" ? "★ Зараз в інтро: " : ""}${esc(v.title)}</option>`).join("");
+      known = new Set(all.map((v) => v.name));
       return all;
     }
+    let known = new Set();
     async function open(n) {
       const r = await (await fetch(`/api/music/${n}`)).json();
       name = n; music = r.music; mtime = r.mtime;
@@ -229,6 +236,15 @@
     // Changes made elsewhere (by hand in the file, or in another window) show up here by themselves.
     setInterval(async () => {
       if (!name || dirty || dragging || document.hidden) return;
+      // A variant made elsewhere (for example by Claude) joins the list and opens; the list is rebuilt only then.
+      const all = await (await fetch("/api/music")).json().catch(() => null);
+      const added = all?.find((v) => !known.has(v.name));
+      if (added) {
+        await list();
+        await open(added.name);
+        $("saved").textContent = `Новий варіант «${added.title}» — відкрито`;
+        return;
+      }
       const r = await (await fetch(`/api/music/${name}`)).json().catch(() => null);
       if (!r || r.mtime <= mtime) return;
       music = r.music; mtime = r.mtime; sel = null; audioFor = null;
@@ -245,8 +261,10 @@
           <span class="dot" style="background:${COLORS[i % COLORS.length]}"></span>
           <input type="text" data-f="name" value="${esc(t.name)}" ${readOnly ? "disabled" : ""}>
           <button class="x" data-f="del" title="Прибрати інструмент" ${readOnly || music.tracks.length < 2 ? "disabled" : ""}>✕</button>
-          <div class="row2"><select data-f="program" ${readOnly ? "disabled" : ""}>${INSTRUMENTS.map(([p, n]) => `<option value="${p}" ${p === t.program ? "selected" : ""}>${n}</option>`).join("")}</select>
-            <button class="ghost solo" data-f="solo" title="Послухати лише цей інструмент">🎧 окремо</button></div>
+          <div class="row2"><select data-f="program" ${readOnly ? "disabled" : ""}><option value="drums" ${t.drums ? "selected" : ""}>Барабани</option>${INSTRUMENTS.map(([p, n]) => `<option value="${p}" ${!t.drums && p === t.program ? "selected" : ""}>${n}</option>`).join("")}</select>
+            ${solo === i
+              ? `<button class="ghost solo on" data-f="solo" title="Знову слухати всі інструменти разом">🎧 усі</button>`
+              : `<button class="ghost solo" data-f="solo" title="Послухати лише цей інструмент">🎧 окремо</button>`}</div>
           <div class="row3" title="Відносно інших інструментів: загальна гучність завжди вирівнюється, як на YouTube">Гучність <input type="range" data-f="volume" min="0" max="127" value="${t.volume ?? 100}" ${readOnly ? "disabled" : ""}>
             <label><input type="checkbox" data-f="pedal" ${t.pedal ? "checked" : ""} ${readOnly ? "disabled" : ""}> педаль</label></div>
         </div>`).join("");
@@ -257,7 +275,7 @@
       const i = +row.dataset.i;
       if (e.target.dataset.f === "solo") {
         const t = music.tracks[i];
-        return listen({ ...music, tracks: [t] }, `Лише «${t.name}»`);
+        return solo === i ? listen() : listen({ ...music, tracks: [t] }, `Лише «${t.name}»`, i);
       }
       if (e.target.dataset.f === "del") {
         before();
@@ -272,7 +290,8 @@
       const f = e.target.dataset.f, t = music.tracks[+e.target.closest(".track").dataset.i];
       if (!f || f === "name") return;
       before();
-      if (f === "program") t.program = +e.target.value;
+      if (f === "program" && e.target.value === "drums") { t.drums = true; t.program = 0; }
+      else if (f === "program") { delete t.drums; t.program = +e.target.value; }
       if (f === "volume") t.volume = +e.target.value;
       if (f === "pedal") { t.pedal = e.target.checked ? [] : undefined; repedal(t); }
       changed(false);
@@ -351,8 +370,10 @@
         c.fillRect(KEY, Y(p), w - KEY, RH);
         c.fillStyle = black(p) ? "#2b2b30" : "#e9e9ec";
         c.fillRect(0, Y(p), KEY - 4, RH - 1);
+        const drum = music.tracks[active]?.drums && DRUMS[p];
+        if (drum) { c.fillStyle = black(p) ? "#ddd" : "#333"; c.font = "700 9px Manrope"; c.fillText(drum, 4, Y(p) + RH - 3); }
         if (p % 12 === 0) {
-          c.fillStyle = "#555"; c.font = "700 10px Manrope"; c.fillText("C" + (p / 12 - 1), 6, Y(p) + RH - 3);
+          if (!drum) { c.fillStyle = "#555"; c.font = "700 10px Manrope"; c.fillText("C" + (p / 12 - 1), 6, Y(p) + RH - 3); }
           c.fillStyle = "#2e2e34"; c.fillRect(KEY, Y(p) + RH - 1, w - KEY, 1);
         }
       }
@@ -489,11 +510,13 @@
     const audio = new Audio(), video = $("intro");
     video.src = "/api/music/intro.mp4";
     let audioFor = null; // the music the current sound was made from
-    const toggle = () => (audio.paused ? listen() : stop());
-    let lastPlayed = [], listenRun = 0;
-    async function listen(what = music, label = "") {
+    // While one instrument plays alone, «Прослухати» brings all of them back instead of stopping.
+    const toggle = () => (audio.paused || solo != null ? listen() : stop());
+    let lastPlayed = [], listenRun = 0, solo = null; // solo: the instrument playing alone
+    async function listen(what = music, label = "", soloTrack = null) {
       stop();
-      lastPlayed = [what, label];
+      lastPlayed = [what, label, soloTrack];
+      if (soloTrack != null) { solo = soloTrack; tracksUi(); }
       const run = ++listenRun, now = JSON.stringify(what);
       if (audioFor !== now) {
         $("status").textContent = "Готую звук…";
@@ -517,6 +540,7 @@
     function stop() {
       audio.pause(); video.pause();
       playT = null;
+      if (solo != null) { solo = null; tracksUi(); }
       $("status").textContent = "";
       $("play").textContent = "▶ Прослухати";
       draw();
@@ -543,6 +567,13 @@
     addEventListener("pagehide", () => dirty && save());
 
     // ---- Start: the last variant worked on, else the newest one. ----
+    // The intros may play real tracks instead of these notes (make/intro-music.json): say so.
+    const introInfo = await fetch("/api/intro").then((r) => r.json()).catch(() => null);
+    if (introInfo) {
+      const kinds = [["інтерв'ю", introInfo.int], ["сольних відео", introInfo.solo]].filter(([, x]) => !x.music.startsWith("ноти"));
+      $("tracksNote").hidden = !kinds.length;
+      $("tracksNote").textContent = `Зараз в інтро ${kinds.map(([k, x]) => `${k} звучить трек «${x.music}»`).join(", ")} — ноти звідси там не грають. Своє відео для інтро ставиться на головній студії.`;
+    }
     const all = await list();
     let last = null;
     try { last = localStorage.getItem("music-variant"); } catch {}

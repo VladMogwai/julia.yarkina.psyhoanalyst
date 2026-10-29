@@ -51,6 +51,12 @@
     @media (prefers-reduced-motion: reduce) { .film, .blade, .head, .lid, .crumb { animation: none; } }
     .update { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; padding: 14px 18px; border-radius: 14px; background: var(--navy); color: #fff; font-size: 15px; line-height: 1.45; }
     .update span { flex: 1 1 320px; }
+    .intros { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+    .intros .card { margin: 0; display: flex; flex-direction: column; gap: 10px; }
+    .intros video { width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 10px; }
+    .intros .std { aspect-ratio: 16/9; border-radius: 10px; background: var(--navy); color: #fff; display: flex; align-items: center; justify-content: center; text-align: center; padding: 16px; font-size: 14px; line-height: 1.45; }
+    .intros .row { display: flex; gap: 8px; flex-wrap: wrap; }
+    .muted { color: var(--muted); font-size: 14px; line-height: 1.5; }
   </style>
 </head>
 <body>
@@ -137,6 +143,12 @@
 
     <h2 style="margin-top:28px">Усі відео</h2>
     <div class="jobs" id="jobs"></div>
+
+    <h2 style="margin-top:28px">Інтро</h2>
+    <p class="muted">Стандартне інтро — анімація з обкладинкою і музикою. Можна поставити своє готове відео, наприклад зроблене в Blender:
+      MP4 або MOV до 60 секунд. Якщо в ньому немає звуку, під нього стане музика цього типу відео. Діє на відео, змонтовані після заміни.</p>
+    <div class="intros" id="intros"></div>
+    <input type="file" id="introFile" accept="video/mp4,video/quicktime,.mp4,.mov" hidden>
   </main>
 
   <script type="module">
@@ -398,6 +410,43 @@
       $("update").hidden = !u?.available;
       if (u?.available) $("updateLink").href = u.url;
     }
+    // ---- Intros: the generated one, or a ready-made video for interviews and for solo videos. ----
+    const INTRO_NAMES = { int: "Інтерв'ю", solo: "Сольні відео (тема, теорія)" };
+    let introFor = null;
+    async function intros() {
+      const all = await fetch("/api/intro").then((r) => r.json());
+      $("intros").innerHTML = Object.entries(INTRO_NAMES).map(([k, name]) => {
+        const x = all[k];
+        return `<div class="card" data-k="${k}">
+          <b>${name}</b>
+          ${x.custom ? `<video src="/api/intro/${k}/video?${Date.now()}" controls preload="metadata"></video>`
+            : `<div class="std">Стандартне: анімація з обкладинкою відео<br>Музика: ${esc(x.music)}</div>`}
+          <span class="muted">${x.custom ? `Своє інтро · ${x.seconds.toFixed(1)} с` : "5 с"}</span>
+          <div class="row"><button class="pink" data-act="upload">${x.custom ? "Замінити" : "Поставити своє відео"}</button>
+            ${x.custom ? `<button class="ghost" data-act="reset">Повернути стандартне</button>` : ""}</div>
+        </div>`;
+      }).join("");
+    }
+    $("intros").addEventListener("click", async (e) => {
+      const act = e.target.dataset.act, k = e.target.closest("[data-k]")?.dataset.k;
+      if (act === "upload") { introFor = k; $("introFile").click(); }
+      if (act === "reset" && confirm(`Повернути стандартне інтро для «${INTRO_NAMES[k]}»?`)) {
+        await fetch(`/api/intro/${k}`, { method: "DELETE" });
+        intros();
+      }
+    });
+    $("introFile").addEventListener("change", async () => {
+      const f = $("introFile").files[0];
+      $("introFile").value = "";
+      if (!f || !introFor) return;
+      const card = document.querySelector(`#intros [data-k="${introFor}"] .muted`);
+      card.textContent = "Завантажую…";
+      const r = await fetch(`/api/intro/${introFor}`, { method: "PUT", body: f });
+      if (!r.ok) return (card.textContent = (await r.json().catch(() => ({}))).error || "Не вдалося завантажити");
+      intros();
+    });
+    intros();
+
     if (info.local) {
       checkUpdate();
       setInterval(checkUpdate, 15 * 60e3);

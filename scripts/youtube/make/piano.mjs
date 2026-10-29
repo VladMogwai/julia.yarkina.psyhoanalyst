@@ -1,8 +1,9 @@
 // The intro's music as a MIDI file, timed to the animation in intro.mjs. Played by FluidSynth in lib.mjs.
 //
 // The notes live in music/*.json, made in the studio's music editor (/music); music/intro.json is the one in the intro.
-// A music file: { title, tracks: [{ name, program (General MIDI instrument), volume (0–127), pedal?: [s…],
+// A music file: { title, tracks: [{ name, program (General MIDI instrument), drums?: true, volume (0–127), pedal?: [s…],
 //   notes: [[start s, end s, note, velocity]…] }] }. The pedal is lifted and pressed again at each pedal time.
+// A drum track plays the General MIDI kit: each note number is a drum (36 kick, 38 snare, 42 hi-hat…).
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -21,8 +22,10 @@ const u32 = (n) => [n >>> 24, (n >> 16) & 255, (n >> 8) & 255, n & 255];
 
 export function writeMidi(path, music = loadMusic()) {
   const events = [];
-  music.tracks.forEach((t, i) => {
-    const ch = i < 9 ? i : i + 1; // channel 10 is drums in General MIDI
+  const melodic = [0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 13, 14, 15]; // channel 10 (9 here) is the drum kit in General MIDI
+  let next = 0;
+  music.tracks.forEach((t) => {
+    const ch = t.drums ? 9 : melodic[next++];
     events.push([0, [0xc0 | ch, t.program]], [0, [0xb0 | ch, 7, t.volume ?? 100]]);
     for (const [a, b, n, v] of t.notes) events.push([tick(a), [0x90 | ch, n, v]], [tick(b), [0x80 | ch, n, 0]]);
     (t.pedal || []).forEach((s, k) => {
